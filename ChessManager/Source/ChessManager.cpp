@@ -3,6 +3,7 @@
 #include "imgui_impl_opengl3.h"
 #include <GLFW/glfw3.h>
 
+
 int main()
 {
     // Initialize GLFW
@@ -49,6 +50,4 @@ int main()
     ImGui::DestroyContext();
     glfwDestroyWindow( window );
     glfwTerminate();
-
-    return 0;
 }

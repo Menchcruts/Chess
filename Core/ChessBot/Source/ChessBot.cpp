@@ -1,4 +1,4 @@
-#include "ChessBotLocal.h"
+#include "ChessBot.h"
 #include <iostream>
 
 namespace ChessBot 
