@@ -1,5 +1,4 @@
 #include "ChessBot.h"
-#include <iostream>
 
 namespace ChessBot 
 {

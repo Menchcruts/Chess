@@ -1,6 +1,3 @@
 #pragma once
-
-namespace Chess 
-{
-    void HelloWorld();
-}
+#include "Core/ChessCore.h"
+#include "Core/Pieces/Pieces.h"

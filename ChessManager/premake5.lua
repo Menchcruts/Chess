@@ -16,16 +16,24 @@ project "ChessManager"
         "../Core/ChessBotLocal/Source",
         "../Dependencies/GLFW/include",
         "../Dependencies/ImGui",
-        "../Dependencies/ImGui/backends"
+        "../Dependencies/ImGui/backends",
+        "../Dependencies/stb_image",
+        "../Dependencies/GLEW/include"
     }
 
     links
     {
         "GLFW",
+        "GLEW",
         "ImGui",
         "opengl32.lib",
         "Chess",
         "ChessBot"
+    }
+
+    defines
+    {
+        "GLEW_STATIC"
     }
 
     targetdir ("../bin/" .. OutputDir .. "/%{prj.name}")
