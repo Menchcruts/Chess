@@ -21,7 +21,7 @@ bool LoadImageData( std::filesystem::path FilePath, GLFWimage* OutImage, float S
     OutImage->width = width;
     OutImage->height = height;
     OutImage->pixels = data;
-    std::cout << "Loaded file: " << FilePath.string() << "\n";
+    std::cout << "Loaded image: " << FilePath.string() << "\n";
     return true;
 }
 

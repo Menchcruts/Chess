@@ -33,6 +33,39 @@ static std::string GetPieceFileName( Chess::PieceType Piece, Chess::Color Color 
     }
 }
 
+static std::string GetSquareName( int Square )
+{
+    if ( Square == -1 )
+        return "None";
+
+    int rank = Square >> 3;
+    int file = Square & 7;
+
+    const char* files = "abcdefgh";
+    const char* ranks = "12345678";
+
+    std::string result;
+    result += files[file];
+    result += ranks[rank];
+    return result;
+}
+
+static std::string GetCastlingString( Chess::CastlingRights Rights )
+{
+    switch ( Rights )
+    {
+    case Chess::CastlingRights::Kingside:
+        return "King side";
+    case Chess::CastlingRights::QueenSide:
+        return "Queen side";
+    case Chess::CastlingRights::BOTH:
+        return "Both";
+    case Chess::CastlingRights::None:
+    default:
+        return "None";
+    }
+}
+
 static std::string FormatMs( std::chrono::milliseconds time )
 {
     using namespace std::chrono;
@@ -51,6 +84,7 @@ static std::string FormatMs( std::chrono::milliseconds time )
     else
         return std::format( "{}:{:0>3}", s.count(), time.count() );
 }
+
 
 
 void ChessApp::DrawChessboardScreen()
@@ -75,9 +109,11 @@ void ChessApp::DrawChessboardScreen()
 void ChessApp::DrawChessBoard( ImDrawList* DrawList )
 {
     if ( ImGui::IsWindowFocused() && ImGui::IsMouseClicked( 0 ) )
-        m_SelectedSquares.clear();
+        m_BoardSettings.HighlightedSquares.clear();
 
     const int BoardSize = 8;
+
+    const Chess::Board& Board = m_Engine.GetBoard();
     
     ImVec2 p = ImGui::GetCursorScreenPos(); // Top-left corner of where we can draw inside the window
 
@@ -96,84 +132,118 @@ void ChessApp::DrawChessBoard( ImDrawList* DrawList )
             int row_inverted = 7 - row;
 
             int CurrSq = row_inverted * 8 + col;
-            Square Sq = m_Board[CurrSq];
-            Sq.Sq = CurrSq;
+            Chess::Piece Piece = Board[CurrSq];
 
             // Calculate the cell's corners
-            ImVec2 cellMin = ImVec2( p.x + col * m_CellSize, p.y + row * m_CellSize );
-            ImVec2 cellMax = ImVec2( cellMin.x + m_CellSize, cellMin.y + m_CellSize );
+            ImVec2 cellMin = ImVec2( p.x + col * m_BoardSettings.CellSize, p.y + row * m_BoardSettings.CellSize );
+            ImVec2 cellMax = ImVec2( cellMin.x + m_BoardSettings.CellSize, cellMin.y + m_BoardSettings.CellSize );
+
+            float MoveCircleRadius = 15.0f;
 
             ImGui::TableNextColumn();
 
-            ImGui::Dummy( ImVec2( m_CellSize, m_CellSize ) ); // Dummy widget to get hover states
+            ImGui::Dummy( ImVec2( m_BoardSettings.CellSize, m_BoardSettings.CellSize ) ); // Dummy widget to get hover states
             if ( ImGui::IsItemHovered() )
             {
-                HandleBoardClicks( Sq );
+                HandleBoardClicks( Piece, CurrSq );
+                MoveCircleRadius = 21.0f;
             }
-
+            
             // Draw the cell
             ImColor CellColor;
-            if ( CurrSq == m_SelectedSq )
-                CellColor = isDark ? m_EvenColorHighlight : m_OddColorHighlight;
-            else if ( m_SelectedSquares.contains( CurrSq ) )
-                CellColor = isDark ? m_EvenColorRed : m_OddColorRed;
+            if ( CurrSq == m_BoardSettings.SelectedSquare )
+                CellColor = isDark ? m_Colors.EvenColorHighlight : m_Colors.OddColorHighlight;
+            else if ( m_BoardSettings.HighlightedSquares.contains( CurrSq ) )
+                CellColor = isDark ? m_Colors.EvenColorRed : m_Colors.OddColorRed;
             else
-                CellColor = isDark ? m_EvenColor : m_OddColor;
+                CellColor = isDark ? m_Colors.EvenColor : m_Colors.OddColor;
 
             ImU32 col32 = CellColor;
             DrawList->AddRectFilled( cellMin, cellMax, col32 );
 
-            // No need to add a piece to the screen if there is no piece
-            if ( Sq.Piece.Type != Chess::PieceType::None && (!ImGui::IsMouseDown( 0 ) || CurrSq != m_SelectedSq) )
+            if ( CurrSq == 1 || CurrSq == 2 )
             {
-                Image image = m_PieceImages[(int)Sq.Piece.Color][Sq.Piece.Type];
-                DrawList->AddImage( image.Texture, cellMin, cellMax );
+                ImVec2 center = ImVec2( (cellMax.x - cellMin.x) / 2 + cellMin.x, (cellMax.y - cellMin.y) / 2 + cellMin.y );
+                DrawList->AddCircleFilled( center, MoveCircleRadius, (ImU32)ImColor( 95, 95, 95, 63 ) );
             }
+
+            // Draw the piece on the square
+            if ( Piece.color == Chess::Color::None || Piece.type == Chess::PieceType::None )
+                continue;
+
+            if ( CurrSq == m_BoardSettings.SelectedSquare && m_BoardSettings.PieceHeld.type != Chess::PieceType::None )
+                continue;   // No need to draw what is being held
+
+            const Image& image = m_PieceImages[(int)Piece.color][Piece.type];
+            DrawList->AddImage( image.Texture, cellMin, cellMax );
         }
     }
     ImGui::EndTable();
     ImGui::PopStyleVar();
 }
 
-void ChessApp::HandleBoardClicks( Square Sq )
+void ChessApp::HandleBoardClicks( Chess::Piece Piece, int CurrentSq )
 {
-    const int CurrentSq = Sq.Sq;
-    if ( ImGui::IsMouseClicked( 0 ) && Sq.Piece.Type != Chess::PieceType::None )
+    if ( ImGui::IsMouseClicked( 0 ) )
     {
-        std::cout << "Mouse down on " << CurrentSq << "\n";
-        if ( CurrentSq == m_SelectedSq )
-            m_SelectedPressed = true;
+        std::cout << "Mouse clicked on " << CurrentSq << "\n";
+        if ( m_BoardSettings.SelectedSquare != -1 && CurrentSq != m_BoardSettings.SelectedSquare )
+        {
+            if ( true ) // Future check for valid move
+            {
+                MakeMove( m_BoardSettings.SelectedSquare, CurrentSq );
+                m_BoardSettings.SelectedSquare = -1;
+            }
+            return;
+        }
+        
+        if ( !Piece.IsNullPiece() )
+        {
+            if ( CurrentSq == m_BoardSettings.SelectedSquare )
+                m_BoardSettings.SelectedPressed = true;
+            else
+                m_BoardSettings.SelectedSquare = CurrentSq;
+            m_BoardSettings.PieceHeld = Piece;
+        }
         else
-            m_SelectedSq = CurrentSq;
-        m_PieceHeld = Sq.Piece;
+        {
+            m_BoardSettings.SelectedSquare = -1;
+            m_BoardSettings.PieceHeld = Chess::Piece();
+        }
     }
     else if ( ImGui::IsMouseReleased( 0 ) )
     {
         std::cout << "Mouse released on " << CurrentSq << "\n";
 
-        if ( m_PieceHeld.Type != Chess::PieceType::None ) {}
+        if ( !m_BoardSettings.PieceHeld.IsNullPiece() && CurrentSq != m_BoardSettings.SelectedSquare )
+            if ( true ) // Future check for valid move
+            {
+                MakeMove( m_BoardSettings.SelectedSquare, CurrentSq );
+                m_BoardSettings.SelectedSquare = -1;
+                m_BoardSettings.SelectedPressed = false;
+            }
 
-        if ( m_SelectedPressed && CurrentSq == m_SelectedSq )
+        if ( m_BoardSettings.SelectedPressed && CurrentSq == m_BoardSettings.SelectedSquare )
         {
-            m_SelectedSq = -1;
-            m_SelectedPressed = false;
+            m_BoardSettings.SelectedSquare = -1;
+            m_BoardSettings.SelectedPressed = false;
         }
-        m_PieceHeld = Chess::Pieces::Piece();
+        m_BoardSettings.PieceHeld = Chess::Piece();
     }
     else if ( ImGui::IsMouseClicked( 1 ) )
     {
-        if ( m_SelectedSquares.contains( CurrentSq ) )
-            m_SelectedSquares.erase( CurrentSq );
+        if ( m_BoardSettings.HighlightedSquares.contains( CurrentSq ) )
+            m_BoardSettings.HighlightedSquares.erase( CurrentSq );
         else
-            m_SelectedSquares.insert( CurrentSq );
+            m_BoardSettings.HighlightedSquares.insert( CurrentSq );
     }
 }
 
 void ChessApp::DrawPieceSelected( ImDrawList* DrawList ) const
 {
-    if ( m_PieceHeld.Type != Chess::PieceType::None && ImGui::IsMouseDown( 0 ) )
+    if ( !m_BoardSettings.PieceHeld.IsNullPiece() && ImGui::IsMouseDown(0) )
     {
-        Image image = m_PieceImages[(int)m_PieceHeld.Color].at(m_PieceHeld.Type);   // Stupid en virkar
+        const Image& image = m_PieceImages[(int)m_BoardSettings.PieceHeld.color].at( m_BoardSettings.PieceHeld.type);   // Stupid en virkar
         ImVec2 MousePos = ImGui::GetMousePosOnOpeningCurrentPopup();
 
         ImVec2 UpLeft( MousePos.x - image.Width / 2, MousePos.y - image.Height / 2 );
@@ -181,6 +251,14 @@ void ChessApp::DrawPieceSelected( ImDrawList* DrawList ) const
 
         DrawList->AddImage( image.Texture, UpLeft, DownRight );
     }
+}
+
+void ChessApp::MakeMove( int Start, int Target )
+{
+    std::cout << "Move( " << Start << ", " << Target << " )\n";
+    m_Engine.MakeMove( Start, Target );
+    m_BoardSettings.EngineInfo = m_Engine.GetEngineInfo();  // Update info
+    m_SoundEngine->play2D( "Assets/Sounds/move-self.mp3" );
 }
 
 void ChessApp::DrawDebugScreen()
@@ -191,13 +269,13 @@ void ChessApp::DrawDebugScreen()
 
     ImGui::SeparatorText( "Basic Info" );
     ImGui::Text( "FPS: %f", ImGui::GetIO().Framerate );
-    if ( m_SelectedSq != -1 )
-        ImGui::Text( "Square selected: %d", m_SelectedSq );
+    if ( m_BoardSettings.SelectedSquare != -1 )
+        ImGui::Text( "Square selected: %d", m_BoardSettings.SelectedSquare );
     else
         ImGui::Text( "Square selected: None " );
 
     std::string PieceString;
-    switch ( m_PieceHeld.Type )
+    switch ( m_BoardSettings.PieceHeld.type )
     {
     case Chess::PieceType::None:
         PieceString = "None";
@@ -225,22 +303,39 @@ void ChessApp::DrawDebugScreen()
     }
     ImGui::Text( "Piece held: %s", PieceString.c_str() );
 
+    ImGui::SeparatorText( "Engine" );
+
+    ImGui::Text( "%s to play", m_BoardSettings.EngineInfo.WhiteToPlay ? "White" : "Black" );
+    ImGui::Text( "En Passant square: %s", GetSquareName(m_BoardSettings.EngineInfo.EnPassantSquare).c_str() );
+    ImGui::Text( "Fullmove clock: %d", m_BoardSettings.EngineInfo.FullmoveClock );
+    ImGui::Text( "Halfmove clock: %d", m_BoardSettings.EngineInfo.HalfmoveClock );
+    ImGui::Text( "White castling rights: %s", GetCastlingString( m_BoardSettings.EngineInfo.WhiteCastling ).c_str() );
+    ImGui::Text( "Black castling rights: %s", GetCastlingString( m_BoardSettings.EngineInfo.BlackCastling ).c_str() );
+
+    if ( ImGui::InputText( "Load new FEN position", m_BoardSettings.NewFen, IM_ARRAYSIZE( m_BoardSettings.NewFen ), ImGuiInputTextFlags_EnterReturnsTrue ) )
+    {
+        std::cout << "Loading FEN: " << m_BoardSettings.NewFen << "\n";
+        m_Engine.LoadFEN( std::string( m_BoardSettings.NewFen ) );
+        m_BoardSettings.EngineInfo = m_Engine.GetEngineInfo();
+        memset( m_BoardSettings.NewFen, 0, sizeof( m_BoardSettings.NewFen ) );
+    }
+
     ImGui::SeparatorText( "Chessboard Variables" );
 
-    ImGui::ColorEdit4( "Even Color", &m_EvenColor.Value.x );
-    ImGui::ColorEdit4( "Even Highlight", &m_EvenColorHighlight.Value.x );
-    ImGui::ColorEdit4( "Even Color Red", &m_EvenColorRed.Value.x );
+    ImGui::ColorEdit4( "Even Color", &m_Colors.EvenColor.Value.x );
+    ImGui::ColorEdit4( "Even Highlight", &m_Colors.EvenColorHighlight.Value.x );
+    ImGui::ColorEdit4( "Even Color Red", &m_Colors.EvenColorRed.Value.x );
 
-    ImGui::ColorEdit4( "Odd Color", &m_OddColor.Value.x );
-    ImGui::ColorEdit4( "Odd Highlight", &m_OddColorHighlight.Value.x );
-    ImGui::ColorEdit4( "Odd Color Red", &m_OddColorRed.Value.x );
+    ImGui::ColorEdit4( "Odd Color", &m_Colors.OddColor.Value.x );
+    ImGui::ColorEdit4( "Odd Highlight", &m_Colors.OddColorHighlight.Value.x );
+    ImGui::ColorEdit4( "Odd Color Red", &m_Colors.OddColorRed.Value.x );
 
-    ImGui::DragFloat( "Cell size", &m_CellSize, 1.f, 50.f, 150.f);
+    ImGui::DragFloat( "Cell size", &m_BoardSettings.CellSize, 1.f, 50.f, 150.f);
 
     ImGui::SeparatorText( "Testing" );
 
     std::string time_string = FormatMs( m_Clock.GetTimeLeft() );
-    ImGui::PushFont( m_Gabarito );
+    ImGui::PushFont( m_Fonts.Gabarito );
     ImGui::TextUnformatted( time_string.c_str() );
     ImGui::PopFont();
     m_Clock.Update();
@@ -258,9 +353,9 @@ void ChessApp::LoadFonts()
     fs::path LexendPath = fs::path( ".\\Assets\\Fonts\\Lexend\\static\\Lexend-Regular.ttf" );
     fs::path OutfitPath= fs::path( ".\\Assets\\Fonts\\Outfit\\static\\Outfit-Regular.ttf" );
 
-    m_Gabarito = io.Fonts->AddFontFromFileTTF( GabaritoPath.string().c_str(), 24.0f );
-    m_Lexend = io.Fonts->AddFontFromFileTTF( LexendPath.string().c_str(), 24.0f );
-    m_Outfit = io.Fonts->AddFontFromFileTTF( OutfitPath.string().c_str(), 24.0f );
+    m_Fonts.Gabarito = io.Fonts->AddFontFromFileTTF( GabaritoPath.string().c_str(), 24.0f );
+    m_Fonts.Lexend = io.Fonts->AddFontFromFileTTF( LexendPath.string().c_str(), 24.0f );
+    m_Fonts.Outfit = io.Fonts->AddFontFromFileTTF( OutfitPath.string().c_str(), 24.0f );
 }
 
 void ChessApp::LoadPieceImages()
@@ -283,11 +378,6 @@ void ChessApp::LoadPieceImages()
             m_PieceImages[c][piece] = image;
         }
     }
-}
-
-void ChessApp::tempLoadBoard()
-{
-    m_Board[0] = Square( Chess::Color::White, Chess::PieceType::King );
 }
 
 void ChessApp::SetupDockspace()
@@ -378,16 +468,23 @@ ChessApp::ChessApp()
 
     printf( "OpenGL version: %s\n", glGetString( GL_VERSION ) );
 
+    m_SoundEngine = irrklang::createIrrKlangDevice();
+
     m_Clock.SetTimeLeft( 3620000ms );
 
     LoadFonts();
     LoadPieceImages();
-    tempLoadBoard();
+
+    m_Engine.LoadFEN( "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" );
+    m_BoardSettings.EngineInfo = m_Engine.GetEngineInfo();
 }
 
 ChessApp::~ChessApp()
 {
     // Cleanup
+
+    m_SoundEngine->drop();
+
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
@@ -414,16 +511,7 @@ void ChessApp::Run()
 
         DrawDebugScreen();
 
-        //ImGui::ShowDemoWindow();
-
-        // Example windows
-        ImGui::Begin( "Example Window 1" );
-        ImGui::Text( "This window can be docked or undocked." );
-        ImGui::End();
-
-        ImGui::Begin( "Example Window 2" );
-        ImGui::Text( "Drag me around, dock me, or even pop me out!" );
-        ImGui::End();
+        //1ImGui::ShowDemoWindow();
 
         DrawChessboardScreen();
 

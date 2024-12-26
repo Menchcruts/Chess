@@ -5,6 +5,8 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
+#include "irrKlang.h"
+
 #include "Chess.h"
 #include <chrono>
 #include <array>
@@ -13,56 +15,70 @@
 #include "Images/Images.h"
 
 #include "Clock.h"
-#include "Square.h"
 
 
-using namespace std::chrono_literals;
+struct AppColors
+{
+	ImColor EvenColor{ 115, 149, 82 };			// 'Dark' color
+	ImColor EvenColorHighlight{ 186, 203, 67 };	// 'Dark' color highlight
+	ImColor EvenColorRed{ 211, 108, 80 };		// 'Dark' color red
+
+	ImColor OddColor{ 235, 236, 208 };			// 'Light' color
+	ImColor OddColorHighlight{ 246, 246, 130 };	// 'Light' color highlight
+	ImColor OddColorRed{ 235, 125, 106 };		// 'Light' color red
+};
+
+struct BoardSettings
+{
+	float CellSize = 100.0f;
+	int SelectedSquare = -1;
+	bool SelectedPressed = false;
+	Chess::Piece PieceHeld{ };
+	std::unordered_set<int> HighlightedSquares;
+	int LastMove[2] = { -1, -1 };
+	char NewFen[128] = "";
+	Chess::Engine::EngineInfo EngineInfo;
+};
+
+struct AppFonts
+{
+	ImFont* Gabarito;
+	ImFont* Lexend;
+	ImFont* Outfit;
+};
 
 
 class ChessApp
 {
 private:
 	GLFWwindow* m_Window;
+	irrklang::ISoundEngine* m_SoundEngine;
 
 	bool m_EnableViewports = true;
 	
-	// Chessboard variables
-	ImColor m_EvenColor = ImColor( 115, 149, 82 );			// 'Dark' color
-	ImColor m_EvenColorHighlight = ImColor( 186, 203, 67 );	// 'Dark' color highlight
-	ImColor m_EvenColorRed = ImColor( 211, 108, 80 );		// 'Dark' color red
-
-	ImColor m_OddColor = ImColor( 235, 236, 208 );			// 'Light' color
-	ImColor m_OddColorHighlight = ImColor( 246, 246, 130 );	// 'Light' color highlight
-	ImColor m_OddColorRed = ImColor(235, 125, 106);			// 'Light' color red
-
-	float m_CellSize = 100.f;
 	Clock m_Clock;
+	// Chessboard variables
+	AppColors m_Colors;
 
-	int m_SelectedSq = -1;
-	bool m_SelectedPressed = false;
-	Chess::Pieces::Piece m_PieceHeld{ };
+	BoardSettings m_BoardSettings;
 
-	std::array<Square, 64> m_Board{ };
-
-	std::unordered_set<int> m_SelectedSquares;
-
+	Chess::Engine m_Engine;
+	
 	std::array<std::unordered_map<Chess::PieceType, Image>, 2> m_PieceImages;
 
-	ImFont* m_Gabarito;
-	ImFont* m_Lexend;
-	ImFont* m_Outfit;
-	
+	AppFonts m_Fonts;
+
 private:
 	void LoadFonts();
 	void LoadPieceImages();
-	void tempLoadBoard();
 
 	void SetupDockspace();
 	
 	void DrawChessboardScreen();
 	void DrawChessBoard( ImDrawList* DrawList );
-	void HandleBoardClicks( Square Sq );
+	void HandleBoardClicks( Chess::Piece Piece, int CurrentSq );
 	void DrawPieceSelected(ImDrawList* DrawList) const;
+	void MakeMove(int Start, int Target);
 
 	void DrawDebugScreen();
 
