@@ -98,7 +98,7 @@ void ChessApp::DrawChessboardScreen()
 
     // Get the current ImGui window's drawing list and draw the board
     ImDrawList* drawList = ImGui::GetWindowDrawList();
-    DrawChessBoard( drawList );
+    DrawChessBoard();
 
     // Draw the selected piece on the mouse
     DrawPieceSelected( drawList );
@@ -106,7 +106,7 @@ void ChessApp::DrawChessboardScreen()
     ImGui::End();
 }
 
-void ChessApp::DrawChessBoard( ImDrawList* DrawList )
+void ChessApp::DrawChessBoard()
 {
     if ( ImGui::IsWindowFocused() && ImGui::IsMouseClicked( 0 ) )
         m_BoardSettings.HighlightedSquares.clear();
@@ -134,22 +134,6 @@ void ChessApp::DrawChessBoard( ImDrawList* DrawList )
             int CurrSq = row_inverted * 8 + col;
             Chess::Piece Piece = Board[CurrSq];
 
-            // Calculate the cell's corners
-            ImVec2 cellMin = ImVec2( p.x + col * m_BoardSettings.CellSize, p.y + row * m_BoardSettings.CellSize );
-            ImVec2 cellMax = ImVec2( cellMin.x + m_BoardSettings.CellSize, cellMin.y + m_BoardSettings.CellSize );
-
-            float MoveCircleRadius = 15.0f;
-
-            ImGui::TableNextColumn();
-
-            ImGui::Dummy( ImVec2( m_BoardSettings.CellSize, m_BoardSettings.CellSize ) ); // Dummy widget to get hover states
-            if ( ImGui::IsItemHovered() )
-            {
-                HandleBoardClicks( Piece, CurrSq );
-                MoveCircleRadius = 21.0f;
-            }
-            
-            // Draw the cell
             ImColor CellColor;
             if ( CurrSq == m_BoardSettings.SelectedSquare )
                 CellColor = isDark ? m_Colors.EvenColorHighlight : m_Colors.OddColorHighlight;
@@ -158,24 +142,32 @@ void ChessApp::DrawChessBoard( ImDrawList* DrawList )
             else
                 CellColor = isDark ? m_Colors.EvenColor : m_Colors.OddColor;
 
-            ImU32 col32 = CellColor;
-            DrawList->AddRectFilled( cellMin, cellMax, col32 );
+            ImU32 CellCol32 = CellColor;
 
-            if ( CurrSq == 1 || CurrSq == 2 )
+            float MoveCircleRadius = 15.0f;
+
+            ImGui::TableNextColumn();
+            //ImGui::TableSetColumnIndex( col ); // Virkar ekki af einhverjum ástæðum?
+
+            if (
+                (Piece.IsNullPiece()) ||
+                (CurrSq == m_BoardSettings.SelectedSquare && m_BoardSettings.PieceHeld.type != Chess::PieceType::None)
+                )   // Þetta er hræðilegt if statement
             {
-                ImVec2 center = ImVec2( (cellMax.x - cellMin.x) / 2 + cellMin.x, (cellMax.y - cellMin.y) / 2 + cellMin.y );
-                DrawList->AddCircleFilled( center, MoveCircleRadius, (ImU32)ImColor( 95, 95, 95, 63 ) );
+                ImGui::Dummy( ImVec2( m_BoardSettings.CellSize, m_BoardSettings.CellSize ) ); // Dummy widget fyrir mouse clicks
+            }
+            else
+            {
+                const Image& image = m_PieceImages[(int)Piece.color][Piece.type];
+                ImGui::Image( image.Texture, ImVec2( (float)image.Width, (float)image.Height ) );   // Annars teiknum við myndina
+            }
+            if ( ImGui::IsItemHovered() )
+            {
+                HandleBoardClicks( Piece, CurrSq );
+                MoveCircleRadius = 21.0f;
             }
 
-            // Draw the piece on the square
-            if ( Piece.color == Chess::Color::None || Piece.type == Chess::PieceType::None )
-                continue;
-
-            if ( CurrSq == m_BoardSettings.SelectedSquare && m_BoardSettings.PieceHeld.type != Chess::PieceType::None )
-                continue;   // No need to draw what is being held
-
-            const Image& image = m_PieceImages[(int)Piece.color][Piece.type];
-            DrawList->AddImage( image.Texture, cellMin, cellMax );
+            ImGui::TableSetBgColor( ImGuiTableBgTarget_CellBg, CellCol32 );
         }
     }
     ImGui::EndTable();

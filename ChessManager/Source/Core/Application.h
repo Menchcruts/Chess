@@ -75,7 +75,7 @@ private:
 	void SetupDockspace();
 	
 	void DrawChessboardScreen();
-	void DrawChessBoard( ImDrawList* DrawList );
+	void DrawChessBoard( );
 	void HandleBoardClicks( Chess::Piece Piece, int CurrentSq );
 	void DrawPieceSelected(ImDrawList* DrawList) const;
 	void MakeMove(int Start, int Target);
