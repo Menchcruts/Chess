@@ -20,6 +20,7 @@
 *.userprefs
 *.gif
 */irrKlang-64bit-1.6.0/doc/
+__IGNORE__*
 
 # Mono auto generated files
 mono_crash.*
