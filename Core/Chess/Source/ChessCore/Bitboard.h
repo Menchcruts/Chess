@@ -1,11 +1,40 @@
 #pragma once
-#include <stdint.h>
+#include <cstdint>
+#include "Pieces.h"
 
-struct Bitboard
+namespace Chess
 {
-	uint64_t m_Bitboard;
+	struct Bitboard
+	{
+		std::uint64_t m_Bitboard;
 
-	bool IsOccupied( int Square ) const;
-	void RemoveBit( int Square );
-	void AddBit( int Square );
-};
+		bool IsOccupied( int Square ) const;
+		void RemoveBit( int Square );
+		void AddBit( int Square );
+	};
+
+
+	struct Bitboards
+	{
+		Bitboard KingWhite;
+		Bitboard KingBlack;
+
+		Bitboard PawnWhite;
+		Bitboard PawnBlack;
+
+		Bitboard KnightWhite;
+		Bitboard KnightBlack;
+
+		Bitboard BishopWhite;
+		Bitboard BishopBlack;
+
+		Bitboard RookWhite;
+		Bitboard RookBlack;
+
+		Bitboard QueenWhite;
+		Bitboard QueenBlack;
+
+		void AddBit( int Square, ChessPiece piece );
+		void RemoveBit( int Square, ChessPiece piece );
+	};
+}
