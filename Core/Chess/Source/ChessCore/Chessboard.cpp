@@ -160,7 +160,7 @@ namespace Chess
         //std::cout << "Moves finished generating!\n";
     }
 
-    int Chessboard::Perft( int Depth )
+    int Chessboard::Perft( int Depth, bool FirstPass )
     {
         if ( Depth < 0 )
             throw std::exception( "wtf bro | Depth parameter for method Chessboard::Perft( int Depth ) cannot be negative." );
@@ -169,13 +169,27 @@ namespace Chess
             return 1;
 
         int n_nodes = 0;
+        int move_nodes = 0;
         std::vector<Move> Moves = m_LegalMoves;
 
         for ( const auto& move : Moves )
         {
             MakeMove( move );
-            n_nodes += Perft( Depth - 1 );
-            UnMakeMove();
+            if ( !FirstPass )
+            {
+                n_nodes += Perft( Depth - 1, false );
+                UnMakeMove();
+            }
+            else
+            {
+                move_nodes = Perft( Depth - 1, false );
+
+                std::string move_repr = move.GetRepr();
+                std::cout << move_repr << ": " << move_nodes << "\n";
+
+                n_nodes += move_nodes;
+                UnMakeMove();
+            }
         }
 
         return n_nodes;
@@ -566,6 +580,6 @@ namespace Chess
 
     int Chessboard::RunPerft( int Depth )
     {
-        return Perft( Depth );
+        return Perft( Depth, true );
     }
 }

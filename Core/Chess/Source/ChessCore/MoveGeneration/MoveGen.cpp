@@ -265,7 +265,7 @@ namespace Chess::MoveGen::Pawn
         // Double push
         CurrentSquare += Forward;
         NewSquare = CurrentSquare.AsSquare();
-        if ( AtStartRank && !FirstPushBlocked && (NotPinned || PinRays.IsOccupied( NewSquare )) )
+        if ( AtStartRank && !(AllPieces.IsOccupied( NewSquare )) && !FirstPushBlocked && (NotPinned || PinRays.IsOccupied( NewSquare )) )
         {
             result.emplace( Square, NewSquare, MoveFlag::DoublePawnMove );
         }

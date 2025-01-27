@@ -76,7 +76,7 @@ namespace Chess
 		void PromotePiece( int Square, PieceType NewType );
 
 		void GenerateMoves();
-		int Perft( int Depth );
+		int Perft( int Depth, bool FirstPass );
 
 	public:
 		Chessboard();

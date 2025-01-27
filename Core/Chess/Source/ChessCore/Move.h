@@ -1,6 +1,7 @@
 #pragma once
 #include <functional>
 #include <cstdint>
+#include <string>
 
 namespace Chess
 {
@@ -62,6 +63,7 @@ namespace Chess
 		MoveFlag Flag() const;
 
 		void Print() const;
+		std::string GetRepr() const;
 
 		bool IsNullMove() const;
 		bool operator==( const Move& other ) const;

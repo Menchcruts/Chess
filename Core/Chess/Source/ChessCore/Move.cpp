@@ -72,6 +72,24 @@ namespace Chess
         std::cout << "Move( " << Start() << ", " << Target() << ", " << flag_string << " )\n";
     }
 
+    std::string Move::GetRepr() const
+    {
+        const char* files = "abcdefgh";
+        const char* ranks = "12345678";
+
+        short start = Start();
+        short start_rank = start >> 3;
+        short start_file = start & 7;
+
+        short target = Target();
+        short target_rank = target >> 3;
+        short target_file = target & 7;
+
+        std::string result = { files[start_file], ranks[start_rank], files[target_file], ranks[target_rank] };
+
+        return result;
+    }
+
     Move::Move( int start, int target, MoveFlag flag )
     {
         MoveInfo |= (start);

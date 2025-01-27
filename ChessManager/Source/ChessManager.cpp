@@ -5,8 +5,8 @@
 
 int main()
 {
-    ChessApp App;
-    App.Run();
+    /*ChessApp App;
+    App.Run();*/
 
     std::cout << "\n\n\nRunning Perft benchmark...\n";
     Chess::Chessboard Board;
