@@ -13,6 +13,9 @@ namespace Chess
 		ChessPiece( Chess::Color color, Chess::PieceType type );
 
 		bool IsNullPiece() const;
+		bool IsSlidingPiece() const;
+		bool IsDiagonalMoving() const;
+
 		void MakeNullPiece();
 		std::string GetPieceRepr() const;
 	};

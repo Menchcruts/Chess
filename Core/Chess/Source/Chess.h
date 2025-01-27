@@ -3,3 +3,4 @@
 #include "ChessCore/Chessboard.h"
 #include "ChessCore/Pieces.h"
 #include "ChessCore/Move.h"
+#include "ChessCore/CastlingRights.h"

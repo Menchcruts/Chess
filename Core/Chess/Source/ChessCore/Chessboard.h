@@ -6,40 +6,27 @@
 #include "Bitboard.h"
 #include "Pieces.h"
 #include "Move.h"
+#include "CastlingRights.h"
+#include "MoveGeneration/MoveGen.h"
 
 
 namespace Chess
 {
-	enum class CastlingRights
-	{
-		None = 0,		// 00 - No castling rights
-		Kingside = 1,	// 01 - Can castle king side
-		QueenSide = 2,	// 10 - Can castle queen side
-		Both = 3		// 11 - Can castle both ways
-	};
-
-	CastlingRights operator |( CastlingRights a, CastlingRights b );
-	CastlingRights operator &( CastlingRights a, CastlingRights b );
-	CastlingRights operator ^( CastlingRights a, CastlingRights b );
-	CastlingRights& operator |=( CastlingRights& a, CastlingRights b );
-	CastlingRights& operator &=( CastlingRights& a, CastlingRights b );
-	CastlingRights& operator ^=( CastlingRights& a, CastlingRights b );
-
-
 	class Chessboard
 	{
 	public:
 		struct BoardInfo
 		{
-			std::unordered_set<Move> _LegalMoves;
+			std::vector<Move> _LegalMoves;
 			Bitboards _Bitboards{ };
-			std::array<ChessPiece, 64> _Board{ };
 			bool _WhiteToPlay = true;
-			int _EnPassantSquare = -1;
-			int _FullmoveClock = 1;
-			int _HalfmoveClock = 0;
+			short _EnPassantSquare = -1;
+			short _FullmoveClock = 1;
+			short _HalfmoveClock = 0;
 			CastlingRights _WhiteCastling = CastlingRights::Both;
 			CastlingRights _BlackCastling = CastlingRights::Both;
+			short _WhiteKingPos = -1;
+			short _BlackKingPos = -1;
 		};
 
 	private:
@@ -52,36 +39,54 @@ namespace Chess
 
 	private:
 		std::vector<Move> m_MoveHistory;
-		std::unordered_set<Move> m_LegalMoves;
+		std::vector<Move> m_LegalMoves;
+
+		std::unordered_set<short> m_WhitePositions;
+		std::unordered_set<short> m_BlackPositions;
 
 		Bitboards m_Bitboards{ };
-		std::array<ChessPiece, 64> m_Board{ };
-
-		bool m_WhiteToPlay;
-		short m_EnPassantSquare;
-		int m_FullmoveClock;
+		Bitboard m_AttackMask;
 
 		CastlingRights m_WhiteCastling;
 		CastlingRights m_BlackCastling;
 
+		short m_EnPassantSquare;
 		short m_HalfmoveClock;
-		std::vector<ChessPiece> m_PieceHistory;
+		short m_FullmoveClock;
 
+		short m_WhiteKingPos = -1;
+		short m_BlackKingPos = -1;
+
+		bool m_WhiteToPlay = true;
+		
+		bool m_InCheck = false;
+		bool m_InDoubleCheck = false;
+		bool m_EnPassantBlocked = false;
+
+		Bitboard m_PinMask;
+		Bitboard m_CheckMask;
+
+		std::vector<ChessPiece> m_PieceHistory;
 		std::vector<SpecialInfo> m_InfoHistory;
 
 	private:
-		ChessPiece& AddPiece( int Square, Color color, PieceType type );
+		void AddPiece( int Square, Color color, PieceType type );
 		void RemovePiece( int Square );
 		void MovePiece( int Start, int Target );
+		void PromotePiece( int Square, PieceType NewType );
 
 		void GenerateMoves();
+		int Perft( int Depth );
 
 	public:
 		Chessboard();
+		Chessboard( const std::string& FEN_Pos );
 		BoardInfo GetBoardInfo() const;
 		void LoadFEN( const std::string& FEN_Pos );
 		void MakeMove( Move move );
 		void UnMakeMove();
+		Move GetLastMove() const;
 
+		int RunPerft( int Depth );
 	};
 }

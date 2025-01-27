@@ -10,6 +10,16 @@ namespace Chess
 		return type == PieceType::None || color == Color::None;
 	}
 
+    bool ChessPiece::IsSlidingPiece() const
+    {
+        return type == PieceType::Queen || type == PieceType::Rook || type == PieceType::Bishop;
+    }
+
+    bool ChessPiece::IsDiagonalMoving() const
+    {
+        return type == PieceType::Queen || type == PieceType::Bishop;
+    }
+
 	void ChessPiece::MakeNullPiece()
 	{
 		color = Color::None;

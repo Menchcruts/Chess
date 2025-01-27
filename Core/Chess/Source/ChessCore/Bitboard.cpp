@@ -1,23 +1,27 @@
 #include "Bitboard.h"
 
 namespace Chess
-{    
-    bool Bitboard::IsOccupied( int Square ) const
+{
+    void Bitboards::Reset()
     {
-        return 1ULL << Square & m_Bitboard;
+        KingWhite = 0;
+        KingBlack = 0;
+
+        PawnWhite = 0;
+        PawnBlack = 0;
+
+        KnightWhite = 0;
+        KnightBlack = 0;
+
+        BishopWhite = 0;
+        BishopBlack = 0;
+
+        RookWhite = 0;
+        RookBlack = 0;
+
+        QueenWhite = 0;
+        QueenBlack = 0;
     }
-
-    void Bitboard::RemoveBit( int Square )
-    {
-        m_Bitboard ^= 1ULL << Square;
-    }
-
-    void Bitboard::AddBit( int Square )
-    {
-        m_Bitboard |= 1ULL << Square;
-    }
-
-
     void Bitboards::AddBit( int Square, ChessPiece piece )
     {
         const bool isWhite = piece.color == Color::White;
@@ -74,5 +78,48 @@ namespace Chess
         default:
             break;
         }
+    }
+    ChessPiece Bitboards::GetPieceAtSquare( int Square ) const
+    {
+        if ( KingWhite.IsOccupied(Square) )
+            return ChessPiece( Color::White, PieceType::King );
+        else if ( KingBlack.IsOccupied( Square ) )
+            return ChessPiece( Color::Black, PieceType::King );
+
+        else if ( PawnWhite.IsOccupied( Square ) )
+            return ChessPiece( Color::White, PieceType::Pawn );
+        else if ( PawnBlack.IsOccupied( Square ) )
+            return ChessPiece( Color::Black, PieceType::Pawn );
+
+        else if ( KnightWhite.IsOccupied( Square ) )
+            return ChessPiece( Color::White, PieceType::Knight );
+        else if ( KnightBlack.IsOccupied( Square ) )
+            return ChessPiece( Color::Black, PieceType::Knight );
+
+        else if ( BishopWhite.IsOccupied( Square ) )
+            return ChessPiece( Color::White, PieceType::Bishop );
+        else if ( BishopBlack.IsOccupied( Square ) )
+            return ChessPiece( Color::Black, PieceType::Bishop );
+
+        else if ( RookWhite.IsOccupied( Square ) )
+            return ChessPiece( Color::White, PieceType::Rook );
+        else if ( RookBlack.IsOccupied( Square ) )
+            return ChessPiece( Color::Black, PieceType::Rook );
+
+        else if ( QueenWhite.IsOccupied( Square ) )
+            return ChessPiece( Color::White, PieceType::Queen );
+        else if ( QueenBlack.IsOccupied( Square ) )
+            return ChessPiece( Color::Black, PieceType::Queen );
+
+        return ChessPiece();    // No piece on the square
+    }
+    Bitboard Bitboards::GetColorMask( Color color ) const
+    {
+        if ( color == Color::White )
+            return KingWhite | PawnWhite | KnightWhite | BishopWhite | RookWhite | QueenWhite;
+        else if ( color == Color::Black )
+            return KingBlack | PawnBlack | KnightBlack | BishopBlack | RookBlack | QueenBlack;
+        else
+            return Bitboard();
     }
 }
