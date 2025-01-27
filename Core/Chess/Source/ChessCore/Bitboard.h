@@ -101,6 +101,20 @@ namespace Chess
 		}
 	};
 
+	constexpr int BitscanForward( Bitboard& BB )
+	{
+		if ( BB.m_Bitboard == 0 )
+			return -1;
+
+		const Bitboard Bit = 1;
+		int position = 0;
+		while ( !(BB & Bit) )
+		{
+			BB >>= 1;
+			++position;
+		}
+		return position;
+	}
 
 	struct Bitboards
 	{
