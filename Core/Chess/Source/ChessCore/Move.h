@@ -26,10 +26,24 @@ namespace Chess
 		PromoteQueenCapture		= PromoteQueen	| Capture
 	};
 
-	MoveFlag operator |( MoveFlag right, MoveFlag left );
-	MoveFlag operator &( MoveFlag right, MoveFlag left );
-	MoveFlag& operator |=( MoveFlag& right, MoveFlag left );
-	MoveFlag& operator &=( MoveFlag& right, MoveFlag left );
+	constexpr inline MoveFlag operator |( MoveFlag right, MoveFlag left )
+	{
+		return static_cast<MoveFlag>(static_cast<int>(right) | static_cast<int>(left));
+	}
+	constexpr inline MoveFlag operator &( MoveFlag right, MoveFlag left )
+	{
+		return static_cast<MoveFlag>(static_cast<int>(right) & static_cast<int>(left));
+	}
+	constexpr inline MoveFlag& operator |=( MoveFlag& right, MoveFlag left )
+	{
+		right = right | left;
+		return right;
+	}
+	constexpr inline MoveFlag& operator &=( MoveFlag& right, MoveFlag left )
+	{
+		right = right & left;
+		return right;
+	}
 
 
 	/*
@@ -40,12 +54,16 @@ namespace Chess
 	{
 		uint16_t MoveInfo = 0;
 
+		Move() = default;
+		Move( int start, int target, MoveFlag flag = MoveFlag::None );
+
 		int Start() const;
 		int Target() const;
 		MoveFlag Flag() const;
 
-		Move( int start, int target, MoveFlag flag = MoveFlag::None );
+		void Print() const;
 
+		bool IsNullMove() const;
 		bool operator==( const Move& other ) const;
 	};
 }

@@ -3,8 +3,7 @@
 
 struct Clock
 {
-	std::chrono::steady_clock::duration TimeLeft = std::chrono::milliseconds( 3661000 );	// 01:01:01
-	//std::chrono::milliseconds TimeLeft = std::chrono::milliseconds( 3661000 ); // 01:01:01
+	std::chrono::steady_clock::duration TimeLeft = std::chrono::milliseconds( 600000 );	// Defaults to 10 minutes
 	std::chrono::steady_clock::time_point LastPoll = std::chrono::steady_clock::now();
 
 

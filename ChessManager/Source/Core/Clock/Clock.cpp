@@ -9,7 +9,6 @@ Clock::Clock( std::chrono::milliseconds StartTime ) : TimeLeft(StartTime)
 
 void Clock::SetTimeLeft( std::chrono::milliseconds Time )
 {
-    //std::cout << "Set time left to " << Time << "\n";
     TimeLeft = Time;
     UpdateLastPoll();
 }
@@ -17,7 +16,6 @@ void Clock::SetTimeLeft( std::chrono::milliseconds Time )
 std::chrono::milliseconds Clock::GetTimeLeft() const
 {
     using namespace std::chrono;
-    //std::cout << "Time left: " << TimeLeft << "\n";
     return duration_cast<milliseconds>(TimeLeft);
 }
 
@@ -28,7 +26,6 @@ void Clock::Update()
     auto now = steady_clock::now();
     TimeLeft -= (now - LastPoll);
     LastPoll = now;
-    //std::cout << "Updated time: " << TimeLeft << "\n";
 }
 
 /* Update the timer and return time left */

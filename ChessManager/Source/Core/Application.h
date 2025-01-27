@@ -20,7 +20,7 @@
 class ChessApp
 {
 	struct AppColors
-	{
+	{		
 		ImColor EvenColor{ 115, 149, 82 };			// 'Dark' color
 		ImColor EvenColorHighlight{ 186, 203, 67 };	// 'Dark' color highlight
 		ImColor EvenColorRed{ 211, 108, 80 };		// 'Dark' color red
@@ -30,25 +30,9 @@ class ChessApp
 		ImColor OddColorRed{ 235, 125, 106 };		// 'Light' color red
 	};
 
-	struct BoardSettings
-	{
-		int NewWhiteTime = 0;
-		int NewBlackTime = 0;
-		float CellSize = 100.0f;
-		int SelectedSquare = -1;
-		Chess::ChessPiece PieceHeld{ };
-		bool SelectedPressed = false;
-		bool FlipBoard = false;
-		bool AutoFlip = false;
-		bool GameStarted = false;
-		std::unordered_set<int> HighlightedSquares;
-		char NewFen[128] = "";
-		//Chess::Engine::EngineInfo EngineInfo;
-		Chess::Chessboard::BoardInfo BoardInfo;
-	};
-
 	struct AppFonts
 	{
+		ImFont* Noto_Sans = nullptr;
 		ImFont* Gabarito = nullptr;
 		ImFont* Lexend = nullptr;
 		ImFont* Outfit = nullptr;
@@ -58,6 +42,46 @@ class ChessApp
 	{
 		AppColors Colors;
 		AppFonts Fonts;
+	};
+
+
+	struct MoveHandling
+	{
+		short SelectedSquare = -1;
+		bool SelectedPressed = false;
+		Chess::ChessPiece PieceHeld = Chess::ChessPiece();
+	};
+
+	struct BoardVariables
+	{
+		Chess::Chessboard::BoardInfo BoardInfo;
+		char NewFen[128] = "";
+		int NewWhiteTime = 0;
+		int NewBlackTime = 0;
+		Chess::Move NextMove;
+		bool GameStarted = false;
+	};
+
+	struct BoardVisuals
+	{
+		std::unordered_set<int> HighlightedSquares;
+		float CellSize = 100.0f;
+		Chess::Move LastMove;
+		bool FlipBoard = false;
+		bool AutoFlip = false;
+	};
+
+	struct PromotionHandling
+	{
+		bool Promoting = false;
+		ImVec2 PromotionScreenPos;
+		Chess::PieceType PromotionType = Chess::PieceType::None;
+	};
+
+	struct LegalMovesInfo
+	{
+		std::unordered_set<Chess::Move> Moves;
+		std::unordered_set<int> Targets;
 	};
 
 private:
@@ -71,10 +95,14 @@ private:
 	Clock m_WhiteClock;
 	Clock m_BlackClock;
 
-	BoardSettings m_BoardSettings;
+	BoardVariables m_BoardVariables;
+	BoardVisuals m_BoardVisuals;
+	MoveHandling m_MoveHandling;
+	PromotionHandling m_PromotionHandling;
 
-	//Chess::Engine m_Engine;
-	Chess::Chessboard m_Chessboard;
+	std::unordered_map<int, LegalMovesInfo> m_LegalMovesDict;	// Moves are mapped with start -> set of moves
+
+	Chess::Chessboard m_Chessboard/* = Chess::Chessboard( "R1r4k/6b1/8/4Q3/2N5/2K5/8/8 w - - 0 1" )*/;
 	
 	std::array<std::unordered_map<Chess::PieceType, Image>, 2> m_PieceImages;
 
@@ -87,13 +115,20 @@ private:
 	void DrawChessboardScreen();
 	void DrawChessBoard( );
 	void DrawChessBoardFlipped();
+	void DrawPieceSelected(ImDrawList* DrawList) const;
+	void DrawLegalTargets( ImDrawList* DrawList ) const;
 
 	void HandleBoardClicks( Chess::ChessPiece Piece, int CurrentSq );
-	void DrawPieceSelected(ImDrawList* DrawList) const;
-	void MakeMove( int Start, int Target, Chess::MoveFlag flag = Chess::MoveFlag::None );
+	Chess::Move IsValidMove( int Start, int Target ) const;
+	void PromoteScreen( );
+	void MakeMove( );
+	void UnMakeMove();
 
 	void DrawDebugScreen();
 	void ResetBoard();
+
+	void UpdateBoardInfo();
+	void CreateMoveDict();
 
 public:
 	ChessApp();

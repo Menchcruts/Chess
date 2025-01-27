@@ -50,16 +50,16 @@ project "ChessManager"
         defines { "WINDOWS" }
         postbuildcommands 
         { 
-            "{COPY} ../Dependencies/irrKlang-64bit-1.6.0/bin/winx64-visualStudio/irrKlang.dll %{cfg.targetdir}",
-            "{COPY} ../Dependencies/irrKlang-64bit-1.6.0/bin/winx64-visualStudio/ikpMP3.dll %{cfg.targetdir}"
+            "{COPY} ../Dependencies/irrKlang-64bit-1.6.0/dlls/winx64-visualStudio/irrKlang.dll %{cfg.targetdir}",
+            "{COPY} ../Dependencies/irrKlang-64bit-1.6.0/dlls/winx64-visualStudio/ikpMP3.dll %{cfg.targetdir}"
         }
 
     filter "system:linux"
         defines { "LINUX" }
         postbuildcommands 
         { 
-            "{COPY} ../Dependencies/irrKlang-64bit-1.6.0/bin/linux-gcc-64/libIrrKlang.so %{cfg.targetdir}",
-            "{COPY} ../Dependencies/irrKlang-64bit-1.6.0/bin/linux-gcc-64/ikpMP3.so %{cfg.targetdir}"
+            "{COPY} ../Dependencies/irrKlang-64bit-1.6.0/dlls/linux-gcc-64/libIrrKlang.so %{cfg.targetdir}",
+            "{COPY} ../Dependencies/irrKlang-64bit-1.6.0/dlls/linux-gcc-64/ikpMP3.so %{cfg.targetdir}"
         }
 
     filter "configurations:Debug"
