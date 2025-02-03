@@ -851,7 +851,7 @@ void ChessApp::DrawBitboardScreen()
 
 void ChessApp::StartPerftTest()
 {
-    m_PerftSettings.Result = 0;
+    m_PerftSettings.Result = PerftResult();
     m_PerftSettings.ShowScreen = true;
     m_PerftSettings.CancelSearch = false;
 
@@ -863,18 +863,25 @@ void ChessApp::StartPerftTest()
         [this]()
         {
             Chess::Chessboard TestBoard = Chess::Chessboard( this->m_Chessboard );
-            this->m_PerftSettings.Result = PerftTest( TestBoard, this->m_PerftSettings.InitalDepth, &this->m_PerftSettings.CancelSearch, this->m_PerftSettings.Verbose );
+            this->m_PerftSettings.Result.Nodes = PerftTest( TestBoard, this->m_PerftSettings.InitalDepth, &this->m_PerftSettings.CancelSearch, this->m_PerftSettings.Verbose, &this->m_PerftSettings.Result );
             this->m_PerftSettings.Running = false;
             this->m_PerftSettings.Finished = true;
             if ( !m_PerftSettings.CancelSearch )
+            {
                 std::cout << "Perft benchmark finished." << std::endl;
+                std::cout << "Nodes: " << this->m_PerftSettings.Result.Nodes << "\n";
+                std::cout << "Captures: " << this->m_PerftSettings.Result.Captures << "\n";
+                std::cout << "E.P.: " << this->m_PerftSettings.Result.EnPassants << "\n";
+                std::cout << "Castles: " << this->m_PerftSettings.Result.Castles << "\n";
+                std::cout << "Promotions: " << this->m_PerftSettings.Result.Promotions << "\n";
+            }
             else
                 std::cout << "Perft benchmark canceled." << std::endl;
         }
     );
 }
 
-int ChessApp::PerftTest( Chess::Chessboard& Board, int Depth, bool* Cancel, bool Verbose )
+int ChessApp::PerftTest( Chess::Chessboard& Board, int Depth, bool* Cancel, bool Verbose, PerftResult* Result )
 {
     if ( Depth < 0 )
         throw std::exception( "wtf bro | Depth parameter for method Chessboard::Perft cannot be negative." );
@@ -889,8 +896,18 @@ int ChessApp::PerftTest( Chess::Chessboard& Board, int Depth, bool* Cancel, bool
     {
         if ( Move.IsNullMove() )
             break;
+
+        if ( Move.IsCapture() )
+            ++Result->Captures;
+        if ( Move.IsEnPassant() )
+            ++Result->EnPassants;
+        if ( Move.IsCastle() )
+            ++Result->Castles;
+        if ( Move.IsPromotion() )
+            ++Result->Promotions;
+
         Board.MakeMove( Move );
-        move_nodes = PerftTest( Board, Depth - 1, Cancel, false );
+        move_nodes = PerftTest( Board, Depth - 1, Cancel, false, Result );
         if ( Verbose && !(*Cancel) )
         {
             std::cout << Move.GetRepr() << ": " << move_nodes << "\n";
@@ -915,11 +932,11 @@ void ChessApp::DrawPerftScreen()
     }
     else if ( m_PerftSettings.Finished )
     {
-        ImGui::Text( "Perft result: %d nodes.", m_PerftSettings.Result );
+        ImGui::Text( "Perft result: %d nodes.", m_PerftSettings.Result.Nodes );
         if ( m_PerftSettings.ExpectedResult != 0 )
         {
             ImGui::SameLine();
-            if ( m_PerftSettings.Result == m_PerftSettings.ExpectedResult )
+            if ( m_PerftSettings.Result.Nodes == m_PerftSettings.ExpectedResult )
                 ImGui::Text( "Benchmark passed." );
             else
                 ImGui::Text( "Benchmark failed." );

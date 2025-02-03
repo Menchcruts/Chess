@@ -19,6 +19,26 @@ namespace Chess
         return static_cast<MoveFlag>(15 & (MoveInfo >> 12)); // Return last 4 bits as MoveFlag enum
     }
 
+    bool Move::IsCapture() const
+    {
+        return (MoveInfo >> 12) & 0b0100;
+    }
+
+    bool Move::IsEnPassant() const
+    {
+        return (MoveInfo >> 12) == 0b0101;
+    }
+
+    bool Move::IsCastle() const
+    {
+        return (MoveInfo >> 12) & 0b0010;
+    }
+
+    bool Move::IsPromotion() const
+    {
+        return (MoveInfo >> 12) & 0b1000;
+    }
+
     void Move::Print() const
     {
         std::string flag_string;

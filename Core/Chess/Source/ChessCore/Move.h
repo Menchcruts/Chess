@@ -62,6 +62,11 @@ namespace Chess
 		int Target() const;
 		MoveFlag Flag() const;
 
+		bool IsCapture() const;
+		bool IsEnPassant() const;
+		bool IsCastle() const;
+		bool IsPromotion() const;
+
 		void Print() const;
 		std::string GetRepr() const;
 

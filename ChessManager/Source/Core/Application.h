@@ -87,6 +87,15 @@ class ChessApp
 		std::unordered_set<int> Targets;
 	};
 
+	struct PerftResult
+	{
+		int Nodes = 0;
+		int Captures = 0;
+		int EnPassants = 0;
+		int Castles = 0;
+		int Promotions = 0;
+	};
+
 	struct PerftSettings
 	{
 		bool Running = false;
@@ -94,9 +103,9 @@ class ChessApp
 		bool ShowScreen = false;
 		bool CancelSearch = false;
 		bool Verbose = true;
-		int Result = 0;
 		int ExpectedResult = 0;
 		int InitalDepth = 1;
+		PerftResult Result;
 		std::thread PerftThread;
 	};
 
@@ -174,7 +183,7 @@ private:
 	void DrawBitboardScreen();
 
 	void StartPerftTest();
-	int PerftTest( Chess::Chessboard& Board, int Depth, bool* Cancel, bool Verbose );
+	int PerftTest( Chess::Chessboard& Board, int Depth, bool* Cancel, bool Verbose, PerftResult* Result );
 	void DrawPerftScreen();
 
 public:
