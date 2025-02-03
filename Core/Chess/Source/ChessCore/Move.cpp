@@ -87,6 +87,19 @@ namespace Chess
 
         std::string result = { files[start_file], ranks[start_rank], files[target_file], ranks[target_rank] };
 
+        MoveFlag flag = Flag();
+        if ( (flag & MoveFlag::PromoteKnight) != MoveFlag::None )
+        {
+            if ( flag == MoveFlag::PromoteKnight || flag == MoveFlag::PromoteKnightCapture )
+                result.push_back( 'n' );
+            else if ( flag == MoveFlag::PromoteBishop || flag == MoveFlag::PromoteBishopCapture )
+                result.push_back( 'b' );
+            else if ( flag == MoveFlag::PromoteRook || flag == MoveFlag::PromoteRookCapture )
+                result.push_back( 'r' );
+            else if ( flag == MoveFlag::PromoteQueen || flag == MoveFlag::PromoteQueenCapture )
+                result.push_back( 'q' );
+        }
+
         return result;
     }
 

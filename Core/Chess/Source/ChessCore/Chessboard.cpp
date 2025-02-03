@@ -35,28 +35,14 @@ namespace Chess
 {
     Chessboard::Chessboard()
     {
-        m_MoveHistory.reserve( 96 );
-        m_LegalMoves.reserve( 218 );    // Theoretical maximum for number of legal moves for one position
-
-        m_PieceHistory.reserve( 32 );
         m_InfoHistory.reserve( 96 );
-
-        m_WhitePositions.reserve( 64 );
-        m_BlackPositions.reserve( 64 );
 
         LoadFEN( "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" );
     }
 
     Chessboard::Chessboard( const std::string& FEN_Pos )
     {
-        m_MoveHistory.reserve( 96 );
-        m_LegalMoves.reserve( 218 );    // Theoretical maximum for number of legal moves for one position
-
-        m_PieceHistory.reserve( 32 );
         m_InfoHistory.reserve( 96 );
-
-        m_WhitePositions.reserve( 64 );
-        m_BlackPositions.reserve( 64 );
 
         LoadFEN( FEN_Pos );
     }
@@ -67,8 +53,6 @@ namespace Chess
         m_Bitboards.AddBit( Square, Piece );
 
         bool IsWhite = color == Color::White;
-        auto* Positions = IsWhite ? &m_WhitePositions : &m_BlackPositions;
-        Positions->insert( Square );
     }
 
     void Chessboard::RemovePiece( int Square )
@@ -77,8 +61,6 @@ namespace Chess
         m_Bitboards.RemoveBit( Square, Piece );
 
         bool IsWhite = Piece.color == Color::White;
-        auto* Positions = IsWhite ? &m_WhitePositions : &m_BlackPositions;
-        Positions->erase( Square );
     }
 
     void Chessboard::MovePiece( int Start, int Target )
@@ -94,91 +76,95 @@ namespace Chess
         RemovePiece( Square );
         AddPiece( Square, OldPiece.color, NewType );
     }
- 
-    void Chessboard::GenerateMoves()
-    {
-        /*auto temp = StopWatch( "MoveGenerator" );
-        std::cout << "Generating moves...\n";*/
-        m_LegalMoves.clear();   // Delete old moves
 
+    std::array<Move, 256> Chessboard::GetMoveList() const
+    {
+        std::array<Move, 256> MoveList;
+        size_t Top = 0;
+        
         Color FriendlyColor = m_WhiteToPlay ? Color::White : Color::Black;
         Color EnemyColor = m_WhiteToPlay ? Color::Black : Color::White;
 
-        short KingPos = m_WhiteToPlay ? m_WhiteKingPos : m_BlackKingPos;
+        short KingPos = m_WhiteToPlay ? m_Bitboards.KingWhite.BitscanForward() : m_Bitboards.KingBlack.BitscanForward();
+        MoveGen::MoveGenInfo Info = MoveGen::CreateMoveGenInfo( KingPos, m_Bitboards, m_EnPassantSquare, m_WhiteToPlay );
+
+        Bitboard AttackMask = MoveGen::GetAttackMask( m_Bitboards, EnemyColor, KingPos );
         CastlingRights Rights = m_WhiteToPlay ? m_WhiteCastling : m_BlackCastling;
 
-        MoveGen::RayPayload RayResult = MoveGen::CalculateRays( KingPos, m_Bitboards, m_EnPassantSquare, m_WhiteToPlay );
-        
-        m_InCheck = RayResult.InCheck;
-        m_InDoubleCheck = RayResult.InDoubleCheck;
-        m_EnPassantBlocked = RayResult.EnPassantBlocked;
-        m_PinMask = RayResult.PinRays;
-        m_CheckMask = RayResult.CheckRays;
+        ChessPiece Piece;
 
-        const auto& Positions = m_WhiteToPlay ? m_WhitePositions : m_BlackPositions;
-        const auto& EnemyPositions = m_WhiteToPlay ? m_BlackPositions : m_WhitePositions;
-        m_AttackMask = MoveGen::GetAttackMask( EnemyPositions, m_Bitboards, EnemyColor );
+        std::array<Move, 32> MovesForPiece;
 
-        std::unordered_set<Move> Moves( 27 );   // A queen has a maximum of 27 moves
-
-        for ( auto& Pos : Positions )
+        Bitboard Friends = m_Bitboards.GetColorMask( FriendlyColor );
+        int Square;
+        while ( Friends )
         {
-            Moves.clear();
+            MovesForPiece.fill( Move() );   // Clear last moves
 
-            ChessPiece piece = m_Bitboards.GetPieceAtSquare( Pos );
+            Square = Friends.BitscanForward();
+            Friends &= Friends - 1;
 
-            if ( m_InDoubleCheck && piece.type != PieceType::King )     // If we are in double check then only the king can move
-                continue;
+            Piece = m_Bitboards.GetPieceAtSquare( Square );
 
-            switch ( piece.type )
+            switch ( Piece.type )
             {
-            case PieceType::King:
-                Moves = MoveGen::King::GetKingMoves( Pos, m_Bitboards, FriendlyColor, m_PinMask, m_CheckMask, m_AttackMask, Rights );
+            case Chess::PieceType::King:
+                MovesForPiece = MoveGen::King::GetKingMoves(Square, m_Bitboards, FriendlyColor, AttackMask, Rights, Info );
                 break;
-            case PieceType::Pawn:
-                Moves = MoveGen::Pawn::GetPawnMoves( Pos, m_Bitboards, FriendlyColor, m_EnPassantBlocked ? -1 : m_EnPassantSquare, m_PinMask, m_CheckMask );
+            case Chess::PieceType::Pawn:
+                MovesForPiece = MoveGen::Pawn::GetPawnMoves( Square, m_Bitboards, FriendlyColor, (!Info.EnPassantBlocked ? m_EnPassantSquare : -1), Info, KingPos );
                 break;
-            case PieceType::Knight:
-                Moves = MoveGen::Knight::GetKnightMoves( Pos, m_Bitboards, FriendlyColor, m_PinMask, m_CheckMask );
+            case Chess::PieceType::Knight:
+                MovesForPiece = MoveGen::Knight::GetKnightMoves( Square, m_Bitboards, FriendlyColor, Info, KingPos );
                 break;
-            case PieceType::Bishop:
-                Moves = MoveGen::Bishop::GetBishopMoves( Pos, m_Bitboards, FriendlyColor, m_PinMask, m_CheckMask, KingPos );
+            case Chess::PieceType::Bishop:
+                MovesForPiece = MoveGen::Bishop::GetBishopMoves( Square, m_Bitboards, FriendlyColor, Info, KingPos );
                 break;
-            case PieceType::Rook:
-                Moves = MoveGen::Rook::GetRookMoves( Pos, m_Bitboards, FriendlyColor, m_PinMask, m_CheckMask, KingPos );
+            case Chess::PieceType::Rook:
+                MovesForPiece = MoveGen::Rook::GetRookMoves( Square, m_Bitboards, FriendlyColor, Info, KingPos );
                 break;
-            case PieceType::Queen:
-                Moves = MoveGen::Queen::GetQueenMoves( Pos, m_Bitboards, FriendlyColor, m_PinMask, m_CheckMask, KingPos );
+            case Chess::PieceType::Queen:
+                MovesForPiece = MoveGen::Queen::GetQueenMoves( Square, m_Bitboards, FriendlyColor, Info, KingPos );
                 break;
-            case PieceType::None:
+            case Chess::PieceType::None:
             default:
                 break;
             }
 
-            m_LegalMoves.insert( m_LegalMoves.cend(), Moves.begin(), Moves.end());
+            for ( auto& move : MovesForPiece )
+            {
+                if ( move.IsNullMove() )
+                    break;
+                MoveList[Top] = move;
+                ++Top;
+            }
         }
-        //std::cout << "Moves finished generating!\n";
-    }
 
+        return MoveList;
+    }
+ 
     int Chessboard::Perft( int Depth, bool FirstPass )
     {
         if ( Depth < 0 )
-            throw std::exception( "wtf bro | Depth parameter for method Chessboard::Perft( int Depth ) cannot be negative." );
+            throw std::exception( "wtf bro | Depth parameter for method Chessboard::Perft cannot be negative." );
 
         if ( Depth == 0 )
             return 1;
 
         int n_nodes = 0;
         int move_nodes = 0;
-        std::vector<Move> Moves = m_LegalMoves;
+        std::array<Move, 256> Moves = GetMoveList();
 
         for ( const auto& move : Moves )
         {
+            if ( move.IsNullMove() )
+                break;
+
             MakeMove( move );
             if ( !FirstPass )
             {
                 n_nodes += Perft( Depth - 1, false );
-                UnMakeMove();
+                UnMakeMove( move );
             }
             else
             {
@@ -188,7 +174,7 @@ namespace Chess
                 std::cout << move_repr << ": " << move_nodes << "\n";
 
                 n_nodes += move_nodes;
-                UnMakeMove();
+                UnMakeMove( move );
             }
         }
 
@@ -197,7 +183,17 @@ namespace Chess
 
     Chessboard::BoardInfo Chessboard::GetBoardInfo() const
     {
-        return { m_LegalMoves, m_Bitboards, m_WhiteToPlay, m_EnPassantSquare, m_FullmoveClock, m_HalfmoveClock, m_WhiteCastling, m_BlackCastling, m_WhiteKingPos, m_BlackKingPos };
+        return { 
+            m_Bitboards, 
+            m_WhiteToPlay, 
+            m_EnPassantSquare, 
+            m_FullmoveClock, 
+            m_HalfmoveClock, 
+            m_WhiteCastling, 
+            m_BlackCastling, 
+            (short)m_Bitboards.KingWhite.BitscanForward(), 
+            (short)m_Bitboards.KingBlack.BitscanForward()
+        };
     }
 
     void Chessboard::LoadFEN( const std::string& FEN_Pos )
@@ -205,13 +201,7 @@ namespace Chess
         // Set variables to default values
 
         m_Bitboards.Reset(); // Reset board
-
-        m_LegalMoves.clear();
-        m_PieceHistory.clear();
         
-        m_WhitePositions.clear();
-        m_BlackPositions.clear();
-
         m_WhiteCastling = CastlingRights::None;             // Set castling rights
         m_BlackCastling = CastlingRights::None;             // for both sides to none
 
@@ -351,21 +341,16 @@ namespace Chess
             {
                 PieceType type = GetPieceFromRepr( Letter );
                 AddPiece( CurrentSq, Color::White, type );
-                if ( type == PieceType::King )
-                    m_WhiteKingPos = CurrentSq;
             }
             else if ( 'a' <= Letter && Letter <= 'z' )  // Letter is lower case (black)
             {
                 PieceType type = GetPieceFromRepr( Letter );
                 AddPiece( CurrentSq, Color::Black, type );
-                if ( type == PieceType::King )
-                    m_BlackKingPos = CurrentSq;
             }
             --CurrentSq;
         }
 
         std::cout << "Engine has finished loading FEN " << FEN_Pos << "\n";
-        GenerateMoves();
     }
 
     void Chessboard::MakeMove( Move move )
@@ -382,8 +367,9 @@ namespace Chess
         
         PieceType Type = PieceMoved.type;
         CastlingRights& Rights = m_WhiteToPlay ? m_WhiteCastling : m_BlackCastling;
+        CastlingRights& OppositeRights = m_WhiteToPlay ? m_BlackCastling : m_WhiteCastling;
 
-        m_InfoHistory.emplace_back( m_EnPassantSquare, m_HalfmoveClock, Rights );
+        m_InfoHistory.emplace_back( m_EnPassantSquare, m_HalfmoveClock, PieceCaptured, Rights );
 
         m_EnPassantSquare = -1;
 
@@ -394,11 +380,6 @@ namespace Chess
         {
             if ( Start == (m_WhiteToPlay ? 4 : 60) && ((Rights & CastlingRights::Both) != CastlingRights::None) )
                 Rights = CastlingRights::None;
-
-            if ( PieceMoved.color == Color::White )
-                m_WhiteKingPos = Target;
-            else if ( PieceMoved.color == Color::Black )
-                m_BlackKingPos = Target;
         }
         else if ( Type == PieceType::Rook )
         {
@@ -414,7 +395,30 @@ namespace Chess
         if ( Capture )
         {
             RemovePiece( CaptureTarget );          // Remove captured piece
-            m_PieceHistory.push_back( PieceCaptured );
+
+            // If your rook is captured when you can castle you can't castle there anymore
+            if ( PieceCaptured.type == PieceType::Rook && OppositeRights != CastlingRights::None )
+            {
+                bool stop = false;
+                int RookTarget;
+                if ( (OppositeRights & CastlingRights::Kingside) != CastlingRights::None )
+                {
+                    RookTarget = !m_WhiteToPlay ? 7 : 63;
+                    if ( CaptureTarget == RookTarget )
+                    {
+                        OppositeRights ^= CastlingRights::Kingside;
+                        stop = true;
+                    }
+                }
+                if ( !stop && (OppositeRights & CastlingRights::QueenSide) != CastlingRights::None )
+                {
+                    RookTarget = !m_WhiteToPlay ? 0 : 56;
+                    if ( CaptureTarget == RookTarget )
+                    {
+                        OppositeRights ^= CastlingRights::QueenSide;
+                    }
+                }
+            }
         }
 
         AddPiece( Target, PieceMoved.color, PieceMoved.type );       // Move piece to new square
@@ -475,21 +479,11 @@ namespace Chess
             ++m_FullmoveClock;
 
         m_WhiteToPlay = !m_WhiteToPlay;
-
-        m_MoveHistory.push_back( move );    // Add move to the move history
-
-        GenerateMoves();    // Generate the new move list
     }
 
-    void Chessboard::UnMakeMove()
+    void Chessboard::UnMakeMove( Move move )
     {
-        if ( m_MoveHistory.size() <= 0 )
-            return;
-        
         m_WhiteToPlay = !m_WhiteToPlay;
-
-        Move move = m_MoveHistory.back();
-        m_MoveHistory.pop_back();
         
         int Start = move.Start(), Target = move.Target();
         MoveFlag Flag = move.Flag();
@@ -499,6 +493,8 @@ namespace Chess
             CaptureTarget = m_WhiteToPlay ? Target - 8: Target + 8;
 
         CastlingRights& CurrentRights = m_WhiteToPlay ? m_WhiteCastling : m_BlackCastling;
+        ChessPiece PieceMoved = m_Bitboards.GetPieceAtSquare( Target );
+        ChessPiece PieceCaptured;
 
         if ( m_InfoHistory.size() > 0 )
         {
@@ -508,6 +504,7 @@ namespace Chess
             m_EnPassantSquare = info.EnPassant;
             m_HalfmoveClock = info.Halfmove;
             CurrentRights = info.Rights;
+            PieceCaptured = info.PieceCaptured;
         }
         else
         {
@@ -515,26 +512,7 @@ namespace Chess
             m_HalfmoveClock = 0;
         }
 
-        ChessPiece PieceMoved = m_Bitboards.GetPieceAtSquare( Target );
-        ChessPiece PieceCaptured;
-
-        if ( PieceMoved.type == PieceType::King )
-        {
-            if ( PieceMoved.color == Color::White )
-                m_WhiteKingPos = Start;
-            else if ( PieceMoved.color == Color::Black )
-                m_BlackKingPos = Start;
-        }
-
-        if ( (Flag & MoveFlag::Capture) == MoveFlag::Capture )
-        {
-            if ( m_PieceHistory.size() > 0 )
-            {
-                PieceCaptured = m_PieceHistory.back();
-                m_PieceHistory.pop_back();
-            }
-        }
-        else if ( Flag == MoveFlag::CastleKing || Flag == MoveFlag::CastleQueen )
+        if ( Flag == MoveFlag::CastleKing || Flag == MoveFlag::CastleQueen )
         {
             int RookStart, RookTarget;
             if ( Flag == MoveFlag::CastleKing )
@@ -567,19 +545,10 @@ namespace Chess
 
         if ( !m_WhiteToPlay )
             --m_FullmoveClock;
-
-        GenerateMoves();    // Regenerate the move list
     }
 
-    Move Chessboard::GetLastMove() const
+    int Chessboard::RunPerft( int Depth, bool ShowInfo )
     {
-        if ( m_MoveHistory.size() > 0 )
-            return m_MoveHistory.back();
-        return Move();
-    }
-
-    int Chessboard::RunPerft( int Depth )
-    {
-        return Perft( Depth, true );
+        return Perft( Depth, ShowInfo );
     }
 }

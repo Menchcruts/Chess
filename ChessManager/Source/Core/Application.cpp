@@ -4,6 +4,7 @@
 #include <chrono>
 #include <array>
 #include <stdio.h>
+#include <thread>
 
 #include "Application.h"
 
@@ -46,10 +47,7 @@ static std::string GetSquareName( int Square )
     const char* files = "abcdefgh";
     const char* ranks = "12345678";
 
-    std::string result;
-    result += files[file];
-    result += ranks[rank];
-    return result;
+    return { files[file], ranks[rank] };
 }
 
 static std::string GetCastlingString( Chess::CastlingRights Rights )
@@ -92,10 +90,7 @@ void ChessApp::DrawChessboardScreen()
     ImGui::Begin( "Chessboard" );
 
     // Draw the board
-    if ( !m_BoardVisuals.FlipBoard )
-        DrawChessBoard();
-    else
-        DrawChessBoardFlipped();
+    DrawChessBoard();
 
     if ( m_PromotionHandling.Promoting )
         PromoteScreen();
@@ -113,7 +108,7 @@ void ChessApp::DrawChessboardScreen()
 void ChessApp::DrawChessBoard()
 {
     if ( ImGui::IsWindowFocused() && ImGui::IsMouseClicked( 0 ) )
-        m_BoardVisuals.HighlightedSquares.clear();
+        m_BoardVisuals.HighlightedSquares = 0;
 
     const float& CellSize = m_BoardVisuals.CellSize;
     const float CellSize_Half = CellSize / 2;
@@ -148,137 +143,35 @@ void ChessApp::DrawChessBoard()
             SquareIsHovered = false;
             PieceOnSquare = false;
 
-            // Determine the cell color based on row and column
             bool isDark = ((row + col) % 2) == 1;
-            int row_inverted = 7 - row;
 
-            int CurrSq = row_inverted * 8 + col;
+            int r, c;
+
+            if ( m_BoardVisuals.FlipBoard )
+            {
+                r = row, c = 7 - col;
+            }
+            else
+            {
+                r = 7 - row, c = col;
+            }
+
+            int CurrSq = r * 8 + c;
             Chess::ChessPiece Piece = bitboards.GetPieceAtSquare(CurrSq);
 
             ImColor CellColor;
-            if ( CurrSq == m_MoveHandling.SelectedSquare || (!LastMove.IsNullMove() && (CurrSq == LastMove.Start() || CurrSq == LastMove.Target())) )
-                CellColor = isDark ? Settings.Colors.EvenColorHighlight : Settings.Colors.OddColorHighlight;
-            else if ( m_BoardVisuals.HighlightedSquares.contains( CurrSq ) )
+            if ( m_BoardVisuals.HighlightedSquares.IsOccupied( CurrSq ) || (m_BitboardSettings.ShowScreen && m_BitboardSettings.Result.IsOccupied( CurrSq )) )
                 CellColor = isDark ? Settings.Colors.EvenColorRed : Settings.Colors.OddColorRed;
+
+            else if ( CurrSq == m_MoveHandling.SelectedSquare || (!LastMove.IsNullMove() && (CurrSq == LastMove.Start() || CurrSq == LastMove.Target())) )
+                CellColor = isDark ? Settings.Colors.EvenColorHighlight : Settings.Colors.OddColorHighlight;
+
             else
                 CellColor = isDark ? Settings.Colors.EvenColor : Settings.Colors.OddColor;
 
             ImU32 CellCol32 = CellColor;
 
             ImGui::TableNextColumn();
-            //ImGui::TableSetColumnIndex( col ); // Virkar ekki af einhverjum ástæðum?
-
-            if (
-                (Piece.IsNullPiece()) ||
-                (CurrSq == m_MoveHandling.SelectedSquare && m_MoveHandling.PieceHeld.type != Chess::PieceType::None)
-                )   // Þetta er hræðilegt if statement
-            {
-                ImGui::Dummy( ImageSize ); // Dummy widget fyrir mouse clicks
-            }
-            else
-            {
-                const Image& image = m_PieceImages[(int)Piece.color][Piece.type];
-                ImGui::Image( image.Texture, ImageSize );   // Annars teiknum við myndina
-                PieceOnSquare = true;
-            }
-
-            if ( ImGui::IsItemHovered() && !m_PromotionHandling.Promoting )
-            {
-                HandleBoardClicks( Piece, CurrSq );
-                SquareIsHovered = true;
-            }
-
-            ImGui::TableSetBgColor( ImGuiTableBgTarget_CellBg, CellCol32 );
-
-            if ( DrawMoveCircles && info.Targets.contains( CurrSq ) && !m_PromotionHandling.Promoting )
-            {
-                CursorPos = ImGui::GetCursorScreenPos();
-                CursorPos.y -= 4.0f;
-                CircleCenter = ImVec2( CursorPos.x + CellSize_Half, CursorPos.y - CellSize_Half );
-
-                if ( SquareIsHovered )
-                    MoveCircleRadius = 21.0f;
-                else
-                    MoveCircleRadius = 15.0f;
-
-                if ( PieceOnSquare )
-                {
-                    if ( !SquareIsHovered )
-                    {
-                        MoveCircleRadius = CellSize_Half - 4.0f;    // Compensate for circle width
-                        DrawList->AddCircle( CircleCenter, MoveCircleRadius, MoveCircleColor, 0, 9.0f );
-                        continue;
-                    }
-                    else
-                    {
-                        MoveCircleRadius = CellSize_Half;
-                    }
-                }
-                DrawList->AddCircleFilled( CircleCenter, MoveCircleRadius, MoveCircleColor );
-            }
-        }
-    }
-    ImGui::EndTable();
-    ImGui::PopStyleVar();
-}
-
-void ChessApp::DrawChessBoardFlipped()
-{
-    if ( ImGui::IsWindowFocused() && ImGui::IsMouseClicked( 0 ) )
-        m_BoardVisuals.HighlightedSquares.clear();
-
-    const float& CellSize = m_BoardVisuals.CellSize;
-    const float CellSize_Half = CellSize / 2;
-
-    ImVec2 ImageSize = ImVec2( CellSize, CellSize );
-
-    ImDrawList* DrawList = ImGui::GetWindowDrawList();
-    ImVec2 CursorPos;
-    ImVec2 CircleCenter;
-    ImU32 MoveCircleColor = IM_COL32( 255, 0, 0, 127 );
-    float MoveCircleRadius = 0.0f;
-
-    bool DrawMoveCircles = (m_MoveHandling.SelectedSquare != -1) && m_LegalMovesDict.contains( m_MoveHandling.SelectedSquare );
-    bool SquareIsHovered;
-    bool PieceOnSquare;
-
-    const LegalMovesInfo& info = DrawMoveCircles ? m_LegalMovesDict[m_MoveHandling.SelectedSquare] : LegalMovesInfo();
-    const Chess::Move& LastMove = m_BoardVisuals.LastMove;
-
-    const Chess::Bitboards& bitboards = m_BoardVariables.BoardInfo._Bitboards;
-
-    ImGui::PushStyleVar( ImGuiStyleVar_CellPadding, ImVec2( 0, 0 ) );
-    ImGui::BeginTable( "PieceGrid", 8 );
-    for ( int i = 0; i < 8; ++i )
-        ImGui::TableSetupColumn( "", ImGuiTableColumnFlags_WidthFixed );
-
-    // Draw the chessboard cells
-    for ( int row = 0; row < 8; ++row )
-    {
-        for ( int col = 0; col < 8; ++col )
-        {
-            SquareIsHovered = false;
-            PieceOnSquare = false;
-
-            // Determine the cell color based on row and column
-            bool isDark = ((row + col) % 2) == 1;
-            int col_inverterd = 7 - col;
-
-            int CurrSq = row * 8 + col_inverterd;
-            Chess::ChessPiece Piece = bitboards.GetPieceAtSquare( CurrSq );
-
-            ImColor CellColor;
-            if ( CurrSq == m_MoveHandling.SelectedSquare || (!LastMove.IsNullMove() && (CurrSq == LastMove.Start() || CurrSq == LastMove.Target())) )
-                CellColor = isDark ? Settings.Colors.EvenColorHighlight : Settings.Colors.OddColorHighlight;
-            else if ( m_BoardVisuals.HighlightedSquares.contains( CurrSq ) )
-                CellColor = isDark ? Settings.Colors.EvenColorRed : Settings.Colors.OddColorRed;
-            else
-                CellColor = isDark ? Settings.Colors.EvenColor : Settings.Colors.OddColor;
-
-            ImU32 CellCol32 = CellColor;
-
-            ImGui::TableNextColumn();
-            //ImGui::TableSetColumnIndex( col ); // Virkar ekki af einhverjum ástæðum?
 
             if (
                 (Piece.IsNullPiece()) ||
@@ -359,6 +252,7 @@ void ChessApp::PromoteScreen()
 
     ImVec2 ChildHeight = ImVec2( CellSize, CellSize * 4 + ImGui::GetFontSize() * 2 + 10.0f );
 
+    bool ClickedPiece = false;
     bool MenuGoDown = m_BoardVariables.BoardInfo._WhiteToPlay;
     if ( m_BoardVisuals.FlipBoard )
         MenuGoDown = !MenuGoDown;
@@ -373,17 +267,6 @@ void ChessApp::PromoteScreen()
     ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0, 0 ) );
     ImGui::PushStyleColor( ImGuiCol_ChildBg, BackgroundColor );
     ImGui::BeginChild( "PromotionSelect", ChildHeight );
-
-    if ( !ImGui::IsWindowFocused() && ImGui::IsMouseClicked( 0 ) )
-    {
-        std::cout << "Clicked off promoting!\n";
-        m_MoveHandling.PieceHeld.MakeNullPiece();
-        m_MoveHandling.SelectedSquare = -1;
-        m_MoveHandling.SelectedPressed = false;
-
-        m_PromotionHandling.Promoting = false;
-        m_BoardVariables.NextMove = Chess::Move();
-    }
     
     ImGui::PushStyleColor( ImGuiCol_ButtonHovered, BackgroundColor );
     ImGui::PushStyleColor( ImGuiCol_ButtonActive, BackgroundColor );
@@ -395,39 +278,65 @@ void ChessApp::PromoteScreen()
         if ( ImGui::ImageButton( "w_queen", m_PieceImages[0].at( Chess::PieceType::Queen ).Texture, Cell ) )
         {
             PromotionType = Chess::MoveFlag::PromoteQueen;
+            ClickedPiece = true;
         }
         if ( ImGui::ImageButton( "w_rook", m_PieceImages[0].at( Chess::PieceType::Rook ).Texture, Cell ) )
         {
             PromotionType = Chess::MoveFlag::PromoteRook;
+            ClickedPiece = true;
         }
         if ( ImGui::ImageButton( "w_bishop", m_PieceImages[0].at( Chess::PieceType::Bishop ).Texture, Cell ) )
         {
             PromotionType = Chess::MoveFlag::PromoteBishop;
+            ClickedPiece = true;
         }
         if ( ImGui::ImageButton( "w_knight", m_PieceImages[0].at( Chess::PieceType::Knight ).Texture, Cell ) )
         {
             PromotionType = Chess::MoveFlag::PromoteKnight;
+            ClickedPiece = true;
         }
-        ImGui::Button( "Cancel", ImVec2( CellSize, 0 ) );
+        if ( ImGui::Button( "Cancel", ImVec2( CellSize, 0 ) ) )
+        {
+            std::cout << "Clicked off promoting!\n";
+            m_MoveHandling.PieceHeld.MakeNullPiece();
+            m_MoveHandling.SelectedSquare = -1;
+            m_MoveHandling.SelectedPressed = false;
+
+            m_PromotionHandling.Promoting = false;
+            m_BoardVariables.NextMove = Chess::Move();
+        }
     }
     else
     {
-        ImGui::Button( "Cancel", ImVec2( CellSize, 0 ) );
+        if ( ImGui::Button( "Cancel", ImVec2( CellSize, 0 ) ) )
+        {
+            std::cout << "Clicked off promoting!\n";
+            m_MoveHandling.PieceHeld.MakeNullPiece();
+            m_MoveHandling.SelectedSquare = -1;
+            m_MoveHandling.SelectedPressed = false;
+
+            m_PromotionHandling.Promoting = false;
+            m_BoardVariables.NextMove = Chess::Move();
+        }
         if ( ImGui::ImageButton( "b_knight", m_PieceImages[1].at( Chess::PieceType::Knight ).Texture, Cell ) )
         {
             PromotionType = Chess::MoveFlag::PromoteKnight;
+            ClickedPiece = true;
         }
         if ( ImGui::ImageButton( "b_bishop", m_PieceImages[1].at( Chess::PieceType::Bishop ).Texture, Cell ) )
         {
             PromotionType = Chess::MoveFlag::PromoteBishop;
+            ClickedPiece = true;
         }
         if ( ImGui::ImageButton( "b_rook", m_PieceImages[1].at( Chess::PieceType::Rook ).Texture, Cell ) )
         {
             PromotionType = Chess::MoveFlag::PromoteRook;
+            ClickedPiece = true;
         }
         if ( ImGui::ImageButton( "b_queen", m_PieceImages[1].at( Chess::PieceType::Queen ).Texture, Cell ) )
         {
             PromotionType = Chess::MoveFlag::PromoteQueen;
+            ClickedPiece = true;
         }
     }
 
@@ -436,6 +345,17 @@ void ChessApp::PromoteScreen()
 
     ImGui::EndChild();
     ImGui::PopStyleColor();
+
+    /*if ( ImGui::IsMouseClicked( 0 ) && !ClickedPiece )
+    {
+        std::cout << "Clicked off promoting!\n";
+        m_MoveHandling.PieceHeld.MakeNullPiece();
+        m_MoveHandling.SelectedSquare = -1;
+        m_MoveHandling.SelectedPressed = false;
+
+        m_PromotionHandling.Promoting = false;
+        m_BoardVariables.NextMove = Chess::Move();
+    }*/
 
     if ( PromotionType != Chess::MoveFlag::None )
     {
@@ -528,10 +448,11 @@ void ChessApp::HandleBoardClicks( Chess::ChessPiece Piece, int CurrentSq )
     }
     else if ( ImGui::IsMouseClicked( 1 ) && !m_PromotionHandling.Promoting )  // Highlight logic
     {
-        if ( m_BoardVisuals.HighlightedSquares.contains( CurrentSq ) )
-            m_BoardVisuals.HighlightedSquares.erase( CurrentSq );
+        m_MoveHandling = MoveHandling();
+        if ( m_BoardVisuals.HighlightedSquares.IsOccupied( CurrentSq ) )
+            m_BoardVisuals.HighlightedSquares.RemoveBit( CurrentSq );
         else
-            m_BoardVisuals.HighlightedSquares.insert( CurrentSq );
+            m_BoardVisuals.HighlightedSquares.AddBit( CurrentSq );
     }
 }
 
@@ -570,6 +491,7 @@ void ChessApp::MakeMove()
     std::cout << "Move( " << move.Start() << ", " << move.Target() << " )\n";
     m_Chessboard.MakeMove( move );
     m_BoardVisuals.LastMove = move;
+    
 
     if ( m_BoardVariables.BoardInfo._WhiteToPlay )
         m_BlackClock.UpdateLastPoll();
@@ -578,24 +500,28 @@ void ChessApp::MakeMove()
 
     UpdateBoardInfo();
     Chess::MoveFlag flag = move.Flag();
+
+    std::filesystem::path AudioDir = SoundsDir;
     if ( (flag & Chess::MoveFlag::Capture) != Chess::MoveFlag::None )
     {
-        m_SoundEngine->play2D( (SoundsDir / "capture.mp3").string().c_str() );
+        AudioDir /= "capture.mp3";
     }
     else if ( (flag & Chess::MoveFlag::PromoteKnight) != Chess::MoveFlag::None )
     {
-        m_SoundEngine->play2D( (SoundsDir / "promote.mp3").string().c_str() );
+        AudioDir /= "promote.mp3";
     }
     else if ( (flag & Chess::MoveFlag::CastleKing) != Chess::MoveFlag::None )
     {
-        m_SoundEngine->play2D( (SoundsDir / "castle.mp3").string().c_str() );
+        AudioDir /= "castle.mp3";
     }
     else
     {
-        m_SoundEngine->play2D( (SoundsDir / "move-self.mp3").string().c_str() );
+        AudioDir /= "move-self.mp3";
     }
+    m_SoundEngine->play2D( AudioDir.string().c_str() );
 
-    m_BoardVisuals.HighlightedSquares.clear();
+    m_BoardVariables.MoveHistory.emplace_back( move );  // Add move to history
+
     m_MoveHandling = MoveHandling();
 
     m_BoardVariables.NextMove = Chess::Move();
@@ -606,8 +532,19 @@ void ChessApp::MakeMove()
 
 void ChessApp::UnMakeMove()
 {
-    m_Chessboard.UnMakeMove();
-    m_BoardVisuals.LastMove = m_Chessboard.GetLastMove();
+    if ( m_BoardVariables.MoveHistory.size() <= 0 )
+        return;
+
+    Chess::Move move = m_BoardVariables.MoveHistory.back();
+    m_BoardVariables.MoveHistory.pop_back();
+
+    m_Chessboard.UnMakeMove( move );
+    
+    if ( m_BoardVariables.MoveHistory.size() > 0 )
+        m_BoardVisuals.LastMove = m_BoardVariables.MoveHistory.back();
+    else
+        m_BoardVisuals.LastMove = Chess::Move();
+
     m_MoveHandling = MoveHandling();
     UpdateBoardInfo();
 }
@@ -645,6 +582,16 @@ void ChessApp::DrawDebugScreen()
             m_WhiteClock.UpdateLastPoll();
         else
             m_BlackClock.UpdateLastPoll();
+    }
+    ImGui::Text( "Number of legal moves: %d", m_BoardVariables.NumberOfLegalMoves );
+    if ( ImGui::Button( "Run perft benchmark" ) )
+    {
+        m_PerftSettings.ShowScreen = true;
+    }
+    if ( ImGui::Button( "Open Bitboard selector" ) )
+    {
+        m_BitboardSettings = BitboardSettings();
+        m_BitboardSettings.ShowScreen = true;
     }
     ImGui::NewLine();
 
@@ -725,26 +672,38 @@ void ChessApp::ResetBoard()
     m_Chessboard.LoadFEN( "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" );
     UpdateBoardInfo();
 
-    m_BoardVisuals.HighlightedSquares.clear();
-    m_MoveHandling.SelectedSquare = -1;
-    m_MoveHandling.PieceHeld.MakeNullPiece();
+    m_BoardVisuals.HighlightedSquares = 0;
+    m_BoardVisuals.LastMove = Chess::Move();
+
+    m_MoveHandling = MoveHandling();
+    m_PromotionHandling = PromotionHandling();
 
     m_BoardVariables.NextMove = Chess::Move();
+    m_BoardVariables.MoveHistory.clear();
+    m_BoardVariables.GameStarted = false;
 }
 
 void ChessApp::UpdateBoardInfo()
 {
     m_BoardVariables.BoardInfo = m_Chessboard.GetBoardInfo();
-    CreateMoveDict();
+    HandleMoveList();
 }
 
-void ChessApp::CreateMoveDict()
+void ChessApp::HandleMoveList()
 {
     m_LegalMovesDict.clear();
 
-    for ( auto& move : m_BoardVariables.BoardInfo._LegalMoves )
+    m_BoardVariables.LegalMoves = m_Chessboard.GetMoveList();
+    m_BoardVariables.NumberOfLegalMoves = 0;
+
+    int Start;
+    for ( auto& move : m_BoardVariables.LegalMoves )
     {
-        int Start = move.Start();
+        if ( move.IsNullMove() )
+            break;
+        ++m_BoardVariables.NumberOfLegalMoves;
+
+        Start = move.Start();
 
         if ( !m_LegalMovesDict.contains( Start ) )
         {
@@ -757,15 +716,240 @@ void ChessApp::CreateMoveDict()
     }
 }
 
+void ChessApp::DrawBitboardScreen()
+{
+    m_BitboardSettings.Result = 0;
+    const auto& bitboards = m_BoardVariables.BoardInfo._Bitboards;
+
+    ImGui::Begin( "Bitboard selector" );
+
+    ImGui::BeginTable( "SelectorTable", 2 );
+    ImGui::TableNextColumn();
+
+    if ( ImGui::Button( "Toggle white" ) )
+    {
+        m_BitboardSettings.AllWhite = !m_BitboardSettings.AllWhite;
+
+        m_BitboardSettings.WhiteKing = m_BitboardSettings.AllWhite;
+        m_BitboardSettings.WhitePawn = m_BitboardSettings.AllWhite;
+        m_BitboardSettings.WhiteKnight = m_BitboardSettings.AllWhite;
+        m_BitboardSettings.WhiteBishop = m_BitboardSettings.AllWhite;
+        m_BitboardSettings.WhiteRook = m_BitboardSettings.AllWhite;
+        m_BitboardSettings.WhiteQueen = m_BitboardSettings.AllWhite;
+    }
+    ImGui::TableNextColumn();
+
+    if ( ImGui::Button( "Toggle black" ) )
+    {
+        m_BitboardSettings.AllBlack = !m_BitboardSettings.AllBlack;
+
+        m_BitboardSettings.BlackKing = m_BitboardSettings.AllBlack;
+        m_BitboardSettings.BlackPawn = m_BitboardSettings.AllBlack;
+        m_BitboardSettings.BlackKnight = m_BitboardSettings.AllBlack;
+        m_BitboardSettings.BlackBishop = m_BitboardSettings.AllBlack;
+        m_BitboardSettings.BlackRook = m_BitboardSettings.AllBlack;
+        m_BitboardSettings.BlackQueen = m_BitboardSettings.AllBlack;
+    }
+    ImGui::TableNextColumn();
+
+    ImGui::Checkbox( "White King", &m_BitboardSettings.WhiteKing );
+    ImGui::TableNextColumn();
+
+    ImGui::Checkbox( "Black King", &m_BitboardSettings.BlackKing );
+    ImGui::TableNextColumn();
+
+    ImGui::Checkbox( "White Pawn", &m_BitboardSettings.WhitePawn );
+    ImGui::TableNextColumn();
+
+    ImGui::Checkbox( "Black Pawn", &m_BitboardSettings.BlackPawn );
+    ImGui::TableNextColumn();
+
+    ImGui::Checkbox( "White Knight", &m_BitboardSettings.WhiteKnight );
+    ImGui::TableNextColumn();
+
+    ImGui::Checkbox( "Black Knight", &m_BitboardSettings.BlackKnight );
+    ImGui::TableNextColumn();
+
+    ImGui::Checkbox( "White Bishop", &m_BitboardSettings.WhiteBishop );
+    ImGui::TableNextColumn();
+
+    ImGui::Checkbox( "Black Bishop", &m_BitboardSettings.BlackBishop );
+    ImGui::TableNextColumn();
+
+    ImGui::Checkbox( "White Rook", &m_BitboardSettings.WhiteRook );
+    ImGui::TableNextColumn();
+
+    ImGui::Checkbox( "Black Rook", &m_BitboardSettings.BlackRook );
+    ImGui::TableNextColumn();
+
+    ImGui::Checkbox( "White Queen", &m_BitboardSettings.WhiteQueen );
+    ImGui::TableNextColumn();
+
+    ImGui::Checkbox( "Black Queen", &m_BitboardSettings.BlackQueen );
+
+    ImGui::EndTable();
+    
+    if ( ImGui::Button( "Close selector" ) )
+    {
+        m_BitboardSettings.ShowScreen = false;
+    }
+
+    ImGui::End();
+
+    {
+        if ( m_BitboardSettings.WhiteKing )
+        {
+            m_BitboardSettings.Result ^= bitboards.KingWhite;
+        }
+        if ( m_BitboardSettings.WhitePawn )
+        {
+            m_BitboardSettings.Result ^= bitboards.PawnWhite;
+        }
+        if ( m_BitboardSettings.WhiteKnight )
+        {
+            m_BitboardSettings.Result ^= bitboards.KnightWhite;
+        }
+        if ( m_BitboardSettings.WhiteBishop )
+        {
+            m_BitboardSettings.Result ^= bitboards.BishopWhite;
+        }
+        if ( m_BitboardSettings.WhiteRook )
+        {
+            m_BitboardSettings.Result ^= bitboards.RookWhite;
+        }
+        if ( m_BitboardSettings.WhiteQueen )
+        {
+            m_BitboardSettings.Result ^= bitboards.QueenWhite;
+        }
+
+        if ( m_BitboardSettings.BlackKing )
+        {
+            m_BitboardSettings.Result ^= bitboards.KingBlack;
+        }
+        if ( m_BitboardSettings.BlackPawn )
+        {
+            m_BitboardSettings.Result ^= bitboards.PawnBlack;
+        }
+        if ( m_BitboardSettings.BlackKnight )
+        {
+            m_BitboardSettings.Result ^= bitboards.KnightBlack;
+        }
+        if ( m_BitboardSettings.BlackBishop )
+        {
+            m_BitboardSettings.Result ^= bitboards.BishopBlack;
+        }
+        if ( m_BitboardSettings.BlackRook )
+        {
+            m_BitboardSettings.Result ^= bitboards.RookBlack;
+        }
+        if ( m_BitboardSettings.BlackQueen )
+        {
+            m_BitboardSettings.Result ^= bitboards.QueenBlack;
+        }
+    }
+}
+
+void ChessApp::StartPerftTest()
+{
+    m_PerftSettings.Result = 0;
+    m_PerftSettings.ShowScreen = true;
+    m_PerftSettings.CancelSearch = false;
+
+    m_PerftSettings.Running = true;
+    m_PerftSettings.Finished = false;
+
+    std::cout << "Running perft benchmark\n";
+    m_PerftSettings.PerftThread = std::thread(
+        [this]()
+        {
+            Chess::Chessboard TestBoard = Chess::Chessboard( this->m_Chessboard );
+            this->m_PerftSettings.Result = PerftTest( TestBoard, this->m_PerftSettings.InitalDepth, &this->m_PerftSettings.CancelSearch, this->m_PerftSettings.Verbose );
+            this->m_PerftSettings.Running = false;
+            this->m_PerftSettings.Finished = true;
+            if ( !m_PerftSettings.CancelSearch )
+                std::cout << "Perft benchmark finished." << std::endl;
+            else
+                std::cout << "Perft benchmark canceled." << std::endl;
+        }
+    );
+}
+
+int ChessApp::PerftTest( Chess::Chessboard& Board, int Depth, bool* Cancel, bool Verbose )
+{
+    if ( Depth < 0 )
+        throw std::exception( "wtf bro | Depth parameter for method Chessboard::Perft cannot be negative." );
+
+    if ( Depth == 0 || (*Cancel) )
+        return 1;
+
+    int n_nodes = 0;
+    int move_nodes = 0;
+    std::array<Chess::Move, 256> Moves = Board.GetMoveList();
+    for ( const auto& Move : Moves )
+    {
+        if ( Move.IsNullMove() )
+            break;
+        Board.MakeMove( Move );
+        move_nodes = PerftTest( Board, Depth - 1, Cancel, false );
+        if ( Verbose && !(*Cancel) )
+        {
+            std::cout << Move.GetRepr() << ": " << move_nodes << "\n";
+        }
+        n_nodes += move_nodes;
+        Board.UnMakeMove( Move );
+    }
+    return n_nodes;
+}
+
+void ChessApp::DrawPerftScreen()
+{
+    ImGui::Begin( "Perft Benchmark" );
+
+    ImGui::DragInt( "Perft depth", &m_PerftSettings.InitalDepth, 0.025f, 1, 10 );
+    ImGui::DragInt( "Expected result", &m_PerftSettings.ExpectedResult );
+    ImGui::Checkbox( "Verbose", &m_PerftSettings.Verbose );
+
+    if ( m_PerftSettings.Running )
+    {
+        ImGui::Text( "Perft result: Calculating..." );
+    }
+    else if ( m_PerftSettings.Finished )
+    {
+        ImGui::Text( "Perft result: %d nodes.", m_PerftSettings.Result );
+        if ( m_PerftSettings.ExpectedResult != 0 )
+        {
+            ImGui::SameLine();
+            if ( m_PerftSettings.Result == m_PerftSettings.ExpectedResult )
+                ImGui::Text( "Benchmark passed." );
+            else
+                ImGui::Text( "Benchmark failed." );
+        }
+    }
+    else
+    {
+        ImGui::Text( "Perft result: Start benchmark to see results." );
+    }
+
+    if ( ImGui::Button( "Start benchmark" ) )
+    {
+        StartPerftTest();
+    }
+    if ( ImGui::Button( "Close benchmark window" ) )
+    {
+        m_PerftSettings.ShowScreen = false;
+    }
+
+    ImGui::End();
+}
+
 void ChessApp::LoadFonts()
 {
     namespace fs = std::filesystem;
     ImGuiIO& io = ImGui::GetIO();
-    //io.Fonts->AddFontDefault();
 
     std::cout << "Loading fonts... ";
 
-    fs::path FontsPath = ".\\Assets\\Fonts";
+    fs::path FontsPath = fs::path(".") / "Assets" / "Fonts";
     
     fs::path Noto_SansPath = FontsPath / fs::path( "Noto_Sans\\static\\NotoSans-Regular.ttf" );
     fs::path GabaritoPath = FontsPath / fs::path( "Gabarito\\static\\Gabarito-Regular.ttf" );
@@ -888,13 +1072,14 @@ ChessApp::ChessApp()
 
     //m_Chessboard.LoadFEN( "R1r4k/6b1/8/4B3/2N5/2K5/8/8 w - - 0 1" );
 
+    m_BoardVariables.MoveHistory.reserve( 128 );
+
     UpdateBoardInfo();
 }
 
 ChessApp::~ChessApp()
 {
     // Cleanup
-
     m_SoundEngine->drop();
 
     ImGui_ImplOpenGL3_Shutdown();
@@ -902,7 +1087,15 @@ ChessApp::~ChessApp()
     ImGui::DestroyContext();
     glfwDestroyWindow( m_Window );
     glfwTerminate();
+
+    if ( m_PerftSettings.PerftThread.joinable() )
+    {
+        m_PerftSettings.CancelSearch = true;
+        std::cout << "Canceling perft benchmark in progress..." << std::endl;
+        m_PerftSettings.PerftThread.join();
+    }
 }
+
 void ChessApp::Run()
 {
     // Main loop
@@ -925,8 +1118,25 @@ void ChessApp::Run()
                 m_BlackClock.Update();
         }
 
+        if ( m_PerftSettings.Finished && m_PerftSettings.PerftThread.joinable() )
+            m_PerftSettings.PerftThread.join();
+
         // Create a fullscreen dock space
         SetupDockspace();
+
+        if ( m_PerftSettings.Finished )
+        {
+            m_PerftSettings.Running = false;
+        }
+
+        if ( m_PerftSettings.ShowScreen )
+        {
+            DrawPerftScreen();
+        }
+        if ( m_BitboardSettings.ShowScreen )
+        {
+            DrawBitboardScreen();
+        }
 
         DrawDebugScreen();
 

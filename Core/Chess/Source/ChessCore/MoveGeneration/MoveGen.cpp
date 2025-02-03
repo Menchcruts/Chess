@@ -135,392 +135,11 @@ namespace Chess::MoveGen::SlidingPieces
     std::array<std::unordered_map<int, Bitboard>, 64> BishopMoveMasks = CreateBishopMoves();
 }
 
-namespace Chess::MoveGen::King
-{
-    std::unordered_set<Move> Chess::MoveGen::King::GetKingMoves(int Square, const Bitboards& bitboards, Color FriendlyColor, Bitboard PinRays, Bitboard CheckRays, Bitboard AttackMask, CastlingRights Rights )
-    {
-        std::unordered_set<Move> result( 10 );
-
-        Bitboard FriendlyMask = bitboards.GetColorMask( FriendlyColor );
-        Bitboard EnemyMask = bitboards.GetColorMask( FriendlyColor == Color::White ? Color::Black : Color::White );
-
-        Bitboard MoveMask = KingMoveBitboards[Square];
-        MoveMask &= ~(FriendlyMask | AttackMask);
-
-        MoveFlag Flag;
-
-        for ( int i = 0; i < 64; ++i )
-        {
-            if ( MoveMask.IsOccupied( i ) )
-            {
-                Flag = MoveFlag::None;
-                if ( EnemyMask.IsOccupied( i ) )
-                    Flag = MoveFlag::Capture;
-
-                result.emplace( Square, i, Flag );
-            }
-        }
-
-        if ( Rights != CastlingRights::None )
-        {
-            bool IsWhite = FriendlyColor == Color::White;
-            int CastleTarget;
-            Bitboard CastleMask, KingsideCastleMask = 0b01100000, QueensideCastleMask = 0b00001110;
-            
-            if ( (Rights | CastlingRights::Kingside) != CastlingRights::None )
-            {
-                if ( !IsWhite )
-                    KingsideCastleMask <<= 56;
-                CastleMask = KingsideCastleMask;
-
-                CastleMask &= ~(FriendlyMask | EnemyMask | AttackMask);
-
-                if ( CastleMask == KingsideCastleMask )
-                {
-                    CastleTarget = IsWhite ? 6 : 62;
-                    result.emplace( Square, CastleTarget, MoveFlag::CastleKing );
-                }
-            }
-            if ( (Rights | CastlingRights::QueenSide) != CastlingRights::None )
-            {
-                if ( !IsWhite )
-                    QueensideCastleMask <<= 56;
-                CastleMask = QueensideCastleMask;
-
-                CastleMask &= ~(FriendlyMask | EnemyMask | AttackMask);
-
-                if ( CastleMask == QueensideCastleMask )
-                {
-                    CastleTarget = IsWhite ? 2 : 58;
-                    result.emplace( Square, CastleTarget, MoveFlag::CastleQueen );
-                }
-            }
-        }
-
-        return result;
-    }
-}
-
-namespace Chess::MoveGen::Pawn
-{
-    static Bitboard GetPawnAttackMask( short Square, Color FriendlyColor )
-    {
-        Bitboard Result;
-
-        bool IsWhite = FriendlyColor == Color::White;
-        ChessCoord Start = ChessCoord( Square );
-        ChessCoord NewSquare;
-
-        auto& Attacks = IsWhite ? WhitePawnAttacks : BlackPawnAttacks;
-        for ( auto& Attack : Attacks )
-        {
-            NewSquare = Start + Attack;
-            if ( NewSquare.IsValid() )
-                Result |= Bit << (unsigned int)NewSquare.AsSquare();
-        }
-        return Result;
-    }
-
-    std::unordered_set<Move> GetPawnMoves( short Square, const Bitboards& bitboards, Color FriendlyColor, short EnPassantSquare, Bitboard PinRays, Bitboard CheckRays )
-    {
-        std::unordered_set<Move> result( 16 );  // Worst case is 12 moves
-
-        ChessCoord CurrentSquare = ChessCoord( Square );
-        short NewSquare;
-
-        bool IsWhite = FriendlyColor == Color::White;
-        bool AtStartRank = IsWhite ? CurrentSquare.Rank == 1 : CurrentSquare.Rank == 6;
-        bool NotPinned = !PinRays.IsOccupied( Square );
-        bool FirstPushBlocked = false;
-
-        short PromotionRank = IsWhite ? 7 : 0;
-
-        Bitboard FriendlyMask = bitboards.GetColorMask( FriendlyColor );
-        Bitboard EnemyMask = bitboards.GetColorMask( IsWhite ? Color::Black : Color::White );
-        Bitboard AllPieces = FriendlyMask | EnemyMask;
-
-        ChessCoord Forward = IsWhite ? ChessCoord( 1, 0 ) : ChessCoord( -1, 0 );
-
-        // Single push
-        CurrentSquare += Forward;
-        NewSquare = CurrentSquare.AsSquare();
-        if ( AllPieces.IsOccupied( NewSquare ) )
-            FirstPushBlocked = true;
-
-        if ( !FirstPushBlocked && (NotPinned || PinRays.IsOccupied( NewSquare )) )
-        {
-            if ( CurrentSquare.Rank == PromotionRank )
-            {
-                result.emplace( Square, NewSquare, MoveFlag::PromoteQueen );
-                result.emplace( Square, NewSquare, MoveFlag::PromoteRook );
-                result.emplace( Square, NewSquare, MoveFlag::PromoteBishop );
-                result.emplace( Square, NewSquare, MoveFlag::PromoteQueen );
-            }
-            else
-            {
-                result.emplace( Square, NewSquare, MoveFlag::None );
-            }
-        }
-
-        // Double push
-        CurrentSquare += Forward;
-        NewSquare = CurrentSquare.AsSquare();
-        if ( AtStartRank && !(AllPieces.IsOccupied( NewSquare )) && !FirstPushBlocked && (NotPinned || PinRays.IsOccupied( NewSquare )) )
-        {
-            result.emplace( Square, NewSquare, MoveFlag::DoublePawnMove );
-        }
-
-        // Attacks
-        CurrentSquare = ChessCoord( Square );
-
-        Bitboard AttackMask = GetPawnAttackMask( Square, FriendlyColor );
-        AttackMask &= EnemyMask;
-        if ( !NotPinned )
-            AttackMask &= PinRays;
-
-        auto& Attacks = IsWhite ? WhitePawnAttacks : BlackPawnAttacks;
-        for ( auto& Attack : Attacks )
-        {
-            CurrentSquare += Attack;
-            NewSquare = CurrentSquare.AsSquare();
-            if ( AttackMask.IsOccupied( NewSquare ) || NewSquare == EnPassantSquare )
-            {
-                if ( CurrentSquare.Rank == PromotionRank )
-                {
-                    result.emplace( Square, NewSquare, MoveFlag::PromoteQueenCapture );
-                    result.emplace( Square, NewSquare, MoveFlag::PromoteRookCapture );
-                    result.emplace( Square, NewSquare, MoveFlag::PromoteBishopCapture );
-                    result.emplace( Square, NewSquare, MoveFlag::PromoteKnightCapture );
-                }
-                else if ( NewSquare == EnPassantSquare )
-                {
-                    result.emplace( Square, NewSquare, MoveFlag::EnPassant );
-                }
-                else
-                {
-                    result.emplace( Square, NewSquare, MoveFlag::Capture );
-                }
-            }
-
-            CurrentSquare -= Attack;
-        }
-        return result;
-    }
-}
-
-namespace Chess::MoveGen::Knight
-{
-    std::unordered_set<Move> Chess::MoveGen::Knight::GetKnightMoves( int Square, const Bitboards& bitboards, Color FriendlyColor, Bitboard PinRays, Bitboard CheckRays )
-    {
-        std::unordered_set<Move> result( 8 );
-
-        Bitboard FriendlyMask = bitboards.GetColorMask( FriendlyColor );
-        Bitboard EnemyMask = bitboards.GetColorMask( FriendlyColor == Color::White ? Color::Black : Color::White );
-
-        Bitboard MoveMask = KnightMoveBitboards[Square];
-        MoveMask &= ~FriendlyMask;
-
-        if ( CheckRays )
-        {
-            MoveMask &= CheckRays;
-        }
-        if ( PinRays.IsOccupied( Square ) )
-        {
-            MoveMask &= PinRays;
-        }
-
-        MoveFlag Flag;
-
-        for ( int i = 0; i < 64; ++i )
-        {
-            if ( MoveMask.IsOccupied( i ) )
-            {
-                Flag = MoveFlag::None;
-                if ( EnemyMask.IsOccupied( i ) )
-                    Flag = MoveFlag::Capture;
-
-                result.emplace( Square, i, Flag );
-            }
-        }
-
-        return result;
-    }
-}
-
-namespace Chess::MoveGen::Bishop
-{
-    std::unordered_set<Move> GetBishopMoves( short Square, const Bitboards& bitboards, Color FriendlyColor, Bitboard PinRays, Bitboard CheckRays, short KingSquare )
-    {
-        std::unordered_set<Move> result( 13 );
-
-        Bitboard FriendlyMask = bitboards.GetColorMask( FriendlyColor );
-        Bitboard EnemyMask = bitboards.GetColorMask( FriendlyColor == Color::White ? Color::Black : Color::White );
-
-        Bitboard BlockerMask = SlidingPieces::BishopBlockerMasks[Square];
-        Bitboard Blockers = BlockerMask & (FriendlyMask | EnemyMask);
-        int MagicIdx = Magic::GetMagicIdx( Blockers, Square, true );
-
-        Bitboard MoveMask = SlidingPieces::BishopMoveMasks[Square][MagicIdx];
-        MoveMask &= ~FriendlyMask;
-
-        if ( CheckRays )
-        {
-            MoveMask &= CheckRays;
-        }
-        if ( PinRays.IsOccupied( Square ) )
-        {
-            Bitboard KingBlockerMask = SlidingPieces::BishopBlockerMasks[KingSquare];
-            Bitboard KingBlockers = KingBlockerMask & EnemyMask;
-            MagicIdx = Magic::GetMagicIdx( KingBlockers, KingSquare, true );
-
-            Bitboard KingBishopMoveMask = SlidingPieces::BishopMoveMasks[KingSquare][MagicIdx];
-
-            MoveMask &= (PinRays & KingBishopMoveMask);
-        }
-
-        MoveFlag Flag;
-
-        for ( int i = 0; i < 64; ++i )
-        {
-            if ( MoveMask.IsOccupied( i ) )
-            {
-                Flag = MoveFlag::None;
-                if ( EnemyMask.IsOccupied( i ) )
-                    Flag = MoveFlag::Capture;
-
-                result.emplace( Square, i, Flag );
-            }
-        }
-
-        return result;
-    }
-}
-
-namespace Chess::MoveGen::Rook
-{
-    std::unordered_set<Move> GetRookMoves( short Square, const Bitboards& bitboards, Color FriendlyColor, Bitboard PinRays, Bitboard CheckRays, short KingSquare )
-    {
-        std::unordered_set<Move> result( 14 );
-
-        Bitboard FriendlyMask = bitboards.GetColorMask( FriendlyColor );
-        Bitboard EnemyMask = bitboards.GetColorMask( FriendlyColor == Color::White ? Color::Black : Color::White );
-
-        Bitboard BlockerMask = SlidingPieces::RookBlockerMasks[Square];
-        Bitboard Blockers = BlockerMask & (FriendlyMask | EnemyMask);
-        int MagicIdx = Magic::GetMagicIdx( Blockers, Square, false );
-
-        //std::cout << "Rook blocker mask (" << Square << ") " << BlockerMask.m_Bitboard << "\n";
-        //std::cout << "Rook blockers (" << Square << ") " << Blockers.m_Bitboard << "\n";
-
-        Bitboard MoveMask = SlidingPieces::RookMoveMasks[Square][MagicIdx];
-        //std::cout << "Rook move mask (" << Square << ") " << MoveMask.m_Bitboard << "\n";
-        MoveMask &= ~FriendlyMask;
-
-        if ( CheckRays )
-        {
-            MoveMask &= CheckRays;
-        }
-        if ( PinRays.IsOccupied( Square ) )
-        {
-            Bitboard KingBlockerMask = SlidingPieces::RookBlockerMasks[KingSquare];
-            Bitboard KingBlockers = KingBlockerMask & EnemyMask;
-            MagicIdx = Magic::GetMagicIdx( KingBlockers, KingSquare, false );
-
-            Bitboard KingRookMoveMask = SlidingPieces::RookMoveMasks[KingSquare][MagicIdx];
-
-            MoveMask &= (PinRays & KingRookMoveMask);
-        }
-
-        MoveFlag Flag;
-
-        for ( int i = 0; i < 64; ++i )
-        {
-            if ( MoveMask.IsOccupied( i ) )
-            {
-                Flag = MoveFlag::None;
-                if ( EnemyMask.IsOccupied( i ) )
-                    Flag = MoveFlag::Capture;
-
-                result.emplace( Square, i, Flag );
-            }
-        }
-
-        return result;
-    }
-}
-
-namespace Chess::MoveGen::Queen
-{
-    std::unordered_set<Move> GetQueenMoves( short Square, const Bitboards& bitboards, Color FriendlyColor, Bitboard PinRays, Bitboard CheckRays, short KingSquare )
-    {
-        std::unordered_set<Move> result( 27 );
-
-        Bitboard FriendlyMask = bitboards.GetColorMask( FriendlyColor );
-        Bitboard EnemyMask = bitboards.GetColorMask( FriendlyColor == Color::White ? Color::Black : Color::White );
-
-        Bitboard OrthoBlockerMask = SlidingPieces::RookBlockerMasks[Square];
-        Bitboard OrthoBlockers = OrthoBlockerMask & (FriendlyMask | EnemyMask);
-        int OrthoMagicIdx = Magic::GetMagicIdx( OrthoBlockers, Square, false );
-
-        Bitboard DiagBlockerMask = SlidingPieces::BishopBlockerMasks[Square];
-        Bitboard DiagBlockers = DiagBlockerMask & (FriendlyMask | EnemyMask);
-        int DiagMagicIdx = Magic::GetMagicIdx( DiagBlockers, Square, true );
-
-        Bitboard MoveMask = SlidingPieces::RookMoveMasks[Square][OrthoMagicIdx] | SlidingPieces::BishopMoveMasks[Square][DiagMagicIdx];
-
-        MoveMask &= ~FriendlyMask;
-
-        if ( CheckRays )
-        {
-            MoveMask &= CheckRays;
-        }
-        if ( PinRays.IsOccupied( Square ) )
-        {
-            Bitboard KingBlockerMask = SlidingPieces::RookBlockerMasks[KingSquare];
-            int MagicIdx;
-            if ( KingBlockerMask.IsOccupied( Square ) )
-            {
-                Bitboard KingBlockers = KingBlockerMask & EnemyMask;
-                MagicIdx = Magic::GetMagicIdx( KingBlockers, KingSquare, false );
-
-                Bitboard KingRookMoveMask = SlidingPieces::RookMoveMasks[KingSquare][MagicIdx];
-                MoveMask &= (PinRays & KingRookMoveMask);
-            }
-            else
-            {
-                KingBlockerMask = SlidingPieces::BishopBlockerMasks[KingSquare];
-                Bitboard KingBlockers = KingBlockerMask & EnemyMask;
-                MagicIdx = Magic::GetMagicIdx( KingBlockers, KingSquare, true );
-
-                Bitboard KingBishopMoveMask = SlidingPieces::BishopMoveMasks[KingSquare][MagicIdx];
-
-                MoveMask &= (PinRays & KingBishopMoveMask);
-            }
-        }
-
-        MoveFlag Flag;
-
-        for ( int i = 0; i < 64; ++i )
-        {
-            if ( MoveMask.IsOccupied( i ) )
-            {
-                Flag = MoveFlag::None;
-                if ( EnemyMask.IsOccupied( i ) )
-                    Flag = MoveFlag::Capture;
-
-                result.emplace( Square, i, Flag );
-            }
-        }
-
-        return result;
-    }
-}
-
 namespace Chess::MoveGen
 {
-    RayPayload CalculateRays( short KingPos, const Bitboards& bitboards, short EnPassantSquare, bool IsWhite )
+    MoveGenInfo CreateMoveGenInfo( short KingPos, const Bitboards& bitboards, short EnPassantSquare, bool IsWhite )
     {
-        RayPayload result;
+        MoveGenInfo result;
 
         short EnPassantPiecePos;
         if ( EnPassantSquare == -1 )
@@ -529,6 +148,9 @@ namespace Chess::MoveGen
             EnPassantPiecePos = IsWhite ? EnPassantSquare - 8 : EnPassantSquare + 8;
 
         Color FriendlyColor = IsWhite ? Color::White : Color::Black;
+        Color EnemyColor = IsWhite ? Color::Black : Color::White;
+
+        result.AttackMask = GetAttackMask( bitboards, EnemyColor, KingPos, &result );
 
         ChessCoord KingCoord = ChessCoord( KingPos );
         ChessCoord NewCoord;
@@ -615,63 +237,508 @@ namespace Chess::MoveGen
             IsDiagonalDir = !IsDiagonalDir;
         }
 
+        if ( result.AttackMask.IsOccupied( KingPos ) )
+        {
+            result.InCheck = true;
+        }
+
         return result;
     }
 
-    Bitboard GetAttackMask( const std::unordered_set<short>& Positions, const Bitboards& bitboards, Color EnemyColor )
+    Bitboard GetAttackMask( const Bitboards& bitboards, Color EnemyColor, int KingPos, MoveGenInfo* Info )
     {
         Bitboard result;
 
-        Bitboard AllPieces = bitboards.GetColorMask( Color::White ) | bitboards.GetColorMask( Color::Black );
+        bool IsWhite = EnemyColor == Color::White;
+        Color FriendlyColor = IsWhite ? Color::Black : Color::White;
+        Bitboard Pieces = bitboards.GetColorMask( EnemyColor );
+
+        const auto& PawnAttackMasks = IsWhite ? Pawn::WhitePawnAttacks : Pawn::BlackPawnAttacks;
+
+        Bitboard AllPieces = bitboards.GetColorMask( FriendlyColor ) | bitboards.GetColorMask( EnemyColor );
+        Bitboard KingMask = IsWhite ? bitboards.KingBlack : bitboards.KingWhite;
+        AllPieces ^= KingMask;
         Bitboard BlockerMask, Blockers, MoveMask;
         int MagicIdx;
 
-        for ( auto& pos : Positions )
+        Bitboard Mask;
+        ChessPiece piece;
+        int Pos;
+        while ( Pieces )
         {
-            ChessPiece piece = bitboards.GetPieceAtSquare( pos );
+            Pos = Pieces.BitscanForward();
+            Pieces &= Pieces - 1;
+
+            piece = bitboards.GetPieceAtSquare( Pos );
             if ( piece.IsNullPiece() )
                 continue;
 
             switch ( piece.type )
             {
             case PieceType::King:
-                result |= King::KingMoveBitboards[pos];
+                Mask = King::KingMoveBitboards[Pos];
+                result |= Mask;
                 break;
             case PieceType::Pawn:
-                result |= Pawn::GetPawnAttackMask( pos, EnemyColor );
+                Mask = PawnAttackMasks[Pos];
+                result |= Mask;
                 break;
             case PieceType::Knight:
-                result |= Knight::KnightMoveBitboards[pos];
+                Mask = Knight::KnightMoveBitboards[Pos];
+                result |= Mask;
                 break;
             case PieceType::Bishop:
-                BlockerMask = SlidingPieces::BishopBlockerMasks[pos];
+                BlockerMask = SlidingPieces::BishopBlockerMasks[Pos];
                 Blockers = BlockerMask & AllPieces;
-                MagicIdx = Magic::GetMagicIdx( Blockers, pos, true );
-                result |= SlidingPieces::BishopMoveMasks[pos][MagicIdx];
+                MagicIdx = Magic::GetMagicIdx( Blockers, Pos, true );
+
+                Mask = SlidingPieces::BishopMoveMasks[Pos][MagicIdx];
+                result |= Mask;
                 break;
             case PieceType::Rook:
-                BlockerMask = SlidingPieces::RookBlockerMasks[pos];
+                BlockerMask = SlidingPieces::RookBlockerMasks[Pos];
                 Blockers = BlockerMask & AllPieces;
-                MagicIdx = Magic::GetMagicIdx( Blockers, pos, false );
-                result |= SlidingPieces::RookMoveMasks[pos][MagicIdx];
+                MagicIdx = Magic::GetMagicIdx( Blockers, Pos, false );
+
+                Mask = SlidingPieces::RookMoveMasks[Pos][MagicIdx];
+                result |= Mask;
                 break;
             case PieceType::Queen:
-                BlockerMask = SlidingPieces::RookBlockerMasks[pos];
+                BlockerMask = SlidingPieces::RookBlockerMasks[Pos];
                 Blockers = BlockerMask & AllPieces;
-                MagicIdx = Magic::GetMagicIdx( Blockers, pos, false );
-                result |= SlidingPieces::RookMoveMasks[pos][MagicIdx];
+                MagicIdx = Magic::GetMagicIdx( Blockers, Pos, false );
 
-                BlockerMask = SlidingPieces::BishopBlockerMasks[pos];
+                Mask = SlidingPieces::RookMoveMasks[Pos][MagicIdx];
+
+                BlockerMask = SlidingPieces::BishopBlockerMasks[Pos];
                 Blockers = BlockerMask & AllPieces;
-                MagicIdx = Magic::GetMagicIdx( Blockers, pos, true );
-                result |= SlidingPieces::BishopMoveMasks[pos][MagicIdx];
+                MagicIdx = Magic::GetMagicIdx( Blockers, Pos, true );
+
+                Mask |= SlidingPieces::BishopMoveMasks[Pos][MagicIdx];
+                result |= Mask;
                 break;
             case PieceType::None:
             default:
                 break;
             }
+
+            if ( Info != nullptr && Mask.IsOccupied( KingPos ) )
+            {
+                Info->CheckingPieces |= Bit << (unsigned int)Pos;
+            }
         }
         return result;
     }
+}
 
+namespace Chess::MoveGen::King
+{
+    std::array<Move, 32> GetKingMoves(int Square, const Bitboards& bitboards, Color FriendlyColor, Bitboard AttackMask, CastlingRights Rights, MoveGenInfo Info )
+    {
+        std::array<Move, 32> result;
+        size_t Top = 0;
+
+        Bitboard FriendlyMask = bitboards.GetColorMask( FriendlyColor );
+        Bitboard EnemyMask = bitboards.GetColorMask( FriendlyColor == Color::White ? Color::Black : Color::White );
+
+        Bitboard MoveMask = KingMoveBitboards[Square];
+        MoveMask &= ~(FriendlyMask | AttackMask);
+
+        MoveFlag Flag;
+
+        int Target;
+        while ( MoveMask )
+        {
+            Target = MoveMask.BitscanForward();
+            MoveMask &= MoveMask - 1;
+
+            Flag = MoveFlag::None;
+            if ( EnemyMask.IsOccupied( Target ) )
+                Flag = MoveFlag::Capture;
+            result[Top] = Move( Square, Target, Flag );
+            ++Top;
+        }
+
+        if ( !Info.InCheck && Rights != CastlingRights::None )
+        {
+            bool IsWhite = FriendlyColor == Color::White;
+            int CastleTarget;
+
+            Bitboard KingSideBlock  = 0b01100000;
+            Bitboard KingSideCheck  = 0b01100000;
+            Bitboard QueenSideBlock = 0b00001110;
+            Bitboard QueenSideCheck = 0b00001100;
+
+            Bitboard BlockerMask;
+            Bitboard CheckMask;
+
+            if ( (Rights & CastlingRights::Kingside) == CastlingRights::Kingside )
+            {
+                if ( !IsWhite )
+                {
+                    KingSideBlock <<= 56;
+                    KingSideCheck <<= 56;
+                }
+
+                BlockerMask = KingSideBlock;
+                CheckMask = KingSideCheck;
+                
+                if ( (BlockerMask & ~(FriendlyMask | EnemyMask)) == KingSideBlock && (CheckMask & ~(AttackMask)) == KingSideCheck )
+                {
+                    CastleTarget = IsWhite ? 6 : 62;
+                    result[Top] = Move( Square, CastleTarget, MoveFlag::CastleKing );
+                    ++Top;
+                }
+            }
+
+            if ( (Rights & CastlingRights::QueenSide) == CastlingRights::QueenSide )
+            {
+                if ( !IsWhite )
+                {
+                    QueenSideBlock <<= 56;
+                    QueenSideCheck <<= 56;
+                }
+
+                BlockerMask = QueenSideBlock;
+                CheckMask = QueenSideCheck;
+
+                if ( (BlockerMask & ~(FriendlyMask | EnemyMask)) == QueenSideBlock && (CheckMask & ~(AttackMask)) == QueenSideCheck )
+                {
+                    CastleTarget = IsWhite ? 2 : 58;
+                    result[Top] = Move( Square, CastleTarget, MoveFlag::CastleQueen );
+                    ++Top;
+                }
+            }
+        }
+
+        return result;
+    }
+}
+
+namespace Chess::MoveGen::Pawn
+{
+    std::array<Move, 32> GetPawnMoves( int Square, const Bitboards& bitboards, Color FriendlyColor, int EnPassantSquare, MoveGenInfo Info, int KingPos )
+    {
+        std::array<Move, 32> result;
+        size_t Top = 0;
+        
+        if ( Info.InDoubleCheck )
+            return result;
+        
+        bool IsWhite = FriendlyColor == Color::White;
+
+        Color EnemyColor = IsWhite ? Color::Black : Color::White;
+
+        Bitboard FriendMask = bitboards.GetColorMask( FriendlyColor );
+        Bitboard EnemyMask = bitboards.GetColorMask( EnemyColor );
+        Bitboard AllPieces = FriendMask | EnemyMask;
+
+        if ( EnPassantSquare != -1 )
+            EnemyMask |= Bit << (unsigned int)EnPassantSquare;
+
+        const auto& PawnAttackDir = IsWhite ? WhitePawnAttacksDirs : BlackPawnAttacksDirs;
+        Bitboard MoveMask;
+
+        ChessCoord Start = ChessCoord( Square );
+        ChessCoord AttackTarget;
+
+        int SinglePushSquare;
+        int DoublePushSquare;
+        int LeftAttackSquare = -1;
+        int RightAttackSquare = -1;
+
+        bool AtStartRank;
+        bool WillPromote;
+        bool SinglePushBlocked = false;
+
+        if ( IsWhite )
+        {
+            SinglePushSquare = Square + 8;
+            WillPromote = Start.Rank == 6;
+
+            DoublePushSquare = Square + 16;
+            AtStartRank = Start.Rank == 1;
+
+            AttackTarget = Start + PawnAttackDir[0];
+            if ( AttackTarget.IsValid() )
+                LeftAttackSquare = AttackTarget.AsSquare();
+
+            AttackTarget = Start + PawnAttackDir[1];
+            if ( AttackTarget.IsValid() )
+                RightAttackSquare = AttackTarget.AsSquare();
+        }
+        else
+        {
+            SinglePushSquare = Square - 8;
+            WillPromote = Start.Rank == 1;
+
+            DoublePushSquare = Square - 16;
+            AtStartRank = Start.Rank == 6;
+
+            AttackTarget = Start + PawnAttackDir[0];
+            if ( AttackTarget.IsValid() )
+                LeftAttackSquare = AttackTarget.AsSquare();
+
+            AttackTarget = Start + PawnAttackDir[1];
+            if ( AttackTarget.IsValid() )
+                RightAttackSquare = AttackTarget.AsSquare();
+
+        }
+
+        if ( !AllPieces.IsOccupied( SinglePushSquare ) )
+            MoveMask |= Bit << (unsigned int)SinglePushSquare;
+        else
+            SinglePushBlocked = true;
+
+        if ( !SinglePushBlocked && AtStartRank && !AllPieces.IsOccupied(DoublePushSquare) )
+            MoveMask |= Bit << (unsigned int)DoublePushSquare;
+
+        // Attacks
+        if ( LeftAttackSquare != -1 && EnemyMask.IsOccupied(LeftAttackSquare) )
+            MoveMask |= Bit << (unsigned int)LeftAttackSquare;
+
+        if ( RightAttackSquare != -1 && EnemyMask.IsOccupied(RightAttackSquare) )
+            MoveMask |= Bit << (unsigned int)RightAttackSquare;
+
+        if ( Info.InCheck )
+        {
+            MoveMask &= (Info.CheckRays | Info.CheckingPieces);
+        }
+        if ( Info.PinRays.IsOccupied( Square ) )
+        {
+            Bitboard AlignMask = GetAlignMask( KingPos, Square );
+            MoveMask &= (Info.PinRays & AlignMask);
+        }
+
+        MoveFlag Flag;
+        int Target;
+        while ( MoveMask )
+        {
+            Target = MoveMask.BitscanForward();
+            MoveMask &= MoveMask - 1;
+
+            Flag = MoveFlag::None;
+            if ( Target == DoublePushSquare )
+                Flag = MoveFlag::DoublePawnMove;
+            else if ( Target == EnPassantSquare )
+                Flag = MoveFlag::EnPassant;
+            else if ( EnemyMask.IsOccupied( Target ) )
+                Flag = MoveFlag::Capture;
+
+            if ( WillPromote )
+            {
+                MoveFlag IsCapture = ((Flag & MoveFlag::Capture) != MoveFlag::None) ? MoveFlag::Capture : MoveFlag::None;
+
+                result[Top] = Move( Square, Target, MoveFlag::PromoteQueen | IsCapture );
+                ++Top;
+
+                result[Top] = Move( Square, Target, MoveFlag::PromoteRook | IsCapture );
+                ++Top;
+
+                result[Top] = Move( Square, Target, MoveFlag::PromoteBishop | IsCapture );
+                ++Top;
+
+                result[Top] = Move( Square, Target, MoveFlag::PromoteKnight | IsCapture );
+                ++Top;
+            }
+            else
+            {
+                result[Top] = Move( Square, Target, Flag );
+                ++Top;
+            }
+        }
+
+        return result;
+    }
+}
+
+namespace Chess::MoveGen::Knight
+{
+    std::array<Move, 32> GetKnightMoves( short Square, const Bitboards& bitboards, Color FriendlyColor, MoveGenInfo Info, short KingSquare )
+    {
+        std::array<Move, 32> result;
+        size_t Top = 0;
+
+        if ( Info.InDoubleCheck )
+            return result;
+
+        Bitboard FriendlyMask = bitboards.GetColorMask( FriendlyColor );
+        Bitboard EnemyMask = bitboards.GetColorMask( FriendlyColor == Color::White ? Color::Black : Color::White );
+
+        Bitboard MoveMask = KnightMoveBitboards[Square];
+        MoveMask &= ~FriendlyMask;
+
+        if ( Info.InCheck )
+        {
+            MoveMask &= (Info.CheckRays | Info.CheckingPieces);
+        }
+        if ( Info.PinRays.IsOccupied( Square ) )
+        {
+            Bitboard AlignMask = GetAlignMask( KingSquare, Square );
+            MoveMask &= (Info.PinRays & AlignMask);
+        }
+
+        MoveFlag Flag;
+        int Target;
+        while ( MoveMask )
+        {
+            Target = MoveMask.BitscanForward();
+            MoveMask &= MoveMask - 1;
+
+            Flag = MoveFlag::None;
+            if ( EnemyMask.IsOccupied( Target ) )
+                Flag = MoveFlag::Capture;
+            result[Top] = Move( Square, Target, Flag );
+            ++Top;
+        }
+        return result;
+    }
+}
+
+namespace Chess::MoveGen::Bishop
+{
+    std::array<Move, 32> GetBishopMoves( short Square, const Bitboards& bitboards, Color FriendlyColor, MoveGenInfo Info, short KingSquare )
+    {
+        std::array<Move, 32> result;
+        size_t Top = 0;
+
+        if ( Info.InDoubleCheck )
+            return result;
+
+        Bitboard FriendlyMask = bitboards.GetColorMask( FriendlyColor );
+        Bitboard EnemyMask = bitboards.GetColorMask( FriendlyColor == Color::White ? Color::Black : Color::White );
+
+        Bitboard BlockerMask = SlidingPieces::BishopBlockerMasks[Square];
+        Bitboard Blockers = BlockerMask & (FriendlyMask | EnemyMask);
+        int MagicIdx = Magic::GetMagicIdx( Blockers, Square, true );
+
+        Bitboard MoveMask = SlidingPieces::BishopMoveMasks[Square][MagicIdx];
+        MoveMask &= ~FriendlyMask;
+
+        if ( Info.InCheck )
+        {
+            MoveMask &= (Info.CheckRays | Info.CheckingPieces);
+        }
+        if ( Info.PinRays.IsOccupied( Square ) )
+        {
+            Bitboard AlignMask = GetAlignMask( KingSquare, Square );
+            MoveMask &= (Info.PinRays & AlignMask);
+        }
+
+        MoveFlag Flag;
+        int Target;
+        while ( MoveMask )
+        {
+            Target = MoveMask.BitscanForward();
+            MoveMask &= MoveMask - 1;
+
+            Flag = MoveFlag::None;
+            if ( EnemyMask.IsOccupied( Target ) )
+                Flag = MoveFlag::Capture;
+            result[Top] = Move( Square, Target, Flag );
+            ++Top;
+        }
+        return result;
+    }
+}
+
+namespace Chess::MoveGen::Rook
+{
+    std::array<Move, 32> GetRookMoves( short Square, const Bitboards& bitboards, Color FriendlyColor, MoveGenInfo Info, short KingSquare )
+    {
+        std::array<Move, 32> result;
+        size_t Top = 0;
+
+        if ( Info.InDoubleCheck )
+            return result;
+
+        Bitboard FriendlyMask = bitboards.GetColorMask( FriendlyColor );
+        Bitboard EnemyMask = bitboards.GetColorMask( FriendlyColor == Color::White ? Color::Black : Color::White );
+
+        Bitboard BlockerMask = SlidingPieces::RookBlockerMasks[Square];
+        Bitboard Blockers = BlockerMask & (FriendlyMask | EnemyMask);
+        int MagicIdx = Magic::GetMagicIdx( Blockers, Square, false );
+
+        Bitboard MoveMask = SlidingPieces::RookMoveMasks[Square][MagicIdx];
+        MoveMask &= ~FriendlyMask;
+
+        if ( Info.InCheck )
+        {
+            MoveMask &= (Info.CheckRays | Info.CheckingPieces);
+        }
+        if ( Info.PinRays.IsOccupied( Square ) )
+        {
+            Bitboard AlignMask = GetAlignMask( KingSquare, Square );
+            MoveMask &= (Info.PinRays & AlignMask);
+        }
+
+        MoveFlag Flag;
+        int Target;
+        while ( MoveMask )
+        {
+            Target = MoveMask.BitscanForward();
+            MoveMask &= MoveMask - 1;
+
+            Flag = MoveFlag::None;
+            if ( EnemyMask.IsOccupied( Target ) )
+                Flag = MoveFlag::Capture;
+            result[Top] = Move( Square, Target, Flag );
+            ++Top;
+        }
+
+        return result;
+    }
+}
+
+namespace Chess::MoveGen::Queen
+{
+    std::array<Move, 32> GetQueenMoves( short Square, const Bitboards& bitboards, Color FriendlyColor, MoveGenInfo Info, short KingSquare )
+    {
+        std::array<Move, 32> result;
+        size_t Top = 0;
+
+        if ( Info.InDoubleCheck )
+            return result;
+
+        Bitboard FriendlyMask = bitboards.GetColorMask( FriendlyColor );
+        Bitboard EnemyMask = bitboards.GetColorMask( FriendlyColor == Color::White ? Color::Black : Color::White );
+
+        Bitboard OrthoBlockerMask = SlidingPieces::RookBlockerMasks[Square];
+        Bitboard OrthoBlockers = OrthoBlockerMask & (FriendlyMask | EnemyMask);
+        int OrthoMagicIdx = Magic::GetMagicIdx( OrthoBlockers, Square, false );
+
+        Bitboard DiagBlockerMask = SlidingPieces::BishopBlockerMasks[Square];
+        Bitboard DiagBlockers = DiagBlockerMask & (FriendlyMask | EnemyMask);
+        int DiagMagicIdx = Magic::GetMagicIdx( DiagBlockers, Square, true );
+
+        Bitboard MoveMask = SlidingPieces::RookMoveMasks[Square][OrthoMagicIdx] | SlidingPieces::BishopMoveMasks[Square][DiagMagicIdx];
+
+        MoveMask &= ~FriendlyMask;
+
+        if ( Info.InCheck )
+        {
+            MoveMask &= (Info.CheckRays | Info.CheckingPieces);
+        }
+        if ( Info.PinRays.IsOccupied( Square ) )
+        {
+            Bitboard AlignMask = GetAlignMask( KingSquare, Square );
+            MoveMask &= (Info.PinRays & AlignMask);
+        }
+
+        MoveFlag Flag;
+        int Target;
+        while ( MoveMask )
+        {
+            Target = MoveMask.BitscanForward();
+            MoveMask &= MoveMask - 1;
+
+            Flag = MoveFlag::None;
+            if ( EnemyMask.IsOccupied( Target ) )
+                Flag = MoveFlag::Capture;
+            result[Top] = Move( Square, Target, Flag );
+            ++Top;
+        }
+
+        return result;
+    }
 }

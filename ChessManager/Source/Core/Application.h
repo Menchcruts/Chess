@@ -12,6 +12,7 @@
 #include <array>
 #include <unordered_set>
 #include <unordered_map>
+#include <thread>
 #include "Images/Images.h"
 
 #include "Clock/Clock.h"
@@ -44,7 +45,6 @@ class ChessApp
 		AppFonts Fonts;
 	};
 
-
 	struct MoveHandling
 	{
 		short SelectedSquare = -1;
@@ -56,15 +56,18 @@ class ChessApp
 	{
 		Chess::Chessboard::BoardInfo BoardInfo;
 		char NewFen[128] = "";
+		std::array<Chess::Move, 256> LegalMoves;
+		std::vector<Chess::Move> MoveHistory;
 		int NewWhiteTime = 0;
 		int NewBlackTime = 0;
+		int NumberOfLegalMoves = 0;
 		Chess::Move NextMove;
 		bool GameStarted = false;
 	};
 
 	struct BoardVisuals
 	{
-		std::unordered_set<int> HighlightedSquares;
+		Chess::Bitboard HighlightedSquares;
 		float CellSize = 100.0f;
 		Chess::Move LastMove;
 		bool FlipBoard = false;
@@ -84,6 +87,42 @@ class ChessApp
 		std::unordered_set<int> Targets;
 	};
 
+	struct PerftSettings
+	{
+		bool Running = false;
+		bool Finished = false;
+		bool ShowScreen = false;
+		bool CancelSearch = false;
+		bool Verbose = true;
+		int Result = 0;
+		int ExpectedResult = 0;
+		int InitalDepth = 1;
+		std::thread PerftThread;
+	};
+
+	struct BitboardSettings
+	{
+		Chess::Bitboard Result;
+		bool ShowScreen = false;
+
+		bool WhiteKing = false;
+		bool WhitePawn = false;
+		bool WhiteKnight = false;
+		bool WhiteBishop = false;
+		bool WhiteRook = false;
+		bool WhiteQueen = false;
+
+		bool BlackKing = false;
+		bool BlackPawn = false;
+		bool BlackKnight = false;
+		bool BlackBishop = false;
+		bool BlackRook = false;
+		bool BlackQueen = false;
+
+		bool AllWhite = false;
+		bool AllBlack = false;
+	};
+
 private:
 	GLFWwindow* m_Window;
 	irrklang::ISoundEngine* m_SoundEngine;
@@ -100,6 +139,9 @@ private:
 	MoveHandling m_MoveHandling;
 	PromotionHandling m_PromotionHandling;
 
+	PerftSettings m_PerftSettings;
+	BitboardSettings m_BitboardSettings;
+
 	std::unordered_map<int, LegalMovesInfo> m_LegalMovesDict;	// Moves are mapped with start -> set of moves
 
 	Chess::Chessboard m_Chessboard/* = Chess::Chessboard( "R1r4k/6b1/8/4Q3/2N5/2K5/8/8 w - - 0 1" )*/;
@@ -114,7 +156,6 @@ private:
 	
 	void DrawChessboardScreen();
 	void DrawChessBoard( );
-	void DrawChessBoardFlipped();
 	void DrawPieceSelected(ImDrawList* DrawList) const;
 	void DrawLegalTargets( ImDrawList* DrawList ) const;
 
@@ -128,7 +169,13 @@ private:
 	void ResetBoard();
 
 	void UpdateBoardInfo();
-	void CreateMoveDict();
+	void HandleMoveList();
+
+	void DrawBitboardScreen();
+
+	void StartPerftTest();
+	int PerftTest( Chess::Chessboard& Board, int Depth, bool* Cancel, bool Verbose );
+	void DrawPerftScreen();
 
 public:
 	ChessApp();

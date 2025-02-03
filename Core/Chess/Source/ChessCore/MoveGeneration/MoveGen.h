@@ -7,18 +7,11 @@
 #include "../Bitboard.h"
 #include "../CastlingRights.h"
 
+
 namespace Chess::MoveGen
 {
 	struct ChessCoord
 	{
-		enum class Direction
-		{
-			North = 1,
-			South = 2,
-			West  = 3,
-			East  = 4
-		};
-		
 		short Rank = 0, File = 0;
 
 		constexpr ChessCoord() = default;
@@ -27,75 +20,37 @@ namespace Chess::MoveGen
 		constexpr ChessCoord( short Square )
 			: Rank( Square >> 3 ), File( Square & 7 ) { }
 
-		constexpr inline ChessCoord& operator += ( const ChessCoord& other )
+		inline constexpr ChessCoord& operator += ( const ChessCoord& other )
 		{
 			this->Rank += other.Rank;
 			this->File += other.File;
 			return *this;
 		}
-		constexpr inline friend ChessCoord operator + ( ChessCoord left, const ChessCoord& right )
+		inline constexpr friend ChessCoord operator + ( ChessCoord left, const ChessCoord& right )
 		{
 			left += right;
 			return left;
 		}
 
-		constexpr inline ChessCoord& operator -= ( const ChessCoord& other )
+		inline constexpr ChessCoord& operator -= ( const ChessCoord& other )
 		{
 			this->Rank -= other.Rank;
 			this->File -= other.File;
 			return *this;
 		}
-		constexpr inline friend ChessCoord operator - ( ChessCoord left, const ChessCoord& right )
+		inline constexpr friend ChessCoord operator - ( ChessCoord left, const ChessCoord& right )
 		{
 			left -= right;
 			return left;
 		}
 
-		constexpr bool IsValid() const
+		inline constexpr bool IsValid() const
 		{
 			return (0 <= Rank && Rank <= 7) && (0 <= File && File <= 7);
 		}
-
-		constexpr short AsSquare() const
+		inline constexpr short AsSquare() const
 		{
 			return Rank * 8 + File;
-		}
-
-		constexpr inline void GoNorth()
-		{
-			++Rank;
-		}
-		constexpr inline void GoSouth()
-		{
-			--Rank;
-		}
-		constexpr inline void GoWest()
-		{
-			--File;
-		}
-		constexpr inline void GoEast()
-		{
-			++File;
-		}
-		constexpr void GoDirection( Direction dir )
-		{
-			switch ( dir )
-			{
-			case Direction::North:
-				GoNorth();
-				break;
-			case Direction::South:
-				GoSouth();
-				break;
-			case Direction::West:
-				GoWest();
-				break;
-			case Direction::East:
-				GoEast();
-				break;
-			default:
-				return;
-			}
 		}
 	};
 
@@ -121,194 +76,283 @@ namespace Chess::MoveGen
 		ChessCoord(  1, -2 )
 	};
 
-	constexpr std::array<ChessCoord, 2> WhitePawnAttacks = {
+	constexpr std::array<ChessCoord, 2> WhitePawnAttacksDirs = {
 		ChessCoord( 1, -1 ),
 		ChessCoord( 1,  1 )
 	};
-	constexpr std::array<ChessCoord, 2> BlackPawnAttacks = {
+	constexpr std::array<ChessCoord, 2> BlackPawnAttacksDirs = {
 		ChessCoord( -1, -1 ),
 		ChessCoord( -1,  1 )
 	};
 
 	constexpr const Bitboard Bit = 1;
 
-	struct RayPayload
+	constexpr std::array<std::array<Bitboard, 8>, 64> CreateAlignMasks()
+	{
+		std::array<std::array<Bitboard, 8>, 64> result;
+
+		ChessCoord Center;
+		Bitboard Mask;
+
+		short NewSquare;
+		short Top;
+
+		for ( int Square = 0; Square < 64; ++Square )
+		{
+			Top = 0;
+			for ( const auto& dir : DirChanges )
+			{
+				Center = ChessCoord( Square );
+				Mask = 0;
+
+				for ( int _ = 0; _ < 8; ++_ )
+				{
+					Center += dir;
+					if ( Center.IsValid() )
+					{
+						NewSquare = Center.AsSquare();
+						Mask |= Bit << (unsigned int)NewSquare;
+						continue;
+					}
+					result[Square][Top] = Mask;
+				}
+				++Top;
+			}
+		}
+
+		return result;
+	}
+	constexpr auto AlignMasks = CreateAlignMasks();
+
+	constexpr Bitboard GetAlignMask( short KingSquare, short CurrentSquare )
+	{
+		Bitboard Result;
+		const auto& Masks = AlignMasks[KingSquare];
+		for ( const auto& Mask : Masks )
+		{
+			if ( Mask.IsOccupied( CurrentSquare ) )
+			{
+				Result = Mask;
+				break;
+			}
+		}
+		return Result;
+	}
+
+	struct MoveGenInfo
 	{
 		bool InCheck = false;
 		bool InDoubleCheck = false;
 		bool EnPassantBlocked = false;
 		Bitboard PinRays;
 		Bitboard CheckRays;
+		Bitboard AttackMask;
+		Bitboard CheckingPieces;
 	};
 
-	RayPayload CalculateRays( short KingPos, const Bitboards& bitboards, short EnPassantSquare, bool IsWhite );
+	MoveGenInfo CreateMoveGenInfo( short KingPos, const Bitboards& bitboards, short EnPassantSquare, bool IsWhite );
 
-	Bitboard GetAttackMask( const std::unordered_set<short>& Positions, const Bitboards& bitboards, Color EnemyColor );
-}
+	Bitboard GetAttackMask( const Bitboards& bitboards, Color EnemyColor, int KingPos, MoveGenInfo* Info = nullptr );
 
-namespace Chess::MoveGen::Magic
-{
-	constexpr std::array<short, 64> RookShifts = { 52, 52, 52, 52, 52, 52, 52, 52, 53, 53, 53, 54, 53, 53, 54, 53, 53, 54, 54, 54, 53, 53, 54, 53, 53, 54, 53, 53, 54, 54, 54, 53, 52, 54, 53, 53, 53, 53, 54, 53, 52, 53, 54, 54, 53, 53, 54, 53, 53, 54, 54, 54, 53, 53, 54, 53, 52, 53, 53, 53, 53, 53, 53, 52 };
-	constexpr std::array<std::uint64_t, 64> RookMagics = { 468374916371625120, 18428729537625841661, 2531023729696186408, 6093370314119450896, 13830552789156493815, 16134110446239088507, 12677615322350354425, 5404321144167858432, 2111097758984580, 18428720740584907710, 17293734603602787839, 4938760079889530922, 7699325603589095390, 9078693890218258431, 578149610753690728, 9496543503900033792, 1155209038552629657, 9224076274589515780, 1835781998207181184, 509120063316431138, 16634043024132535807, 18446673631917146111, 9623686630121410312, 4648737361302392899, 738591182849868645, 1732936432546219272, 2400543327507449856, 5188164365601475096, 10414575345181196316, 1162492212166789136, 9396848738060210946, 622413200109881612, 7998357718131801918, 7719627227008073923, 16181433497662382080, 18441958655457754079, 1267153596645440, 18446726464209379263, 1214021438038606600, 4650128814733526084, 9656144899867951104, 18444421868610287615, 3695311799139303489, 10597006226145476632, 18436046904206950398, 18446726472933277663, 3458977943764860944, 39125045590687766, 9227453435446560384, 6476955465732358656, 1270314852531077632, 2882448553461416064, 11547238928203796481, 1856618300822323264, 2573991788166144, 4936544992551831040, 13690941749405253631, 15852669863439351807, 18302628748190527413, 12682135449552027479, 13830554446930287982, 18302628782487371519, 7924083509981736956, 4734295326018586370 };
+	// Pre-calc for sliding pieces
 
-	constexpr std::array<short, 64> BishopShift = { 58, 60, 59, 59, 59, 59, 60, 58, 60, 59, 59, 59, 59, 59, 59, 60, 59, 59, 57, 57, 57, 57, 59, 59, 59, 59, 57, 55, 55, 57, 59, 59, 59, 59, 57, 55, 55, 57, 59, 59, 59, 59, 57, 57, 57, 57, 59, 59, 60, 60, 59, 59, 59, 59, 60, 60, 58, 60, 59, 59, 59, 59, 59, 58 };
-	constexpr std::array<std::uint64_t, 64> BishopMagics = { 16509839532542417919, 14391803910955204223, 1848771770702627364, 347925068195328958, 5189277761285652493, 3750937732777063343, 18429848470517967340, 17870072066711748607, 16715520087474960373, 2459353627279607168, 7061705824611107232, 8089129053103260512, 7414579821471224013, 9520647030890121554, 17142940634164625405, 9187037984654475102, 4933695867036173873, 3035992416931960321, 15052160563071165696, 5876081268917084809, 1153484746652717320, 6365855841584713735, 2463646859659644933, 1453259901463176960, 9808859429721908488, 2829141021535244552, 576619101540319252, 5804014844877275314, 4774660099383771136, 328785038479458864, 2360590652863023124, 569550314443282, 17563974527758635567, 11698101887533589556, 5764964460729992192, 6953579832080335136, 1318441160687747328, 8090717009753444376, 16751172641200572929, 5558033503209157252, 17100156536247493656, 7899286223048400564, 4845135427956654145, 2368485888099072, 2399033289953272320, 6976678428284034058, 3134241565013966284, 8661609558376259840, 17275805361393991679, 15391050065516657151, 11529206229534274423, 9876416274250600448, 16432792402597134585, 11975705497012863580, 11457135419348969979, 9763749252098620046, 16960553411078512574, 15563877356819111679, 14994736884583272463, 9441297368950544394, 14537646123432199168, 9888547162215157388, 18140215579194907366, 18374682062228545019 };
-
-	inline constexpr int GetMagicIdx( Bitboard BlockerMask, short Square, bool IsDiagonal )
+	namespace Magic
 	{
-		const std::uint64_t& Mask	= BlockerMask.m_Bitboard;
-		const std::uint64_t& Magic	= IsDiagonal ? BishopMagics[Square] : RookMagics[Square];
-		const short& Shift			= IsDiagonal ? BishopShift[Square] : RookShifts[Square];
+		constexpr std::array<short, 64> RookShifts = { 52, 52, 52, 52, 52, 52, 52, 52, 53, 53, 53, 54, 53, 53, 54, 53, 53, 54, 54, 54, 53, 53, 54, 53, 53, 54, 53, 53, 54, 54, 54, 53, 52, 54, 53, 53, 53, 53, 54, 53, 52, 53, 54, 54, 53, 53, 54, 53, 53, 54, 54, 54, 53, 53, 54, 53, 52, 53, 53, 53, 53, 53, 53, 52 };
+		constexpr std::array<std::uint64_t, 64> RookMagics = { 468374916371625120, 18428729537625841661, 2531023729696186408, 6093370314119450896, 13830552789156493815, 16134110446239088507, 12677615322350354425, 5404321144167858432, 2111097758984580, 18428720740584907710, 17293734603602787839, 4938760079889530922, 7699325603589095390, 9078693890218258431, 578149610753690728, 9496543503900033792, 1155209038552629657, 9224076274589515780, 1835781998207181184, 509120063316431138, 16634043024132535807, 18446673631917146111, 9623686630121410312, 4648737361302392899, 738591182849868645, 1732936432546219272, 2400543327507449856, 5188164365601475096, 10414575345181196316, 1162492212166789136, 9396848738060210946, 622413200109881612, 7998357718131801918, 7719627227008073923, 16181433497662382080, 18441958655457754079, 1267153596645440, 18446726464209379263, 1214021438038606600, 4650128814733526084, 9656144899867951104, 18444421868610287615, 3695311799139303489, 10597006226145476632, 18436046904206950398, 18446726472933277663, 3458977943764860944, 39125045590687766, 9227453435446560384, 6476955465732358656, 1270314852531077632, 2882448553461416064, 11547238928203796481, 1856618300822323264, 2573991788166144, 4936544992551831040, 13690941749405253631, 15852669863439351807, 18302628748190527413, 12682135449552027479, 13830554446930287982, 18302628782487371519, 7924083509981736956, 4734295326018586370 };
 
-		return static_cast<int>((Mask * Magic) >> Shift);
-	}
-}
+		constexpr std::array<short, 64> BishopShift = { 58, 60, 59, 59, 59, 59, 60, 58, 60, 59, 59, 59, 59, 59, 59, 60, 59, 59, 57, 57, 57, 57, 59, 59, 59, 59, 57, 55, 55, 57, 59, 59, 59, 59, 57, 55, 55, 57, 59, 59, 59, 59, 57, 57, 57, 57, 59, 59, 60, 60, 59, 59, 59, 59, 60, 60, 58, 60, 59, 59, 59, 59, 59, 58 };
+		constexpr std::array<std::uint64_t, 64> BishopMagics = { 16509839532542417919, 14391803910955204223, 1848771770702627364, 347925068195328958, 5189277761285652493, 3750937732777063343, 18429848470517967340, 17870072066711748607, 16715520087474960373, 2459353627279607168, 7061705824611107232, 8089129053103260512, 7414579821471224013, 9520647030890121554, 17142940634164625405, 9187037984654475102, 4933695867036173873, 3035992416931960321, 15052160563071165696, 5876081268917084809, 1153484746652717320, 6365855841584713735, 2463646859659644933, 1453259901463176960, 9808859429721908488, 2829141021535244552, 576619101540319252, 5804014844877275314, 4774660099383771136, 328785038479458864, 2360590652863023124, 569550314443282, 17563974527758635567, 11698101887533589556, 5764964460729992192, 6953579832080335136, 1318441160687747328, 8090717009753444376, 16751172641200572929, 5558033503209157252, 17100156536247493656, 7899286223048400564, 4845135427956654145, 2368485888099072, 2399033289953272320, 6976678428284034058, 3134241565013966284, 8661609558376259840, 17275805361393991679, 15391050065516657151, 11529206229534274423, 9876416274250600448, 16432792402597134585, 11975705497012863580, 11457135419348969979, 9763749252098620046, 16960553411078512574, 15563877356819111679, 14994736884583272463, 9441297368950544394, 14537646123432199168, 9888547162215157388, 18140215579194907366, 18374682062228545019 };
 
-namespace Chess::MoveGen::SlidingPieces
-{
-	constexpr std::array<short, 8> GetSquaresToEdge( short Square )
-	{
-		short Rank = Square >> 3;
-		short File = Square & 7;
-
-		std::array<short, 8> result{ };
-
-		result[0] = 7 - Rank;
-		result[2] = 7 - File;
-		result[4] = Rank;
-		result[6] = File;
-
-		result[1] = result[0] < result[2] ? result[0] : result[2];
-		result[3] = result[2] < result[4] ? result[2] : result[4];
-		result[5] = result[4] < result[6] ? result[4] : result[6];
-		result[7] = result[6] < result[0] ? result[6] : result[0];
-
-		return result;
-	}
-
-	constexpr std::array<Bitboard, 64> CreateSlidingBlockerMasks( bool IsDiagonal )
-	{
-		std::array<Bitboard, 64> result{ };
-
-		Bitboard Mask;
-
-		ChessCoord Center, NewCoord;
-		short NewSquare;
-
-		std::array<short, 8> maxes;
-
-		int DirStartIdx = IsDiagonal ? 1 : 0;
-		for ( int Square = 0; Square < 64; ++Square )
+		inline constexpr int GetMagicIdx( Bitboard BlockerMask, short Square, bool IsDiagonal )
 		{
-			maxes = GetSquaresToEdge( Square );
+			const std::uint64_t& Mask = BlockerMask.m_Bitboard;
+			const std::uint64_t& Magic = IsDiagonal ? BishopMagics[Square] : RookMagics[Square];
+			const short& Shift = IsDiagonal ? BishopShift[Square] : RookShifts[Square];
 
-			Center = ChessCoord( Square );
-			Mask = 0;
+			return static_cast<int>((Mask * Magic) >> Shift);
+		}
+	}
 
-			for ( int idx = DirStartIdx; idx < 8; idx += 2 )	// Skip every other direction
+	namespace SlidingPieces
+	{
+		constexpr std::array<short, 8> GetSquaresToEdge( short Square )
+		{
+			short Rank = Square >> 3;
+			short File = Square & 7;
+
+			std::array<short, 8> result{ };
+
+			result[0] = 7 - Rank;
+			result[2] = 7 - File;
+			result[4] = Rank;
+			result[6] = File;
+
+			result[1] = result[0] < result[2] ? result[0] : result[2];
+			result[3] = result[2] < result[4] ? result[2] : result[4];
+			result[5] = result[4] < result[6] ? result[4] : result[6];
+			result[7] = result[6] < result[0] ? result[6] : result[0];
+
+			return result;
+		}
+
+		constexpr std::array<Bitboard, 64> CreateSlidingBlockerMasks( bool IsDiagonal )
+		{
+			std::array<Bitboard, 64> result{ };
+
+			Bitboard Mask;
+
+			ChessCoord Center, NewCoord;
+			short NewSquare;
+
+			std::array<short, 8> maxes;
+
+			int DirStartIdx = IsDiagonal ? 1 : 0;
+			for ( int Square = 0; Square < 64; ++Square )
 			{
-				auto& dir = DirChanges[idx];
+				maxes = GetSquaresToEdge( Square );
 
-				NewCoord = Center;
+				Center = ChessCoord( Square );
+				Mask = 0;
 
-				for ( int i = 0; i < (maxes[idx] - 1); ++i )
+				for ( int idx = DirStartIdx; idx < 8; idx += 2 )	// Skip every other direction
 				{
-					NewCoord += dir;
-					NewSquare = NewCoord.AsSquare();
+					auto& dir = DirChanges[idx];
 
-					Mask |= (Bit << (unsigned int)NewSquare);
+					NewCoord = Center;
+
+					for ( int i = 0; i < (maxes[idx] - 1); ++i )
+					{
+						NewCoord += dir;
+						NewSquare = NewCoord.AsSquare();
+
+						Mask |= (Bit << (unsigned int)NewSquare);
+					}
+				}
+				result[Square] = Mask;
+			}
+
+			return result;
+		}
+
+		constexpr std::array<Bitboard, 64> RookBlockerMasks = CreateSlidingBlockerMasks( false );
+		constexpr std::array<Bitboard, 64> BishopBlockerMasks = CreateSlidingBlockerMasks( true );
+
+		std::vector<Bitboard> CreateBlockerPerms( Bitboard BlockerMask );
+		Bitboard MoveMaskFromBlocker( short Square, Bitboard BlockerMask, bool IsDiagonal );
+
+		std::array<std::unordered_map<int, Bitboard>, 64> CreateRookMoves();
+		std::array<std::unordered_map<int, Bitboard>, 64> CreateBishopMoves();
+	}
+
+	// Piece specific functions
+
+	namespace King
+	{
+		constexpr std::array<Bitboard, 64> CreateKingMoveBitboards()
+		{
+			std::array<Bitboard, 64> result{ };
+
+			for ( size_t square = 0; square < 64; ++square )
+			{
+				short rank = (short)(square >> 3);
+				short file = (short)(square & 7);
+
+				ChessCoord Center( rank, file );
+				ChessCoord NewCoord;
+
+				for ( auto& DirChange : DirChanges )
+				{
+					NewCoord = Center + DirChange;
+					if ( NewCoord.IsValid() )
+						result[square] |= (Bit << (unsigned int)NewCoord.AsSquare());
 				}
 			}
-			result[Square] = Mask;
-		}
 
-		return result;
+			return result;
+		}
+		constexpr auto KingMoveBitboards = CreateKingMoveBitboards();
+
+		std::array<Move, 32> GetKingMoves( int Square, const Bitboards& bitboards, Color FriendlyColor, Bitboard AttackMask, CastlingRights Rights, MoveGenInfo Info );
 	}
 
-	constexpr std::array<Bitboard, 64> RookBlockerMasks = CreateSlidingBlockerMasks( false );
-	constexpr std::array<Bitboard, 64> BishopBlockerMasks = CreateSlidingBlockerMasks( true );
-
-	std::vector<Bitboard> CreateBlockerPerms( Bitboard BlockerMask );
-	Bitboard MoveMaskFromBlocker( short Square, Bitboard BlockerMask, bool IsDiagonal );
-
-	std::array<std::unordered_map<int, Bitboard>, 64> CreateRookMoves();
-	std::array<std::unordered_map<int, Bitboard>, 64> CreateBishopMoves();
-}
-
-namespace Chess::MoveGen::King
-{
-	constexpr std::array<Bitboard, 64> CreateKingMoveBitboards()
+	namespace Pawn
 	{
-		std::array<Bitboard, 64> result{ };
-
-		for ( size_t square = 0; square < 64; ++square )
+		constexpr std::array<Bitboard, 64> CreatePawnAttacks( Color PawnColor )
 		{
-			short rank = (short)(square >> 3);
-			short file = (short)(square & 7);
+			std::array<Bitboard, 64> Result;
 
-			ChessCoord Center( rank, file );
-			ChessCoord NewCoord;
+			const auto& DirChanges = PawnColor == Color::White ? WhitePawnAttacksDirs : BlackPawnAttacksDirs;
 
-			for ( auto& DirChange : DirChanges )
+			ChessCoord CurrentSquare;
+			Bitboard Mask;
+
+			for ( int Square = 0; Square < 64; ++Square )
 			{
-				NewCoord = Center + DirChange;
-				if ( NewCoord.IsValid() )
-					result[square] |= (Bit << (unsigned int)NewCoord.AsSquare());
+				CurrentSquare = ChessCoord( Square );
+				Mask = 0;
+				for ( auto& dir : DirChanges )
+				{
+					CurrentSquare += dir;
+
+					if ( CurrentSquare.IsValid() )
+						Mask |= Bit << (unsigned int)CurrentSquare.AsSquare();
+
+					CurrentSquare -= dir;
+				}
+				Result[Square] = Mask;
 			}
+
+			return Result;
 		}
 
-		return result;
+		constexpr auto WhitePawnAttacks = CreatePawnAttacks( Color::White );
+		constexpr auto BlackPawnAttacks = CreatePawnAttacks( Color::Black );
+
+		std::array<Move, 32> GetPawnMoves( int Square, const Bitboards& bitboards, Color FriendlyColor, int EnPassantSquare, MoveGenInfo Info, int KingPos );
 	}
-	constexpr auto KingMoveBitboards = CreateKingMoveBitboards();
 
-	std::unordered_set<Move> GetKingMoves( int Square, const Bitboards& bitboards, Color FriendlyColor, Bitboard PinRays, Bitboard CheckRays, Bitboard AttackMask, CastlingRights Rights );
-}
-
-namespace Chess::MoveGen::Pawn
-{
-	std::unordered_set<Move> GetPawnMoves( short Square, const Bitboards& bitboards, Color FriendlyColor, short EnPassantSquare, Bitboard PinRays, Bitboard CheckRays );
-}
-
-namespace Chess::MoveGen::Knight
-{
-	constexpr std::array<Bitboard, 64> CreateKnightMoveBitboards()
+	namespace Knight
 	{
-		std::array<Bitboard, 64> result{ };
-
-		for ( size_t square = 0; square < 64; ++square )
+		constexpr std::array<Bitboard, 64> CreateKnightMoveBitboards()
 		{
-			short rank = (short)(square >> 3);
-			short file = (short)(square & 7);
+			std::array<Bitboard, 64> result{ };
 
-			ChessCoord Center( rank, file );
-			ChessCoord NewCoord;
-
-			for ( auto& DirChange : KnightCoordChanges )
+			for ( size_t square = 0; square < 64; ++square )
 			{
-				NewCoord = Center + DirChange;
-				if ( NewCoord.IsValid() )
-					result[square] |= (Bit << (unsigned int)NewCoord.AsSquare());
+				short rank = (short)(square >> 3);
+				short file = (short)(square & 7);
+
+				ChessCoord Center( rank, file );
+				ChessCoord NewCoord;
+
+				for ( auto& DirChange : KnightCoordChanges )
+				{
+					NewCoord = Center + DirChange;
+					if ( NewCoord.IsValid() )
+						result[square] |= (Bit << (unsigned int)NewCoord.AsSquare());
+				}
 			}
+
+			return result;
 		}
+		constexpr auto KnightMoveBitboards = CreateKnightMoveBitboards();
 
-		return result;
+		std::array<Move, 32> GetKnightMoves( short Square, const Bitboards& bitboards, Color FriendlyColor, MoveGenInfo Info, short KingSquare );
 	}
-	constexpr auto KnightMoveBitboards = CreateKnightMoveBitboards();
 
-	std::unordered_set<Move> GetKnightMoves( int Square, const Bitboards& bitboards, Color FriendlyColor, Bitboard PinRays, Bitboard CheckRays );
-}
+	namespace Bishop
+	{
+		std::array<Move, 32> GetBishopMoves( short Square, const Bitboards& bitboards, Color FriendlyColor, MoveGenInfo Info, short KingSquare );
+	}
 
-namespace Chess::MoveGen::Bishop
-{
-	std::unordered_set<Move> GetBishopMoves( short Square, const Bitboards& bitboards, Color FriendlyColor, Bitboard PinRays, Bitboard CheckRays, short KingSquare );
-}
+	namespace Rook
+	{
+		std::array<Move, 32> GetRookMoves( short Square, const Bitboards& bitboards, Color FriendlyColor, MoveGenInfo Info, short KingSquare );
+	}
 
-namespace Chess::MoveGen::Rook
-{
-	std::unordered_set<Move> GetRookMoves( short Square, const Bitboards& bitboards, Color FriendlyColor, Bitboard PinRays, Bitboard CheckRays, short KingSquare );
-}
-
-namespace Chess::MoveGen::Queen
-{
-	std::unordered_set<Move> GetQueenMoves( short Square, const Bitboards& bitboards, Color FriendlyColor, Bitboard PinRays, Bitboard CheckRays, short KingSquare );
+	namespace Queen
+	{
+		std::array<Move, 32> GetQueenMoves( short Square, const Bitboards& bitboards, Color FriendlyColor, MoveGenInfo Info, short KingSquare );
+	}
 }

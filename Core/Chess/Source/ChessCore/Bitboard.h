@@ -8,15 +8,15 @@ namespace Chess
 	{
 		std::uint64_t m_Bitboard = 0;
 
-		constexpr bool IsOccupied( int Square ) const
+		inline constexpr bool IsOccupied( int Square ) const
 		{
 			return 1ULL << Square & m_Bitboard;
 		}
-		constexpr void RemoveBit( int Square )
+		inline constexpr void RemoveBit( int Square )
 		{
 			m_Bitboard ^= 1ULL << Square;
 		}
-		constexpr void AddBit( int Square )
+		inline constexpr void AddBit( int Square )
 		{
 			m_Bitboard |= 1ULL << Square;
 		}
@@ -25,96 +25,112 @@ namespace Chess
 		constexpr Bitboard( std::uint64_t value )
 			: m_Bitboard(value) { }
 
-		constexpr inline operator bool() const
+		inline constexpr operator bool() const
 		{
 			return m_Bitboard != 0;
 		}
-		constexpr inline bool operator ==( Bitboard other )
+		inline constexpr bool operator ==( Bitboard other )
 		{
 			return this->m_Bitboard == other.m_Bitboard;
 		}
-		constexpr inline bool operator !=( Bitboard other )
+		inline constexpr bool operator !=( Bitboard other )
 		{
 			return !(*this == other);
 		}
-
-		constexpr inline Bitboard& operator |=( Bitboard other )
+ 
+		inline constexpr Bitboard& operator |=( Bitboard other )
 		{
 			m_Bitboard |= other.m_Bitboard;
 			return *this;
 		}
-		constexpr inline friend Bitboard operator | ( Bitboard left, const Bitboard& right )
+		inline constexpr friend Bitboard operator | ( Bitboard left, const Bitboard& right )
 		{
 			left |= right;
 			return left;
 		}
-		
-		constexpr inline Bitboard& operator &=( Bitboard other )
+ 		
+		inline constexpr Bitboard& operator &=( Bitboard other )
 		{
 			m_Bitboard &= other.m_Bitboard;
 			return *this;
 		}
-		constexpr inline friend Bitboard operator & ( Bitboard left, const Bitboard& right )
+		inline constexpr friend Bitboard operator & ( Bitboard left, const Bitboard& right )
 		{
 			left &= right;
 			return left;
 		}
-		
-		constexpr inline Bitboard& operator ^=( Bitboard other )
+ 		
+		inline constexpr Bitboard& operator ^=( Bitboard other )
 		{
 			m_Bitboard ^= other.m_Bitboard;
 			return *this;
 		}
-		constexpr inline friend Bitboard operator ^ ( Bitboard left, const Bitboard& right )
+		inline constexpr friend Bitboard operator ^ ( Bitboard left, const Bitboard& right )
 		{
 			left ^= right;
 			return left;
 		}
-		
-		constexpr inline Bitboard operator~() const
+ 		
+		inline constexpr Bitboard operator~() const
 		{
 			Bitboard result;
 			result.m_Bitboard = ~m_Bitboard;
 			return result;
 		}
-		
-		constexpr inline Bitboard& operator<<=( unsigned int shift )
+ 		
+		inline constexpr Bitboard& operator<<=( unsigned int shift )
 		{
 			m_Bitboard <<= shift;
 			return *this;
 		}
-		constexpr inline friend Bitboard operator<<( Bitboard lhs, unsigned int shift )
+		inline constexpr friend Bitboard operator<<( Bitboard lhs, unsigned int shift )
 		{
 			lhs <<= shift;
 			return lhs;
 		}
-		
-		constexpr inline Bitboard& operator>>=( unsigned int shift )
+ 		
+		inline constexpr Bitboard& operator>>=( unsigned int shift )
 		{
 			m_Bitboard >>= shift;
 			return *this;
 		}
-		constexpr inline friend Bitboard operator>>( Bitboard lhs, unsigned int shift )
+		inline constexpr friend Bitboard operator>>( Bitboard lhs, unsigned int shift )
 		{
 			lhs >>= shift;
 			return lhs;
 		}
-	};
 
-	constexpr int BitscanForward( Bitboard& BB )
-	{
-		if ( BB.m_Bitboard == 0 )
-			return -1;
-
-		const Bitboard Bit = 1;
-		int position = 0;
-		while ( !(BB & Bit) )
+		inline constexpr Bitboard& operator -=( int Num )
 		{
-			BB >>= 1;
-			++position;
+			m_Bitboard -= Num;
+			return *this;
 		}
-		return position;
-	}
+		inline constexpr friend Bitboard operator -( Bitboard lhs, Bitboard rhs )
+		{
+			lhs.m_Bitboard -= rhs.m_Bitboard;
+			return lhs;
+		}
+		inline constexpr friend Bitboard operator -( Bitboard lhs, int Num )
+		{
+			lhs.m_Bitboard -= Num;
+			return lhs;
+		}
+
+		constexpr int BitscanForward() const
+		{
+			if ( m_Bitboard == 0 )
+				return -1;
+
+			Bitboard Bit = 1;
+			int position = 0;
+			while ( !((*this) & Bit) )
+			{
+				Bit <<= 1;
+				++position;
+			}
+			return position;
+		}
+	};
 
 	struct Bitboards
 	{

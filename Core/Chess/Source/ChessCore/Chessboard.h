@@ -17,8 +17,7 @@ namespace Chess
 	public:
 		struct BoardInfo
 		{
-			std::vector<Move> _LegalMoves;
-			Bitboards _Bitboards{ };
+			Bitboards _Bitboards;
 			bool _WhiteToPlay = true;
 			short _EnPassantSquare = -1;
 			short _FullmoveClock = 1;
@@ -34,16 +33,11 @@ namespace Chess
 		{
 			short EnPassant;
 			short Halfmove;
+			ChessPiece PieceCaptured;
 			CastlingRights Rights;
 		};
 
 	private:
-		std::vector<Move> m_MoveHistory;
-		std::vector<Move> m_LegalMoves;
-
-		std::unordered_set<short> m_WhitePositions;
-		std::unordered_set<short> m_BlackPositions;
-
 		Bitboards m_Bitboards{ };
 		Bitboard m_AttackMask;
 
@@ -54,9 +48,6 @@ namespace Chess
 		short m_HalfmoveClock;
 		short m_FullmoveClock;
 
-		short m_WhiteKingPos = -1;
-		short m_BlackKingPos = -1;
-
 		bool m_WhiteToPlay = true;
 		
 		bool m_InCheck = false;
@@ -66,7 +57,6 @@ namespace Chess
 		Bitboard m_PinMask;
 		Bitboard m_CheckMask;
 
-		std::vector<ChessPiece> m_PieceHistory;
 		std::vector<SpecialInfo> m_InfoHistory;
 
 	private:
@@ -75,18 +65,19 @@ namespace Chess
 		void MovePiece( int Start, int Target );
 		void PromotePiece( int Square, PieceType NewType );
 
-		void GenerateMoves();
-		int Perft( int Depth, bool FirstPass );
+		int Perft(int Depth, bool FirstPass );
 
 	public:
 		Chessboard();
 		Chessboard( const std::string& FEN_Pos );
+
 		BoardInfo GetBoardInfo() const;
+		std::array<Move, 256> GetMoveList() const;
+
 		void LoadFEN( const std::string& FEN_Pos );
 		void MakeMove( Move move );
-		void UnMakeMove();
-		Move GetLastMove() const;
+		void UnMakeMove( Move move );
 
-		int RunPerft( int Depth );
+		int RunPerft(int Depth, bool ShowInfo = true	 );
 	};
 }
