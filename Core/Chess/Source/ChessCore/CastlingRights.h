@@ -2,7 +2,7 @@
 
 namespace Chess
 {
-	enum class CastlingRights
+	enum class CastlingRights : unsigned char
 	{
 		None = 0,		// 00 - No castling rights
 		Kingside = 1,	// 01 - Can castle king side

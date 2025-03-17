@@ -3,7 +3,7 @@
 
 namespace Logging
 {
-	enum LogLevel
+	enum LogLevel : unsigned char
 	{
 		Info		= 0,
 		Debug		= 1,

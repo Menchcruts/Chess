@@ -4,8 +4,8 @@
 
 namespace Chess
 {
-    enum class Color { None = -1, White = 0, Black = 1 };
-    enum class PieceType { None = 0, King, Pawn, Knight, Bishop, Rook, Queen };
+    enum class Color : char { None = -1, White = 0, Black = 1 };
+    enum class PieceType : unsigned char { None = 0, King, Pawn, Knight, Bishop, Rook, Queen };
 
     constexpr std::array<std::string_view, 64> SquareReprs = {
         "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",

@@ -5,7 +5,7 @@
 
 namespace Chess
 {
-	enum class MoveFlag
+	enum class MoveFlag : unsigned char
 	{
 		None					= 0b0000,
 		DoublePawnMove			= 0b0001,
