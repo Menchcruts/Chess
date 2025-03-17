@@ -79,6 +79,7 @@ namespace Chess
 
     std::array<Move, 256> Chessboard::GetMoveList() const
     {
+        auto clock = StopWatch( "Creating Move list" );
         std::array<Move, 256> MoveList;
         size_t Top = 0;
         
@@ -88,7 +89,6 @@ namespace Chess
         short KingPos = m_WhiteToPlay ? m_Bitboards.KingWhite.BitscanForward() : m_Bitboards.KingBlack.BitscanForward();
         MoveGen::MoveGenInfo Info = MoveGen::CreateMoveGenInfo( KingPos, m_Bitboards, m_EnPassantSquare, m_WhiteToPlay );
 
-        Bitboard AttackMask = MoveGen::GetAttackMask( m_Bitboards, EnemyColor, KingPos );
         CastlingRights Rights = m_WhiteToPlay ? m_WhiteCastling : m_BlackCastling;
 
         ChessPiece Piece;
@@ -109,7 +109,7 @@ namespace Chess
             switch ( Piece.type )
             {
             case Chess::PieceType::King:
-                MovesForPiece = MoveGen::King::GetKingMoves(Square, m_Bitboards, FriendlyColor, AttackMask, Rights, Info );
+                MovesForPiece = MoveGen::King::GetKingMoves(Square, m_Bitboards, FriendlyColor, Info.AttackMask, Rights, Info );
                 break;
             case Chess::PieceType::Pawn:
                 MovesForPiece = MoveGen::Pawn::GetPawnMoves( Square, m_Bitboards, FriendlyColor, (!Info.EnPassantBlocked ? m_EnPassantSquare : -1), Info, KingPos );

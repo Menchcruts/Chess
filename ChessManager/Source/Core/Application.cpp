@@ -7,6 +7,7 @@
 #include <thread>
 
 #include "Application.h"
+#include "Logger.h"
 
 
 static const std::filesystem::path AssetsDir( "Assets" );
@@ -939,7 +940,7 @@ void ChessApp::DrawPerftScreen()
             if ( m_PerftSettings.Result.Nodes == m_PerftSettings.ExpectedResult )
                 ImGui::Text( "Benchmark passed." );
             else
-                ImGui::Text( "Benchmark failed." );
+                ImGui::Text( "Benchmark failed. Difference: %d", m_PerftSettings.Result.Nodes - m_PerftSettings.ExpectedResult );
         }
     }
     else

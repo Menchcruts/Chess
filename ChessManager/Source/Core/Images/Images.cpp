@@ -9,20 +9,27 @@
 #endif // !STB_IMAGE_RESIZE_IMPLEMENTATION
 
 #include "Images.h"
+#include "Logger.h"
 #include <iostream>
 
 bool LoadImageData( std::filesystem::path FilePath, GLFWimage* OutImage, float Scale )
 {
-    int width, height, channels;
-    unsigned char* data = stbi_load( FilePath.string().c_str(), &width, &height, &channels, 0 );
-    if ( !data )
-        return false;
+    if ( FILE* file = fopen( FilePath.string().c_str(), "r" ) )
+    {
+        fclose( file );
+        int width, height, channels;
+        unsigned char* data = stbi_load( FilePath.string().c_str(), &width, &height, &channels, 0 );
+        if ( !data )
+            return false;
 
-    OutImage->width = width;
-    OutImage->height = height;
-    OutImage->pixels = data;
-    std::cout << "Loaded image: " << FilePath.string() << "\n";
-    return true;
+        OutImage->width = width;
+        OutImage->height = height;
+        OutImage->pixels = data;
+        std::cout << "Loaded image: " << FilePath.string() << "\n";
+        Logging::Log( "Loaded image: " + FilePath.string() );
+        return true;
+    }
+    return false;
 }
 
 bool LoadImageTexture( std::filesystem::path FilePath, Image* OutImage, float Scale )
@@ -42,8 +49,8 @@ bool LoadImageTexture( std::filesystem::path FilePath, Image* OutImage, float Sc
     }
 
     if ( !stbir_resize_uint8_linear( image.pixels, image.width, image.height, 0,
-                                        ScaledPixels, ScaledWidth, ScaledHeight, 0,
-                                        stbir_pixel_layout::STBIR_4CHANNEL ) )
+                                     ScaledPixels, ScaledWidth, ScaledHeight, 0,
+                                     stbir_pixel_layout::STBIR_4CHANNEL ) )
     {
         free( ScaledPixels );
         stbi_image_free( image.pixels );

@@ -87,57 +87,7 @@ namespace Chess::MoveGen
 
 	constexpr const Bitboard Bit = 1;
 
-	constexpr std::array<std::array<Bitboard, 8>, 64> CreateAlignMasks()
-	{
-		std::array<std::array<Bitboard, 8>, 64> result;
-
-		ChessCoord Center;
-		Bitboard Mask;
-
-		short NewSquare;
-		short Top;
-
-		for ( int Square = 0; Square < 64; ++Square )
-		{
-			Top = 0;
-			for ( const auto& dir : DirChanges )
-			{
-				Center = ChessCoord( Square );
-				Mask = 0;
-
-				for ( int _ = 0; _ < 8; ++_ )
-				{
-					Center += dir;
-					if ( Center.IsValid() )
-					{
-						NewSquare = Center.AsSquare();
-						Mask |= Bit << (unsigned int)NewSquare;
-						continue;
-					}
-					result[Square][Top] = Mask;
-				}
-				++Top;
-			}
-		}
-
-		return result;
-	}
-	constexpr auto AlignMasks = CreateAlignMasks();
-
-	constexpr Bitboard GetAlignMask( short KingSquare, short CurrentSquare )
-	{
-		Bitboard Result;
-		const auto& Masks = AlignMasks[KingSquare];
-		for ( const auto& Mask : Masks )
-		{
-			if ( Mask.IsOccupied( CurrentSquare ) )
-			{
-				Result = Mask;
-				break;
-			}
-		}
-		return Result;
-	}
+	std::array<std::unordered_map<int, Bitboard>, 64> CreateAlignMasks();
 
 	struct MoveGenInfo
 	{
@@ -166,9 +116,9 @@ namespace Chess::MoveGen
 
 		inline constexpr int GetMagicIdx( Bitboard BlockerMask, short Square, bool IsDiagonal )
 		{
-			const std::uint64_t& Mask = BlockerMask.m_Bitboard;
-			const std::uint64_t& Magic = IsDiagonal ? BishopMagics[Square] : RookMagics[Square];
-			const short& Shift = IsDiagonal ? BishopShift[Square] : RookShifts[Square];
+			const std::uint64_t& Mask	= BlockerMask.m_Bitboard;
+			const std::uint64_t& Magic	= IsDiagonal ? BishopMagics[Square] : RookMagics[Square];
+			const short& Shift			= IsDiagonal ? BishopShift[Square] : RookShifts[Square];
 
 			return static_cast<int>((Mask * Magic) >> Shift);
 		}
@@ -243,6 +193,9 @@ namespace Chess::MoveGen
 
 		std::array<std::unordered_map<int, Bitboard>, 64> CreateRookMoves();
 		std::array<std::unordered_map<int, Bitboard>, 64> CreateBishopMoves();
+
+		Bitboard GetRookMoveMask( int Square, Bitboard Occupied );
+		Bitboard GetBishopMoveMask( int Square, Bitboard Occupied );
 	}
 
 	// Piece specific functions

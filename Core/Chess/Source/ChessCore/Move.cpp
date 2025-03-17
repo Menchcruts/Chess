@@ -31,7 +31,7 @@ namespace Chess
 
     bool Move::IsCastle() const
     {
-        return (MoveInfo >> 12) & 0b0010;
+        return (MoveInfo >> 12) == 0b0010 || (MoveInfo >> 12) == 0b0011;
     }
 
     bool Move::IsPromotion() const

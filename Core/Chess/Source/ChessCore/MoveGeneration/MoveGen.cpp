@@ -1,6 +1,8 @@
 #include "MoveGen.h"
 #include <iostream>
 #include <algorithm>
+#include <unordered_map>
+#include "../Stopwatch/Stopwatch.h"
 
 
 namespace Chess::MoveGen::SlidingPieces
@@ -133,12 +135,63 @@ namespace Chess::MoveGen::SlidingPieces
 
     std::array<std::unordered_map<int, Bitboard>, 64> RookMoveMasks = CreateRookMoves();
     std::array<std::unordered_map<int, Bitboard>, 64> BishopMoveMasks = CreateBishopMoves();
+
+    Bitboard GetRookMoveMask( int Square, Bitboard Occupied )
+    {
+        Bitboard BlockerMask = RookBlockerMasks[Square];
+        BlockerMask &= Occupied;
+        int MagicIdx = Magic::GetMagicIdx( BlockerMask, Square, false );
+        return RookMoveMasks[Square][MagicIdx];
+    }
+    Bitboard GetBishopMoveMask( int Square, Bitboard Occupied )
+    {
+        Bitboard BlockerMask = BishopBlockerMasks[Square];
+        BlockerMask &= Occupied;
+        int MagicIdx = Magic::GetMagicIdx( BlockerMask, Square, true );
+        return BishopMoveMasks[Square][MagicIdx];
+    }
 }
 
 namespace Chess::MoveGen
 {
+    std::array<std::unordered_map<int, Bitboard>, 64> CreateAlignMasks()
+    {
+        std::array<std::unordered_map<int, Bitboard>, 64> result;
+        ChessCoord Center;
+        Bitboard Mask;
+
+        short NewSquare;
+        
+        for ( int Square = 0; Square < 64; ++Square )
+        {
+            result[Square] = std::unordered_map<int, Bitboard>();
+            for ( const auto& dir : DirChanges )
+            {
+                Center = ChessCoord( Square );
+                Mask = 0;
+
+                for ( int _ = 0; _ < 8; ++_ )
+                {
+                    Center += dir;
+                    if ( Center.IsValid() )
+                    {
+                        NewSquare = Center.AsSquare();
+                        Mask |= Bit << (unsigned int)NewSquare;
+                        result[Square][NewSquare] = Mask;
+                        continue;
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
+
+    const auto AlignMasks = CreateAlignMasks();
+
     MoveGenInfo CreateMoveGenInfo( short KingPos, const Bitboards& bitboards, short EnPassantSquare, bool IsWhite )
     {
+        auto clock = StopWatch( "Creating MoveGenInfo" );
         MoveGenInfo result;
 
         short EnPassantPiecePos;
@@ -215,7 +268,7 @@ namespace Chess::MoveGen
                         break;
 
                     // If we get to here the piece is a sliding piece
-                    if ( EnPassantAlongRay )
+                    if ( EnPassantAlongRay && !IsDiagonalDir )
                     {
                         result.EnPassantBlocked = true;
                         break;
@@ -223,23 +276,17 @@ namespace Chess::MoveGen
 
                     if ( FriendlyAlongRay )
                     {
-                        result.PinRays |= Ray;
+                        if ( !EnPassantAlongRay )
+                            result.PinRays |= Ray;
                     }
                     else
                     {   // No friendly to block the check
                         result.CheckRays |= Ray;
-                        if ( result.InCheck )
-                            result.InDoubleCheck = true;
-                        result.InCheck = true;
                     }
+                    break;
                 }
             }
             IsDiagonalDir = !IsDiagonalDir;
-        }
-
-        if ( result.AttackMask.IsOccupied( KingPos ) )
-        {
-            result.InCheck = true;
         }
 
         return result;
@@ -247,6 +294,7 @@ namespace Chess::MoveGen
 
     Bitboard GetAttackMask( const Bitboards& bitboards, Color EnemyColor, int KingPos, MoveGenInfo* Info )
     {
+        auto clock = StopWatch( "Creating Attack Mask" );
         Bitboard result;
 
         bool IsWhite = EnemyColor == Color::White;
@@ -324,6 +372,10 @@ namespace Chess::MoveGen
 
             if ( Info != nullptr && Mask.IsOccupied( KingPos ) )
             {
+                if ( Info->InCheck )
+                    Info->InDoubleCheck = true;
+                Info->InCheck = true;
+
                 Info->CheckingPieces |= Bit << (unsigned int)Pos;
             }
         }
@@ -506,7 +558,7 @@ namespace Chess::MoveGen::Pawn
         }
         if ( Info.PinRays.IsOccupied( Square ) )
         {
-            Bitboard AlignMask = GetAlignMask( KingPos, Square );
+            Bitboard AlignMask = AlignMasks[KingPos].at( Square );
             MoveMask &= (Info.PinRays & AlignMask);
         }
 
@@ -574,7 +626,7 @@ namespace Chess::MoveGen::Knight
         }
         if ( Info.PinRays.IsOccupied( Square ) )
         {
-            Bitboard AlignMask = GetAlignMask( KingSquare, Square );
+            Bitboard AlignMask = AlignMasks[KingSquare].at( Square );
             MoveMask &= (Info.PinRays & AlignMask);
         }
 
@@ -608,11 +660,7 @@ namespace Chess::MoveGen::Bishop
         Bitboard FriendlyMask = bitboards.GetColorMask( FriendlyColor );
         Bitboard EnemyMask = bitboards.GetColorMask( FriendlyColor == Color::White ? Color::Black : Color::White );
 
-        Bitboard BlockerMask = SlidingPieces::BishopBlockerMasks[Square];
-        Bitboard Blockers = BlockerMask & (FriendlyMask | EnemyMask);
-        int MagicIdx = Magic::GetMagicIdx( Blockers, Square, true );
-
-        Bitboard MoveMask = SlidingPieces::BishopMoveMasks[Square][MagicIdx];
+        Bitboard MoveMask = SlidingPieces::GetBishopMoveMask( Square, FriendlyMask | EnemyMask );
         MoveMask &= ~FriendlyMask;
 
         if ( Info.InCheck )
@@ -621,7 +669,7 @@ namespace Chess::MoveGen::Bishop
         }
         if ( Info.PinRays.IsOccupied( Square ) )
         {
-            Bitboard AlignMask = GetAlignMask( KingSquare, Square );
+            Bitboard AlignMask = AlignMasks[KingSquare].at( Square );
             MoveMask &= (Info.PinRays & AlignMask);
         }
 
@@ -655,11 +703,7 @@ namespace Chess::MoveGen::Rook
         Bitboard FriendlyMask = bitboards.GetColorMask( FriendlyColor );
         Bitboard EnemyMask = bitboards.GetColorMask( FriendlyColor == Color::White ? Color::Black : Color::White );
 
-        Bitboard BlockerMask = SlidingPieces::RookBlockerMasks[Square];
-        Bitboard Blockers = BlockerMask & (FriendlyMask | EnemyMask);
-        int MagicIdx = Magic::GetMagicIdx( Blockers, Square, false );
-
-        Bitboard MoveMask = SlidingPieces::RookMoveMasks[Square][MagicIdx];
+        Bitboard MoveMask = SlidingPieces::GetRookMoveMask( Square, FriendlyMask | EnemyMask );
         MoveMask &= ~FriendlyMask;
 
         if ( Info.InCheck )
@@ -668,7 +712,7 @@ namespace Chess::MoveGen::Rook
         }
         if ( Info.PinRays.IsOccupied( Square ) )
         {
-            Bitboard AlignMask = GetAlignMask( KingSquare, Square );
+            Bitboard AlignMask = AlignMasks[KingSquare].at( Square );
             MoveMask &= (Info.PinRays & AlignMask);
         }
 
@@ -703,15 +747,7 @@ namespace Chess::MoveGen::Queen
         Bitboard FriendlyMask = bitboards.GetColorMask( FriendlyColor );
         Bitboard EnemyMask = bitboards.GetColorMask( FriendlyColor == Color::White ? Color::Black : Color::White );
 
-        Bitboard OrthoBlockerMask = SlidingPieces::RookBlockerMasks[Square];
-        Bitboard OrthoBlockers = OrthoBlockerMask & (FriendlyMask | EnemyMask);
-        int OrthoMagicIdx = Magic::GetMagicIdx( OrthoBlockers, Square, false );
-
-        Bitboard DiagBlockerMask = SlidingPieces::BishopBlockerMasks[Square];
-        Bitboard DiagBlockers = DiagBlockerMask & (FriendlyMask | EnemyMask);
-        int DiagMagicIdx = Magic::GetMagicIdx( DiagBlockers, Square, true );
-
-        Bitboard MoveMask = SlidingPieces::RookMoveMasks[Square][OrthoMagicIdx] | SlidingPieces::BishopMoveMasks[Square][DiagMagicIdx];
+        Bitboard MoveMask = SlidingPieces::GetRookMoveMask( Square, FriendlyMask | EnemyMask ) | SlidingPieces::GetBishopMoveMask( Square, FriendlyMask | EnemyMask );
 
         MoveMask &= ~FriendlyMask;
 
@@ -721,7 +757,7 @@ namespace Chess::MoveGen::Queen
         }
         if ( Info.PinRays.IsOccupied( Square ) )
         {
-            Bitboard AlignMask = GetAlignMask( KingSquare, Square );
+            Bitboard AlignMask = AlignMasks[KingSquare].at( Square );
             MoveMask &= (Info.PinRays & AlignMask);
         }
 
