@@ -21,6 +21,7 @@
 *.gif
 */irrKlang-64bit-1.6.0/doc/
 __IGNORE__*
+Log.txt
 
 # Mono auto generated files
 mono_crash.*
