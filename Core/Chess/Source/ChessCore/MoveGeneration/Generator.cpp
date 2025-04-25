@@ -3,24 +3,14 @@
 
 namespace Chess::MoveGen
 {
-	MoveGenerator::MoveGenerator( Chessboard* board )
-		: m_Board( board )
-	{
-		m_Moves = new std::array<Move, 218>();
-		m_PinRays = new std::unordered_map<int, Bitboard>();
-
-		RookMoves = CreateSlidingMoves( false );
-		BishopMoves = CreateSlidingMoves( true );
-		InBetweenLookup = CreateInBetweenLookup();
-	}
-
-	MoveGenerator::~MoveGenerator()
-	{
-		delete m_Moves;
-		delete m_PinRays;
-		delete RookMoves;
-		delete BishopMoves;
-		delete InBetweenLookup;
+	MoveGenerator::MoveGenerator( ) : 
+		m_Moves( std::make_unique< std::array<Move, 218> >() ),
+		m_PinRays( std::make_unique< std::unordered_map<int, Bitboard> >() ),
+		RookMoves( CreateSlidingMoves( false ) ),
+		BishopMoves( CreateSlidingMoves( true ) ),
+		InBetweenLookup( CreateInBetweenLookup() )
+	{	
+		logger.debug( "Movegenerator created" );
 	}
 
 	void MoveGenerator::GenerateInfo()
@@ -91,9 +81,9 @@ namespace Chess::MoveGen
 		m_Moves->fill( Move() );
 	}
 
-	std::array<std::unordered_map<int, Bitboard>, 64>* MoveGenerator::CreateSlidingMoves( bool Diagonal )
+	std::unique_ptr<std::array<std::unordered_map<int, Bitboard>, 64>> MoveGenerator::CreateSlidingMoves( bool Diagonal )
 	{
-		auto result = new std::array<std::unordered_map<int, Bitboard>, 64>();
+		auto result = std::make_unique< std::array<std::unordered_map<int, Bitboard>, 64> >();
 
 		std::unordered_map<int, Bitboard> Masks;
 
@@ -155,9 +145,9 @@ namespace Chess::MoveGen
 		return line & btwn;   /* return the bits on that line in-between */
 	}
 
-	std::array<std::array<Bitboard, 64>, 64>* MoveGenerator::CreateInBetweenLookup()
+	std::unique_ptr < std::array<std::array<Bitboard, 64>, 64>> MoveGenerator::CreateInBetweenLookup()
 	{
-		auto result = new std::array<std::array<Bitboard, 64>, 64>();
+		auto result = std::make_unique< std::array<std::array<Bitboard, 64>, 64> >();
 
 		for ( int sq1 = 0; sq1 < 64; sq1++ )
 		{
@@ -395,8 +385,10 @@ namespace Chess::MoveGen
 		return false;
 	}
 
-	void MoveGenerator::GenerateMoves()
+	void MoveGenerator::GenerateMoves( Chessboard* board )
 	{
+		m_Board = board;
+
 		if ( m_Board->m_WhiteToPlay )
 		{
 			FriendlyColor = Color::White;

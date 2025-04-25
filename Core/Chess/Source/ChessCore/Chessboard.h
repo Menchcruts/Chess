@@ -3,11 +3,13 @@
 #include <string>
 #include <vector>
 #include <unordered_set>
+#include <memory>
 #include "Bitboard.h"
 #include "Pieces.h"
 #include "Move.h"
 #include "CastlingRights.h"
 #include "MoveGeneration/Generator.h"
+#include "Logger.h"
 
 
 namespace Chess
@@ -28,13 +30,15 @@ namespace Chess
 
 		std::vector<SpecialInfo> m_InfoHistory;
 
-		MoveGen::MoveGenerator m_MoveGenerator;
+		std::shared_ptr<MoveGen::MoveGenerator> m_MoveGenerator = std::make_shared<MoveGen::MoveGenerator>();
 
 		Bitboard m_AttackMask;
 		
 		Bitboard m_PinMask;
 		Bitboard m_CheckMask;
 		
+		Logger m_logger = Logger( "Chess.log", Logger::Debug );
+
 		short m_EnPassantSquare;
 		short m_HalfmoveClock;
 		short m_FullmoveClock;

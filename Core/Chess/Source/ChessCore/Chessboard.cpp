@@ -32,12 +32,12 @@ static const Chess::PieceType GetPieceFromRepr( char Piece )
 
 namespace Chess
 {
-    Chessboard::Chessboard() : m_MoveGenerator( this )
+    Chessboard::Chessboard()
     {        
         Init( "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" );
     }
 
-    Chessboard::Chessboard( const std::string& FEN_Pos ) : m_MoveGenerator( this )
+    Chessboard::Chessboard( const std::string& FEN_Pos )
     {
         Init( FEN_Pos );
     }
@@ -82,7 +82,7 @@ namespace Chess
     std::array<Move, 218> Chessboard::GetMoveList() const
     {
         //return std::array<Move, 218>();
-        return m_MoveGenerator.GetMoveList();
+        return m_MoveGenerator->GetMoveList();
     }
  
     int Chessboard::Perft( int Depth, bool FirstPass )
@@ -126,7 +126,7 @@ namespace Chess
     {
         //LOG( INFO ) << "Generating moves...\n";
         //Logger::instance().info( "Generating moves..." );
-        m_MoveGenerator.GenerateMoves();
+        m_MoveGenerator->GenerateMoves( this );
     }
 
     void Chessboard::LoadFEN( const std::string& FEN_Pos )
@@ -283,7 +283,7 @@ namespace Chess
             --CurrentSq;
         }
 
-        std::cout << "Engine has finished loading FEN " << FEN_Pos << "\n";
+        m_logger.info( "Engine has finished loading FEN '{}'", FEN_Pos );
     }
 
     void Chessboard::MakeMove( Move move )
