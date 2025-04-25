@@ -13,6 +13,9 @@ project "ChessManager"
         -- Include Core libraries
         "../Core/Chess/Source/",
         "../Core/ChessBotLocal/Source/",
+        "../Core/Utils",
+
+        -- Include dependencies
         "../Dependencies/GLFW/include/",
         "../Dependencies/ImGui/",
         "../Dependencies/ImGui/backends/",

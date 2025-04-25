@@ -13,6 +13,7 @@ OutputDir = "%{cfg.system}-%{cfg.architecture}/%{cfg.buildcfg}"
 group "Core"
 	include "Core/Chess"
     include "Core/ChessBot"
+    include "Core/Utils"
 
 group "Dependencies"
     include "Dependencies/GLFW"

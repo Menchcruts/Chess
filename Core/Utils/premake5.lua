@@ -1,17 +1,16 @@
-project "ChessBot"
+project "Utils"
     kind "StaticLib"
     language "C++"
     cppdialect "C++20"
     targetdir "Binaries/%{cfg.buildcfg}"
     staticruntime "off"
 
-    files { "Source/**.h", "Source/**.cpp" }
+    files { "./**.h", "./**.cpp" }
 
-    includedirs
-    {
-        "Source",
-        "../Utils"
-    }
+    -- includedirs
+    -- {
+    --     "."
+    -- }
 
     targetdir ("../bin/" .. OutputDir .. "/%{prj.name}")
     objdir ("../bin/Intermediates/" .. OutputDir .. "/%{prj.name}")
