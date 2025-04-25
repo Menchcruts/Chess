@@ -1,8 +1,6 @@
 #include "Chessboard.h"
 #include "Stopwatch/Stopwatch.h"
 #include <iostream>
-//#include "Logger_test.h"
-#include "aixlog.hpp"
 
 static const Chess::PieceType GetPieceFromRepr( char Piece )
 {

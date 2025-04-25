@@ -9,7 +9,6 @@
 #endif // !STB_IMAGE_RESIZE_IMPLEMENTATION
 
 #include "Images.h"
-#include "Logger.h"
 #include <iostream>
 
 bool LoadImageData( std::filesystem::path FilePath, GLFWimage* OutImage, float Scale )
@@ -26,7 +25,6 @@ bool LoadImageData( std::filesystem::path FilePath, GLFWimage* OutImage, float S
         OutImage->height = height;
         OutImage->pixels = data;
         std::cout << "Loaded image: " << FilePath.string() << "\n";
-        Logging::Log( "Loaded image: " + FilePath.string() );
         return true;
     }
     return false;
