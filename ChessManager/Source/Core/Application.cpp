@@ -489,7 +489,8 @@ void ChessApp::DrawLegalTargets( ImDrawList* DrawList ) const
 void ChessApp::MakeMove()
 {
     const Chess::Move& move = m_BoardVariables->NextMove;
-    std::cout << "Move( " << move.Start() << ", " << move.Target() << " )\n";
+    m_logger.info( "Move({0}, {1})", move.Start(), move.Target() );
+    //std::cout << "Move( " << move.Start() << ", " << move.Target() << " )\n";
     m_Chessboard.MakeMove( move );
     m_BoardVisuals.LastMove = move;
     
@@ -617,7 +618,8 @@ void ChessApp::DrawDebugScreen()
 
     if ( ImGui::InputText( "Load new FEN position", m_BoardVariables->NewFen, IM_ARRAYSIZE( m_BoardVariables->NewFen ), ImGuiInputTextFlags_EnterReturnsTrue ) )
     {
-        std::cout << "Loading FEN: " << m_BoardVariables->NewFen << "\n";
+        m_logger.info( "Loading FEN: '{}'", m_BoardVariables->NewFen );
+        //std::cout << "Loading FEN: " << m_BoardVariables->NewFen << "\n";
         m_Chessboard.LoadFEN( std::string( m_BoardVariables->NewFen ) );
         UpdateBoardInfo();
         memset( m_BoardVariables->NewFen, 0, sizeof( m_BoardVariables->NewFen ) );
@@ -858,7 +860,6 @@ void ChessApp::StartPerftTest()
     m_PerftSettings.Running = true;
     m_PerftSettings.Finished = false;
 
-    std::cout << "Running perft benchmark\n";
     m_PerftSettings.PerftThread = std::thread(
         [this]()
         {
@@ -866,17 +867,21 @@ void ChessApp::StartPerftTest()
             this->m_PerftSettings.Result.Nodes = PerftTest( TestBoard, this->m_PerftSettings.InitalDepth, &this->m_PerftSettings.CancelSearch, this->m_PerftSettings.Verbose, &this->m_PerftSettings.Result );
             this->m_PerftSettings.Running = false;
             this->m_PerftSettings.Finished = true;
+
+            Logger logger = Logger( "perft_result.log" );
+
+            logger.info( "Running perft benchmark" );
             if ( !m_PerftSettings.CancelSearch )
             {
-                std::cout << "Perft benchmark finished." << std::endl;
-                std::cout << "Nodes: " << this->m_PerftSettings.Result.Nodes << "\n";
-                std::cout << "Captures: " << this->m_PerftSettings.Result.Captures << "\n";
-                std::cout << "E.P.: " << this->m_PerftSettings.Result.EnPassants << "\n";
-                std::cout << "Castles: " << this->m_PerftSettings.Result.Castles << "\n";
-                std::cout << "Promotions: " << this->m_PerftSettings.Result.Promotions << "\n";
+                logger.info( "Perft benchmark finished." );
+                logger.info( "Nodes: {}", this->m_PerftSettings.Result.Nodes );
+                logger.info( "Captures: {}", this->m_PerftSettings.Result.Captures );
+                logger.info( "E.P.: {}", this->m_PerftSettings.Result.EnPassants );
+                logger.info( "Castles: {}", this->m_PerftSettings.Result.Castles );
+                logger.info( "Promotions: {}", this->m_PerftSettings.Result.Promotions );
             }
             else
-                std::cout << "Perft benchmark canceled." << std::endl;
+                logger.info( "Perft benchmark canceled." );
         }
     );
 }
@@ -964,8 +969,6 @@ void ChessApp::LoadFonts()
     namespace fs = std::filesystem;
     ImGuiIO& io = ImGui::GetIO();
 
-    std::cout << "Loading fonts... ";
-
     fs::path FontsPath = fs::path(".") / "Assets" / "Fonts";
     
     fs::path Noto_SansPath = FontsPath / fs::path( "Noto_Sans\\static\\NotoSans-Regular.ttf" );
@@ -980,7 +983,7 @@ void ChessApp::LoadFonts()
 
     io.Fonts->Build();
 
-    std::cout << "Fonts loaded!\n";
+    m_logger.info( "Fonts loaded" );
 }
 
 void ChessApp::LoadPieceImages()
@@ -997,9 +1000,10 @@ void ChessApp::LoadPieceImages()
             Image image;
             if ( !LoadImageTexture( ImagePath, &image, 0.67f ) )
             {
-                std::cerr << "Error loading image!\n";
+                m_logger.error( "Error loading image at path {}", ImagePath.string() );
                 throw std::exception();
             }
+            m_logger.debug( "Loaded image {}", ImagePath.string() );
             m_PieceImages[c][piece] = image;
         }
     }
@@ -1112,7 +1116,7 @@ ChessApp::~ChessApp()
     if ( m_PerftSettings.PerftThread.joinable() )
     {
         m_PerftSettings.CancelSearch = true;
-        std::cout << "Canceling perft benchmark in progress..." << std::endl;
+        m_logger.info( "Canceling perft benchmark in progress..." );
         m_PerftSettings.PerftThread.join();
     }
 }

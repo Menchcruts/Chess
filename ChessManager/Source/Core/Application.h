@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <thread>
 #include "Images/Images.h"
+#include "Logger.h"
 
 #include "Clock/Clock.h"
 
@@ -154,6 +155,8 @@ private:
 	Chess::Chessboard m_Chessboard;
 	
 	std::array<std::unordered_map<Chess::PieceType, Image>, 2> m_PieceImages;
+
+	Logger m_logger = Logger( "App.log", Logger::Debug );
 
 	MoveHandling m_MoveHandling;
 
