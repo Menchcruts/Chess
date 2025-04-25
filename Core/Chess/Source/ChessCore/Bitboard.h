@@ -8,15 +8,15 @@ namespace Chess
 	{
 		std::uint64_t m_Bitboard = 0;
 
-		inline constexpr bool IsOccupied( int Square ) const
+		constexpr bool IsOccupied( int Square ) const
 		{
 			return 1ULL << Square & m_Bitboard;
 		}
-		inline constexpr void RemoveBit( int Square )
+		constexpr void RemoveBit( int Square )
 		{
 			m_Bitboard ^= 1ULL << Square;
 		}
-		inline constexpr void AddBit( int Square )
+		constexpr void AddBit( int Square )
 		{
 			m_Bitboard |= 1ULL << Square;
 		}
@@ -25,15 +25,15 @@ namespace Chess
 		constexpr Bitboard( std::uint64_t value )
 			: m_Bitboard(value) { }
 
-		inline constexpr operator bool() const
+		constexpr operator bool() const
 		{
 			return m_Bitboard != 0;
 		}
-		inline constexpr bool operator ==( Bitboard other )
+		constexpr bool operator ==( Bitboard other )
 		{
 			return this->m_Bitboard == other.m_Bitboard;
 		}
-		inline constexpr bool operator !=( Bitboard other )
+		constexpr bool operator !=( Bitboard other )
 		{
 			return !(*this == other);
 		}
@@ -43,78 +43,119 @@ namespace Chess
 			m_Bitboard |= other.m_Bitboard;
 			return *this;
 		}
-		inline constexpr friend Bitboard operator | ( Bitboard left, const Bitboard& right )
+		constexpr friend Bitboard operator | ( Bitboard left, const Bitboard& right )
 		{
 			left |= right;
 			return left;
 		}
  		
-		inline constexpr Bitboard& operator &=( Bitboard other )
+		constexpr Bitboard& operator &=( Bitboard other )
 		{
 			m_Bitboard &= other.m_Bitboard;
 			return *this;
 		}
-		inline constexpr friend Bitboard operator & ( Bitboard left, const Bitboard& right )
+		constexpr friend Bitboard operator & ( Bitboard left, const Bitboard& right )
 		{
 			left &= right;
 			return left;
 		}
  		
-		inline constexpr Bitboard& operator ^=( Bitboard other )
+		constexpr Bitboard& operator ^=( Bitboard other )
 		{
 			m_Bitboard ^= other.m_Bitboard;
 			return *this;
 		}
-		inline constexpr friend Bitboard operator ^ ( Bitboard left, const Bitboard& right )
+		constexpr friend Bitboard operator ^ ( Bitboard left, const Bitboard& right )
 		{
 			left ^= right;
 			return left;
 		}
  		
-		inline constexpr Bitboard operator~() const
+		constexpr Bitboard operator~() const
 		{
 			Bitboard result;
 			result.m_Bitboard = ~m_Bitboard;
 			return result;
 		}
  		
-		inline constexpr Bitboard& operator<<=( unsigned int shift )
+		constexpr Bitboard& operator<<=( int shift )
 		{
 			m_Bitboard <<= shift;
 			return *this;
 		}
-		inline constexpr friend Bitboard operator<<( Bitboard lhs, unsigned int shift )
+		constexpr friend Bitboard operator<<( Bitboard lhs, int shift )
 		{
 			lhs <<= shift;
 			return lhs;
 		}
- 		
-		inline constexpr Bitboard& operator>>=( unsigned int shift )
+		constexpr Bitboard& operator<<=( unsigned int shift )
+		{
+			m_Bitboard <<= shift;
+			return *this;
+		}
+		constexpr friend Bitboard operator<<( Bitboard lhs, unsigned int shift )
+		{
+			lhs <<= shift;
+			return lhs;
+		}
+		constexpr Bitboard& operator<<=( short shift )
+		{
+			m_Bitboard <<= shift;
+			return *this;
+		}
+		constexpr friend Bitboard operator<<( Bitboard lhs, short shift )
+		{
+			lhs <<= shift;
+			return lhs;
+		}
+
+		constexpr Bitboard& operator>>=( int shift )
 		{
 			m_Bitboard >>= shift;
 			return *this;
 		}
-		inline constexpr friend Bitboard operator>>( Bitboard lhs, unsigned int shift )
+		constexpr friend Bitboard operator>>( Bitboard lhs, int shift )
+		{
+			lhs >>= shift;
+			return lhs;
+		}
+		constexpr Bitboard& operator>>=( unsigned int shift )
+		{
+			m_Bitboard >>= shift;
+			return *this;
+		}
+		constexpr friend Bitboard operator>>( Bitboard lhs, unsigned int shift )
+		{
+			lhs >>= shift;
+			return lhs;
+		}
+		constexpr Bitboard& operator>>=( short shift )
+		{
+			m_Bitboard >>= shift;
+			return *this;
+		}
+		constexpr friend Bitboard operator>>( Bitboard lhs, short shift )
 		{
 			lhs >>= shift;
 			return lhs;
 		}
 
-		inline constexpr Bitboard& operator -=( int Num )
+		constexpr Bitboard& operator -=( int Num )
 		{
 			m_Bitboard -= Num;
 			return *this;
 		}
-		inline constexpr friend Bitboard operator -( Bitboard lhs, Bitboard rhs )
+		constexpr friend Bitboard operator -( Bitboard lhs, Bitboard rhs )
 		{
 			lhs.m_Bitboard -= rhs.m_Bitboard;
 			return lhs;
 		}
-		inline constexpr friend Bitboard operator -( Bitboard lhs, int Num )
+		constexpr friend Bitboard operator -( Bitboard lhs, int Num )
 		{
 			lhs.m_Bitboard -= Num;
 			return lhs;
 		}
+
 
 		constexpr int BitscanForward() const
 		{
@@ -160,5 +201,7 @@ namespace Chess
 		ChessPiece GetPieceAtSquare( int Square ) const;
 
 		Bitboard GetColorMask( Color color ) const;
+
+		Bitboard AllPieces() const;
 	};
 }

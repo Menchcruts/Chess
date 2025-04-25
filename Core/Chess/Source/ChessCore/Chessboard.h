@@ -7,27 +7,14 @@
 #include "Pieces.h"
 #include "Move.h"
 #include "CastlingRights.h"
-#include "MoveGeneration/MoveGen.h"
+//#include "MoveGeneration/MoveGen.h"
+#include "MoveGeneration/Generator.h"
 
 
 namespace Chess
 {
 	class Chessboard
 	{
-	public:
-		struct BoardInfo
-		{
-			Bitboards _Bitboards;
-			bool _WhiteToPlay = true;
-			short _EnPassantSquare = -1;
-			short _FullmoveClock = 1;
-			short _HalfmoveClock = 0;
-			CastlingRights _WhiteCastling = CastlingRights::Both;
-			CastlingRights _BlackCastling = CastlingRights::Both;
-			short _WhiteKingPos = -1;
-			short _BlackKingPos = -1;
-		};
-
 	private:
 		struct SpecialInfo
 		{
@@ -37,16 +24,24 @@ namespace Chess
 			CastlingRights Rights;
 		};
 
-	private:
+	public:
 		Bitboards m_Bitboards{ };
+
+		std::vector<SpecialInfo> m_InfoHistory;
+
+		MoveGen::MoveGenerator m_MoveGenerator;
+
 		Bitboard m_AttackMask;
-
-		CastlingRights m_WhiteCastling;
-		CastlingRights m_BlackCastling;
-
+		
+		Bitboard m_PinMask;
+		Bitboard m_CheckMask;
+		
 		short m_EnPassantSquare;
 		short m_HalfmoveClock;
 		short m_FullmoveClock;
+		
+		CastlingRights m_WhiteCastling;
+		CastlingRights m_BlackCastling;
 
 		bool m_WhiteToPlay = true;
 		
@@ -54,12 +49,9 @@ namespace Chess
 		bool m_InDoubleCheck = false;
 		bool m_EnPassantBlocked = false;
 
-		Bitboard m_PinMask;
-		Bitboard m_CheckMask;
-
-		std::vector<SpecialInfo> m_InfoHistory;
-
 	private:
+		void Init( const std::string& FEN_Pos );
+
 		void AddPiece( int Square, Color color, PieceType type );
 		void RemovePiece( int Square );
 		void MovePiece( int Start, int Target );
@@ -67,12 +59,13 @@ namespace Chess
 
 		int Perft(int Depth, bool FirstPass );
 
+		void GenerateMoves();
+
 	public:
 		Chessboard();
 		Chessboard( const std::string& FEN_Pos );
 
-		BoardInfo GetBoardInfo() const;
-		std::array<Move, 256> GetMoveList() const;
+		std::array<Move, 218> GetMoveList() const;
 
 		void LoadFEN( const std::string& FEN_Pos );
 		void MakeMove( Move move );

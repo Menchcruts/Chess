@@ -122,4 +122,8 @@ namespace Chess
         else
             return Bitboard();
     }
+    Bitboard Bitboards::AllPieces() const
+    {
+        return KingWhite | PawnWhite | KnightWhite | BishopWhite | RookWhite | QueenWhite | KingBlack | PawnBlack | KnightBlack | BishopBlack | RookBlack | QueenBlack;
+    }
 }

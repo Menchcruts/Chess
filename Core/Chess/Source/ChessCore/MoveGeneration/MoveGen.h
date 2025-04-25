@@ -190,7 +190,7 @@ namespace Chess::MoveGen
 
 		std::vector<Bitboard> CreateBlockerPerms( Bitboard BlockerMask );
 		Bitboard MoveMaskFromBlocker( short Square, Bitboard BlockerMask, bool IsDiagonal );
-
+		 
 		std::array<std::unordered_map<int, Bitboard>, 64> CreateRookMoves();
 		std::array<std::unordered_map<int, Bitboard>, 64> CreateBishopMoves();
 

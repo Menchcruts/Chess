@@ -1,7 +1,8 @@
 #include "Chessboard.h"
 #include "Stopwatch/Stopwatch.h"
 #include <iostream>
-
+//#include "Logger_test.h"
+#include "aixlog.hpp"
 
 static const Chess::PieceType GetPieceFromRepr( char Piece )
 {
@@ -33,14 +34,17 @@ static const Chess::PieceType GetPieceFromRepr( char Piece )
 
 namespace Chess
 {
-    Chessboard::Chessboard()
-    {
-        m_InfoHistory.reserve( 96 );
-
-        LoadFEN( "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" );
+    Chessboard::Chessboard() : m_MoveGenerator( this )
+    {        
+        Init( "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" );
     }
 
-    Chessboard::Chessboard( const std::string& FEN_Pos )
+    Chessboard::Chessboard( const std::string& FEN_Pos ) : m_MoveGenerator( this )
+    {
+        Init( FEN_Pos );
+    }
+
+    void Chessboard::Init( const std::string& FEN_Pos )
     {
         m_InfoHistory.reserve( 96 );
 
@@ -77,83 +81,22 @@ namespace Chess
         AddPiece( Square, OldPiece.color, NewType );
     }
 
-    std::array<Move, 256> Chessboard::GetMoveList() const
+    std::array<Move, 218> Chessboard::GetMoveList() const
     {
-        auto clock = StopWatch( "Creating Move list" );
-        std::array<Move, 256> MoveList;
-        size_t Top = 0;
-        
-        Color FriendlyColor = m_WhiteToPlay ? Color::White : Color::Black;
-        Color EnemyColor = m_WhiteToPlay ? Color::Black : Color::White;
-
-        short KingPos = m_WhiteToPlay ? m_Bitboards.KingWhite.BitscanForward() : m_Bitboards.KingBlack.BitscanForward();
-        MoveGen::MoveGenInfo Info = MoveGen::CreateMoveGenInfo( KingPos, m_Bitboards, m_EnPassantSquare, m_WhiteToPlay );
-
-        CastlingRights Rights = m_WhiteToPlay ? m_WhiteCastling : m_BlackCastling;
-
-        ChessPiece Piece;
-
-        std::array<Move, 32> MovesForPiece;
-
-        Bitboard Friends = m_Bitboards.GetColorMask( FriendlyColor );
-        int Square;
-        while ( Friends )
-        {
-            MovesForPiece.fill( Move() );   // Clear last moves
-
-            Square = Friends.BitscanForward();
-            Friends &= Friends - 1;
-
-            Piece = m_Bitboards.GetPieceAtSquare( Square );
-
-            switch ( Piece.type )
-            {
-            case Chess::PieceType::King:
-                MovesForPiece = MoveGen::King::GetKingMoves(Square, m_Bitboards, FriendlyColor, Info.AttackMask, Rights, Info );
-                break;
-            case Chess::PieceType::Pawn:
-                MovesForPiece = MoveGen::Pawn::GetPawnMoves( Square, m_Bitboards, FriendlyColor, (!Info.EnPassantBlocked ? m_EnPassantSquare : -1), Info, KingPos );
-                break;
-            case Chess::PieceType::Knight:
-                MovesForPiece = MoveGen::Knight::GetKnightMoves( Square, m_Bitboards, FriendlyColor, Info, KingPos );
-                break;
-            case Chess::PieceType::Bishop:
-                MovesForPiece = MoveGen::Bishop::GetBishopMoves( Square, m_Bitboards, FriendlyColor, Info, KingPos );
-                break;
-            case Chess::PieceType::Rook:
-                MovesForPiece = MoveGen::Rook::GetRookMoves( Square, m_Bitboards, FriendlyColor, Info, KingPos );
-                break;
-            case Chess::PieceType::Queen:
-                MovesForPiece = MoveGen::Queen::GetQueenMoves( Square, m_Bitboards, FriendlyColor, Info, KingPos );
-                break;
-            case Chess::PieceType::None:
-            default:
-                break;
-            }
-
-            for ( auto& move : MovesForPiece )
-            {
-                if ( move.IsNullMove() )
-                    break;
-                MoveList[Top] = move;
-                ++Top;
-            }
-        }
-
-        return MoveList;
+        //return std::array<Move, 218>();
+        return m_MoveGenerator.GetMoveList();
     }
  
     int Chessboard::Perft( int Depth, bool FirstPass )
     {
         if ( Depth < 0 )
-            throw std::exception( "wtf bro | Depth parameter for method Chessboard::Perft cannot be negative." );
-
-        if ( Depth == 0 )
+            return 0;
+        else if ( Depth == 0 )
             return 1;
 
         int n_nodes = 0;
         int move_nodes = 0;
-        std::array<Move, 256> Moves = GetMoveList();
+        std::array<Move, 218> Moves = GetMoveList();
 
         for ( const auto& move : Moves )
         {
@@ -181,19 +124,11 @@ namespace Chess
         return n_nodes;
     }
 
-    Chessboard::BoardInfo Chessboard::GetBoardInfo() const
+    void Chessboard::GenerateMoves()
     {
-        return { 
-            m_Bitboards, 
-            m_WhiteToPlay, 
-            m_EnPassantSquare, 
-            m_FullmoveClock, 
-            m_HalfmoveClock, 
-            m_WhiteCastling, 
-            m_BlackCastling, 
-            (short)m_Bitboards.KingWhite.BitscanForward(), 
-            (short)m_Bitboards.KingBlack.BitscanForward()
-        };
+        //LOG( INFO ) << "Generating moves...\n";
+        //Logger::instance().info( "Generating moves..." );
+        m_MoveGenerator.GenerateMoves();
     }
 
     void Chessboard::LoadFEN( const std::string& FEN_Pos )
@@ -479,6 +414,8 @@ namespace Chess
             ++m_FullmoveClock;
 
         m_WhiteToPlay = !m_WhiteToPlay;
+
+        GenerateMoves();
     }
 
     void Chessboard::UnMakeMove( Move move )
@@ -545,6 +482,8 @@ namespace Chess
 
         if ( !m_WhiteToPlay )
             --m_FullmoveClock;
+
+        GenerateMoves();
     }
 
     int Chessboard::RunPerft( int Depth, bool ShowInfo )
