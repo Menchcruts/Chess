@@ -21,7 +21,7 @@
 class ChessApp
 {
 	struct AppColors
-	{		
+	{
 		ImColor EvenColor{ 115, 149, 82 };			// 'Dark' color
 		ImColor EvenColorHighlight{ 186, 203, 67 };	// 'Dark' color highlight
 		ImColor EvenColorRed{ 211, 108, 80 };		// 'Dark' color red
@@ -54,9 +54,8 @@ class ChessApp
 
 	struct BoardVariables
 	{
-		Chess::Chessboard::BoardInfo BoardInfo;
 		char NewFen[128] = "";
-		std::array<Chess::Move, 256> LegalMoves;
+		std::array<Chess::Move, 218> LegalMoves;
 		std::vector<Chess::Move> MoveHistory;
 		int NewWhiteTime = 0;
 		int NewBlackTime = 0;
@@ -98,15 +97,17 @@ class ChessApp
 
 	struct PerftSettings
 	{
+		std::thread PerftThread;
+		PerftResult Result;
+
+		int ExpectedResult = 0;
+		int InitalDepth = 1;
+
 		bool Running = false;
 		bool Finished = false;
 		bool ShowScreen = false;
 		bool CancelSearch = false;
 		bool Verbose = true;
-		int ExpectedResult = 0;
-		int InitalDepth = 1;
-		PerftResult Result;
-		std::thread PerftThread;
 	};
 
 	struct BitboardSettings
@@ -136,16 +137,13 @@ private:
 	GLFWwindow* m_Window;
 	irrklang::ISoundEngine* m_SoundEngine;
 
-	AppSettings Settings;
+	AppSettings* Settings;
 
-	bool m_EnableViewports = true;
-	
 	Clock m_WhiteClock;
 	Clock m_BlackClock;
 
-	BoardVariables m_BoardVariables;
+	BoardVariables* m_BoardVariables;
 	BoardVisuals m_BoardVisuals;
-	MoveHandling m_MoveHandling;
 	PromotionHandling m_PromotionHandling;
 
 	PerftSettings m_PerftSettings;
@@ -153,9 +151,13 @@ private:
 
 	std::unordered_map<int, LegalMovesInfo> m_LegalMovesDict;	// Moves are mapped with start -> set of moves
 
-	Chess::Chessboard m_Chessboard/* = Chess::Chessboard( "R1r4k/6b1/8/4Q3/2N5/2K5/8/8 w - - 0 1" )*/;
+	Chess::Chessboard m_Chessboard;
 	
 	std::array<std::unordered_map<Chess::PieceType, Image>, 2> m_PieceImages;
+
+	MoveHandling m_MoveHandling;
+
+	bool m_EnableViewports = true;
 
 private:
 	void LoadFonts();

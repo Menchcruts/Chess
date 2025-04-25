@@ -129,7 +129,7 @@ void ChessApp::DrawChessBoard()
     const LegalMovesInfo& info = DrawMoveCircles ? m_LegalMovesDict[m_MoveHandling.SelectedSquare] : LegalMovesInfo();
     const Chess::Move& LastMove = m_BoardVisuals.LastMove;
 
-    const Chess::Bitboards& bitboards = m_BoardVariables.BoardInfo._Bitboards;
+    const Chess::Bitboards& bitboards = m_Chessboard.m_Bitboards;
     
     ImGui::PushStyleVar( ImGuiStyleVar_CellPadding, ImVec2( 0, 0 ) );
     ImGui::BeginTable( "PieceGrid", 8 );
@@ -162,13 +162,13 @@ void ChessApp::DrawChessBoard()
 
             ImColor CellColor;
             if ( m_BoardVisuals.HighlightedSquares.IsOccupied( CurrSq ) || (m_BitboardSettings.ShowScreen && m_BitboardSettings.Result.IsOccupied( CurrSq )) )
-                CellColor = isDark ? Settings.Colors.EvenColorRed : Settings.Colors.OddColorRed;
+                CellColor = isDark ? Settings->Colors.EvenColorRed : Settings->Colors.OddColorRed;
 
             else if ( CurrSq == m_MoveHandling.SelectedSquare || (!LastMove.IsNullMove() && (CurrSq == LastMove.Start() || CurrSq == LastMove.Target())) )
-                CellColor = isDark ? Settings.Colors.EvenColorHighlight : Settings.Colors.OddColorHighlight;
+                CellColor = isDark ? Settings->Colors.EvenColorHighlight : Settings->Colors.OddColorHighlight;
 
             else
-                CellColor = isDark ? Settings.Colors.EvenColor : Settings.Colors.OddColor;
+                CellColor = isDark ? Settings->Colors.EvenColor : Settings->Colors.OddColor;
 
             ImU32 CellCol32 = CellColor;
 
@@ -254,7 +254,7 @@ void ChessApp::PromoteScreen()
     ImVec2 ChildHeight = ImVec2( CellSize, CellSize * 4 + ImGui::GetFontSize() * 2 + 10.0f );
 
     bool ClickedPiece = false;
-    bool MenuGoDown = m_BoardVariables.BoardInfo._WhiteToPlay;
+    bool MenuGoDown = m_Chessboard.m_WhiteToPlay;
     if ( m_BoardVisuals.FlipBoard )
         MenuGoDown = !MenuGoDown;
 
@@ -274,7 +274,7 @@ void ChessApp::PromoteScreen()
     ImGui::PushStyleColor( ImGuiCol_Button, BackgroundColor );
     ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 0, 0, 0, 255 ) );
 
-    if ( m_BoardVariables.BoardInfo._WhiteToPlay )
+    if ( m_Chessboard.m_WhiteToPlay )
     {
         if ( ImGui::ImageButton( "w_queen", m_PieceImages[0].at( Chess::PieceType::Queen ).Texture, Cell ) )
         {
@@ -304,7 +304,7 @@ void ChessApp::PromoteScreen()
             m_MoveHandling.SelectedPressed = false;
 
             m_PromotionHandling.Promoting = false;
-            m_BoardVariables.NextMove = Chess::Move();
+            m_BoardVariables->NextMove = Chess::Move();
         }
     }
     else
@@ -317,7 +317,7 @@ void ChessApp::PromoteScreen()
             m_MoveHandling.SelectedPressed = false;
 
             m_PromotionHandling.Promoting = false;
-            m_BoardVariables.NextMove = Chess::Move();
+            m_BoardVariables->NextMove = Chess::Move();
         }
         if ( ImGui::ImageButton( "b_knight", m_PieceImages[1].at( Chess::PieceType::Knight ).Texture, Cell ) )
         {
@@ -360,13 +360,13 @@ void ChessApp::PromoteScreen()
 
     if ( PromotionType != Chess::MoveFlag::None )
     {
-        Chess::Move NextMove = m_BoardVariables.NextMove;
+        Chess::Move NextMove = m_BoardVariables->NextMove;
         Chess::MoveFlag WasCapture = NextMove.Flag() & Chess::MoveFlag::Capture;
         PromotionType |= WasCapture;
         short Start = NextMove.Start();
         short Target = NextMove.Target();
 
-        m_BoardVariables.NextMove = Chess::Move( Start, Target, PromotionType );
+        m_BoardVariables->NextMove = Chess::Move( Start, Target, PromotionType );
         m_PromotionHandling.Promoting = false;
         return;
     }
@@ -385,7 +385,7 @@ void ChessApp::HandleBoardClicks( Chess::ChessPiece Piece, int CurrentSq )
                 Chess::Move NewMove = IsValidMove( m_MoveHandling.SelectedSquare, CurrentSq );
                 if ( !NewMove.IsNullMove() ) // Future check for valid move
                 {
-                    m_BoardVariables.NextMove = NewMove;
+                    m_BoardVariables->NextMove = NewMove;
                     if ( (NewMove.Flag() & Chess::MoveFlag::PromoteKnight) != Chess::MoveFlag::None )   // Promoting
                     {
                         m_PromotionHandling.Promoting = true;
@@ -425,7 +425,7 @@ void ChessApp::HandleBoardClicks( Chess::ChessPiece Piece, int CurrentSq )
                 Chess::Move NewMove = IsValidMove( m_MoveHandling.SelectedSquare, CurrentSq );
                 if ( !NewMove.IsNullMove() ) // Future check for valid move
                 {
-                    m_BoardVariables.NextMove = NewMove;
+                    m_BoardVariables->NextMove = NewMove;
                     if ( (NewMove.Flag() & Chess::MoveFlag::PromoteKnight) != Chess::MoveFlag::None )   // Promoting
                     {
                         m_PromotionHandling.Promoting = true;
@@ -488,13 +488,13 @@ void ChessApp::DrawLegalTargets( ImDrawList* DrawList ) const
 
 void ChessApp::MakeMove()
 {
-    const Chess::Move& move = m_BoardVariables.NextMove;
+    const Chess::Move& move = m_BoardVariables->NextMove;
     std::cout << "Move( " << move.Start() << ", " << move.Target() << " )\n";
     m_Chessboard.MakeMove( move );
     m_BoardVisuals.LastMove = move;
     
 
-    if ( m_BoardVariables.BoardInfo._WhiteToPlay )
+    if ( m_Chessboard.m_WhiteToPlay )
         m_BlackClock.UpdateLastPoll();
     else
         m_WhiteClock.UpdateLastPoll();
@@ -521,11 +521,11 @@ void ChessApp::MakeMove()
     }
     m_SoundEngine->play2D( AudioDir.string().c_str() );
 
-    m_BoardVariables.MoveHistory.emplace_back( move );  // Add move to history
+    m_BoardVariables->MoveHistory.emplace_back( move );  // Add move to history
 
     m_MoveHandling = MoveHandling();
 
-    m_BoardVariables.NextMove = Chess::Move();
+    m_BoardVariables->NextMove = Chess::Move();
 
     if ( m_BoardVisuals.AutoFlip )
         m_BoardVisuals.FlipBoard = !m_BoardVisuals.FlipBoard;
@@ -533,16 +533,16 @@ void ChessApp::MakeMove()
 
 void ChessApp::UnMakeMove()
 {
-    if ( m_BoardVariables.MoveHistory.size() <= 0 )
+    if ( m_BoardVariables->MoveHistory.size() <= 0 )
         return;
 
-    Chess::Move move = m_BoardVariables.MoveHistory.back();
-    m_BoardVariables.MoveHistory.pop_back();
+    Chess::Move move = m_BoardVariables->MoveHistory.back();
+    m_BoardVariables->MoveHistory.pop_back();
 
     m_Chessboard.UnMakeMove( move );
     
-    if ( m_BoardVariables.MoveHistory.size() > 0 )
-        m_BoardVisuals.LastMove = m_BoardVariables.MoveHistory.back();
+    if ( m_BoardVariables->MoveHistory.size() > 0 )
+        m_BoardVisuals.LastMove = m_BoardVariables->MoveHistory.back();
     else
         m_BoardVisuals.LastMove = Chess::Move();
 
@@ -574,17 +574,17 @@ void ChessApp::DrawDebugScreen()
 
     ImGui::SeparatorText( "Engine" );
 
-    ImGui::Text( "%s", m_BoardVariables.GameStarted ? "Game started" : "Game paused" );
-    std::string ButtonText = m_BoardVariables.GameStarted ? "Pause game" : "Start game";
+    ImGui::Text( "%s", m_BoardVariables->GameStarted ? "Game started" : "Game paused" );
+    std::string ButtonText = m_BoardVariables->GameStarted ? "Pause game" : "Start game";
     if ( ImGui::Button( ButtonText.c_str() ) )
     {
-        m_BoardVariables.GameStarted = !m_BoardVariables.GameStarted;
-        if ( m_BoardVariables.BoardInfo._WhiteToPlay )
+        m_BoardVariables->GameStarted = !m_BoardVariables->GameStarted;
+        if ( m_Chessboard.m_WhiteToPlay )
             m_WhiteClock.UpdateLastPoll();
         else
             m_BlackClock.UpdateLastPoll();
     }
-    ImGui::Text( "Number of legal moves: %d", m_BoardVariables.NumberOfLegalMoves );
+    ImGui::Text( "Number of legal moves: %d", m_BoardVariables->NumberOfLegalMoves );
     if ( ImGui::Button( "Run perft benchmark" ) )
     {
         m_PerftSettings.ShowScreen = true;
@@ -596,14 +596,14 @@ void ChessApp::DrawDebugScreen()
     }
     ImGui::NewLine();
 
-    ImGui::Text( "%s to play", m_BoardVariables.BoardInfo._WhiteToPlay ? "White" : "Black" );
-    ImGui::Text( "En Passant square: %s | %d", m_BoardVariables.BoardInfo._EnPassantSquare == -1 ? "None" : Chess::GetSquareRepr( m_BoardVariables.BoardInfo._EnPassantSquare ), m_BoardVariables.BoardInfo._EnPassantSquare );
-    ImGui::Text( "Fullmove clock: %d", m_BoardVariables.BoardInfo._FullmoveClock );
-    ImGui::Text( "Halfmove clock: %d", m_BoardVariables.BoardInfo._HalfmoveClock );
-    ImGui::Text( "White castling rights: %s", GetCastlingString( m_BoardVariables.BoardInfo._WhiteCastling ).c_str() );
-    ImGui::Text( "Black castling rights: %s", GetCastlingString( m_BoardVariables.BoardInfo._BlackCastling ).c_str() );
-    ImGui::Text( "White king position: %d", m_BoardVariables.BoardInfo._WhiteKingPos );
-    ImGui::Text( "Black king position: %d", m_BoardVariables.BoardInfo._BlackKingPos );
+    ImGui::Text( "%s to play", m_Chessboard.m_WhiteToPlay ? "White" : "Black" );
+    ImGui::Text( "En Passant square: %s | %d", m_Chessboard.m_EnPassantSquare == -1 ? "None" : Chess::GetSquareRepr( m_Chessboard.m_EnPassantSquare ), m_Chessboard.m_EnPassantSquare );
+    ImGui::Text( "Fullmove clock: %d", m_Chessboard.m_FullmoveClock );
+    ImGui::Text( "Halfmove clock: %d", m_Chessboard.m_HalfmoveClock );
+    ImGui::Text( "White castling rights: %s", GetCastlingString( m_Chessboard.m_WhiteCastling ).c_str() );
+    ImGui::Text( "Black castling rights: %s", GetCastlingString( m_Chessboard.m_BlackCastling ).c_str() );
+    ImGui::Text( "White king position: %d", m_Chessboard.m_Bitboards.KingWhite.BitscanForward() );
+    ImGui::Text( "Black king position: %d", m_Chessboard.m_Bitboards.KingBlack.BitscanForward() );
 
     if ( ImGui::Button( "Load default position" ) )
     {
@@ -615,23 +615,23 @@ void ChessApp::DrawDebugScreen()
         UnMakeMove();
     }
 
-    if ( ImGui::InputText( "Load new FEN position", m_BoardVariables.NewFen, IM_ARRAYSIZE( m_BoardVariables.NewFen ), ImGuiInputTextFlags_EnterReturnsTrue ) )
+    if ( ImGui::InputText( "Load new FEN position", m_BoardVariables->NewFen, IM_ARRAYSIZE( m_BoardVariables->NewFen ), ImGuiInputTextFlags_EnterReturnsTrue ) )
     {
-        std::cout << "Loading FEN: " << m_BoardVariables.NewFen << "\n";
-        m_Chessboard.LoadFEN( std::string( m_BoardVariables.NewFen ) );
+        std::cout << "Loading FEN: " << m_BoardVariables->NewFen << "\n";
+        m_Chessboard.LoadFEN( std::string( m_BoardVariables->NewFen ) );
         UpdateBoardInfo();
-        memset( m_BoardVariables.NewFen, 0, sizeof( m_BoardVariables.NewFen ) );
+        memset( m_BoardVariables->NewFen, 0, sizeof( m_BoardVariables->NewFen ) );
     }
 
     ImGui::SeparatorText( "Chessboard Variables" );
 
-    ImGui::ColorEdit4( "Even Color", &Settings.Colors.EvenColor.Value.x );
-    ImGui::ColorEdit4( "Even Highlight", &Settings.Colors.EvenColorHighlight.Value.x );
-    ImGui::ColorEdit4( "Even Color Red", &Settings.Colors.EvenColorRed.Value.x );
+    ImGui::ColorEdit4( "Even Color", &Settings->Colors.EvenColor.Value.x );
+    ImGui::ColorEdit4( "Even Highlight", &Settings->Colors.EvenColorHighlight.Value.x );
+    ImGui::ColorEdit4( "Even Color Red", &Settings->Colors.EvenColorRed.Value.x );
 
-    ImGui::ColorEdit4( "Odd Color", &Settings.Colors.OddColor.Value.x );
-    ImGui::ColorEdit4( "Odd Highlight", &Settings.Colors.OddColorHighlight.Value.x );
-    ImGui::ColorEdit4( "Odd Color Red", &Settings.Colors.OddColorRed.Value.x );
+    ImGui::ColorEdit4( "Odd Color", &Settings->Colors.OddColor.Value.x );
+    ImGui::ColorEdit4( "Odd Highlight", &Settings->Colors.OddColorHighlight.Value.x );
+    ImGui::ColorEdit4( "Odd Color Red", &Settings->Colors.OddColorRed.Value.x );
 
     ImGui::DragFloat( "Cell size", &m_BoardVisuals.CellSize, 1.f, 50.f, 150.f);
 
@@ -646,23 +646,23 @@ void ChessApp::DrawDebugScreen()
     ImGui::TextUnformatted( std::format( "Deltatime: {:%S}s", time ).c_str() );
 
     ImGui::Text( "Time left for white: %s", FormatMs( m_WhiteClock.GetTimeLeft() ).c_str() );
-    ImGui::InputInt( "Set time for white (ms)", &m_BoardVariables.NewWhiteTime, 100 );
+    ImGui::InputInt( "Set time for white (ms)", &m_BoardVariables->NewWhiteTime, 100 );
     if ( ImGui::IsItemDeactivatedAfterEdit() )
     {
-        if ( m_BoardVariables.NewWhiteTime >= 0 )
-            m_WhiteClock.SetTimeLeft( milliseconds( m_BoardVariables.NewWhiteTime ) );
-        m_BoardVariables.NewWhiteTime = 0;
+        if ( m_BoardVariables->NewWhiteTime >= 0 )
+            m_WhiteClock.SetTimeLeft( milliseconds( m_BoardVariables->NewWhiteTime ) );
+        m_BoardVariables->NewWhiteTime = 0;
     }
 
     ImGui::NewLine();
     
     ImGui::Text( "Time left for black: %s", FormatMs( m_BlackClock.GetTimeLeft() ).c_str() );
-    ImGui::InputInt( "Set time for black (ms)", &m_BoardVariables.NewBlackTime, 100 );
+    ImGui::InputInt( "Set time for black (ms)", &m_BoardVariables->NewBlackTime, 100 );
     if ( ImGui::IsItemDeactivatedAfterEdit() )
     {
-        if ( m_BoardVariables.NewBlackTime >= 0 )
-            m_BlackClock.SetTimeLeft( milliseconds( m_BoardVariables.NewBlackTime ) );
-        m_BoardVariables.NewBlackTime = 0;
+        if ( m_BoardVariables->NewBlackTime >= 0 )
+            m_BlackClock.SetTimeLeft( milliseconds( m_BoardVariables->NewBlackTime ) );
+        m_BoardVariables->NewBlackTime = 0;
     }
 
     ImGui::End();
@@ -679,14 +679,13 @@ void ChessApp::ResetBoard()
     m_MoveHandling = MoveHandling();
     m_PromotionHandling = PromotionHandling();
 
-    m_BoardVariables.NextMove = Chess::Move();
-    m_BoardVariables.MoveHistory.clear();
-    m_BoardVariables.GameStarted = false;
+    m_BoardVariables->NextMove = Chess::Move();
+    m_BoardVariables->MoveHistory.clear();
+    m_BoardVariables->GameStarted = false;
 }
 
 void ChessApp::UpdateBoardInfo()
 {
-    m_BoardVariables.BoardInfo = m_Chessboard.GetBoardInfo();
     HandleMoveList();
 }
 
@@ -694,15 +693,15 @@ void ChessApp::HandleMoveList()
 {
     m_LegalMovesDict.clear();
 
-    m_BoardVariables.LegalMoves = m_Chessboard.GetMoveList();
-    m_BoardVariables.NumberOfLegalMoves = 0;
+    m_BoardVariables->LegalMoves = m_Chessboard.GetMoveList();
+    m_BoardVariables->NumberOfLegalMoves = 0;
 
     int Start;
-    for ( auto& move : m_BoardVariables.LegalMoves )
+    for ( auto& move : m_BoardVariables->LegalMoves )
     {
         if ( move.IsNullMove() )
             break;
-        ++m_BoardVariables.NumberOfLegalMoves;
+        ++m_BoardVariables->NumberOfLegalMoves;
 
         Start = move.Start();
 
@@ -720,9 +719,9 @@ void ChessApp::HandleMoveList()
 void ChessApp::DrawBitboardScreen()
 {
     m_BitboardSettings.Result = 0;
-    const auto& bitboards = m_BoardVariables.BoardInfo._Bitboards;
+    const auto& bitboards = m_Chessboard.m_Bitboards;
 
-    ImGui::Begin( "Bitboard selector" );
+    ImGui::Begin( "Bitboard selector", &m_BitboardSettings.ShowScreen );
 
     ImGui::BeginTable( "SelectorTable", 2 );
     ImGui::TableNextColumn();
@@ -790,10 +789,10 @@ void ChessApp::DrawBitboardScreen()
 
     ImGui::EndTable();
     
-    if ( ImGui::Button( "Close selector" ) )
+    /*if ( ImGui::Button( "Close selector" ) )
     {
         m_BitboardSettings.ShowScreen = false;
-    }
+    }*/
 
     ImGui::End();
 
@@ -892,7 +891,7 @@ int ChessApp::PerftTest( Chess::Chessboard& Board, int Depth, bool* Cancel, bool
 
     int n_nodes = 0;
     int move_nodes = 0;
-    std::array<Chess::Move, 256> Moves = Board.GetMoveList();
+    std::array<Chess::Move, 218> Moves = Board.GetMoveList();
     for ( const auto& Move : Moves )
     {
         if ( Move.IsNullMove() )
@@ -921,7 +920,7 @@ int ChessApp::PerftTest( Chess::Chessboard& Board, int Depth, bool* Cancel, bool
 
 void ChessApp::DrawPerftScreen()
 {
-    ImGui::Begin( "Perft Benchmark" );
+    ImGui::Begin( "Perft Benchmark", &m_PerftSettings.ShowScreen );
 
     ImGui::DragInt( "Perft depth", &m_PerftSettings.InitalDepth, 0.025f, 1, 10 );
     ImGui::DragInt( "Expected result", &m_PerftSettings.ExpectedResult );
@@ -952,10 +951,10 @@ void ChessApp::DrawPerftScreen()
     {
         StartPerftTest();
     }
-    if ( ImGui::Button( "Close benchmark window" ) )
+    /*if ( ImGui::Button( "Close benchmark window" ) )
     {
         m_PerftSettings.ShowScreen = false;
-    }
+    }*/
 
     ImGui::End();
 }
@@ -974,10 +973,10 @@ void ChessApp::LoadFonts()
     fs::path LexendPath = FontsPath / fs::path( "Lexend\\static\\Lexend-Regular.ttf" );
     fs::path OutfitPath = FontsPath / fs::path( "Outfit\\static\\Outfit-Regular.ttf" );
 
-    Settings.Fonts.Gabarito = io.Fonts->AddFontFromFileTTF( GabaritoPath.string().c_str(), 24.0f );
-    Settings.Fonts.Noto_Sans = io.Fonts->AddFontFromFileTTF( Noto_SansPath.string().c_str(), 24.0f );
-    Settings.Fonts.Lexend = io.Fonts->AddFontFromFileTTF( LexendPath.string().c_str(), 24.0f );
-    Settings.Fonts.Outfit = io.Fonts->AddFontFromFileTTF( OutfitPath.string().c_str(), 24.0f );
+    Settings->Fonts.Gabarito = io.Fonts->AddFontFromFileTTF( GabaritoPath.string().c_str(), 24.0f );
+    Settings->Fonts.Noto_Sans = io.Fonts->AddFontFromFileTTF( Noto_SansPath.string().c_str(), 24.0f );
+    Settings->Fonts.Lexend = io.Fonts->AddFontFromFileTTF( LexendPath.string().c_str(), 24.0f );
+    Settings->Fonts.Outfit = io.Fonts->AddFontFromFileTTF( OutfitPath.string().c_str(), 24.0f );
 
     io.Fonts->Build();
 
@@ -1085,12 +1084,13 @@ ChessApp::ChessApp()
 
     m_SoundEngine = irrklang::createIrrKlangDevice();
 
+    Settings = new AppSettings();
+    m_BoardVariables = new BoardVariables();
+
     LoadFonts();
     LoadPieceImages();
 
-    //m_Chessboard.LoadFEN( "R1r4k/6b1/8/4B3/2N5/2K5/8/8 w - - 0 1" );
-
-    m_BoardVariables.MoveHistory.reserve( 128 );
+    m_BoardVariables->MoveHistory.reserve( 128 );
 
     UpdateBoardInfo();
 }
@@ -1105,6 +1105,9 @@ ChessApp::~ChessApp()
     ImGui::DestroyContext();
     glfwDestroyWindow( m_Window );
     glfwTerminate();
+
+    delete Settings;
+    delete m_BoardVariables;
 
     if ( m_PerftSettings.PerftThread.joinable() )
     {
@@ -1128,9 +1131,9 @@ void ChessApp::Run()
 
         ImGuiIO& io = ImGui::GetIO();
 
-        if ( m_BoardVariables.GameStarted )
+        if ( m_BoardVariables->GameStarted )
         {
-            if ( m_BoardVariables.BoardInfo._WhiteToPlay )
+            if ( m_Chessboard.m_WhiteToPlay )
                 m_WhiteClock.Update();
             else
                 m_BlackClock.Update();
@@ -1177,7 +1180,7 @@ void ChessApp::Run()
         //ImGui::End();
 
         DrawChessboardScreen();
-        if ( !m_BoardVariables.NextMove.IsNullMove() && !m_PromotionHandling.Promoting )
+        if ( !m_BoardVariables->NextMove.IsNullMove() && !m_PromotionHandling.Promoting )
         {
             MakeMove();
         }
