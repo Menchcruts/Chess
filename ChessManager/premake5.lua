@@ -4,7 +4,7 @@ project "ChessManager"
     cppdialect "C++20"
     staticruntime "off"
 
-    files { "Source/**.h", "Source/**.cpp" }
+    files { "Source/**.h", "Source/**.cpp", "../Dependencies/miniaudio/miniaudio.c" }
 
     includedirs
     {
@@ -21,12 +21,7 @@ project "ChessManager"
         "../Dependencies/ImGui/backends/",
         "../Dependencies/stb_image/",
         "../Dependencies/GLEW/include/",
-        "../Dependencies/irrKlang-64bit-1.6.0/include/"
-    }
-
-    libdirs 
-    {
-        "../Dependencies/irrKlang-64bit-1.6.0/lib/Winx64-visualStudio/"
+        "../Dependencies/miniaudio/"
     }
 
     links
@@ -35,7 +30,6 @@ project "ChessManager"
         "GLEW",
         "ImGui",
         "opengl32.lib",
-        "irrKlang",
         "Chess",
         "ChessBot"
     }
@@ -51,19 +45,9 @@ project "ChessManager"
     filter "system:windows"
         systemversion "latest"
         defines { "WINDOWS" }
-        postbuildcommands 
-        { 
-            "{COPY} ../Dependencies/irrKlang-64bit-1.6.0/dlls/winx64-visualStudio/irrKlang.dll %{cfg.targetdir}",
-            "{COPY} ../Dependencies/irrKlang-64bit-1.6.0/dlls/winx64-visualStudio/ikpMP3.dll %{cfg.targetdir}"
-        }
 
     filter "system:linux"
         defines { "LINUX" }
-        postbuildcommands 
-        { 
-            "{COPY} ../Dependencies/irrKlang-64bit-1.6.0/dlls/linux-gcc-64/libIrrKlang.so %{cfg.targetdir}",
-            "{COPY} ../Dependencies/irrKlang-64bit-1.6.0/dlls/linux-gcc-64/ikpMP3.so %{cfg.targetdir}"
-        }
 
     filter "configurations:Debug"
         defines { "DEBUG" }

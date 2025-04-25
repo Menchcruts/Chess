@@ -17,19 +17,12 @@ namespace Chess::MoveGen
 	{
 	private:		
 		std::unique_ptr<std::array<Move, 218>> m_Moves;
-		//std::array<Move, 218>* m_Moves;
 		
 		std::unique_ptr< std::array<std::unordered_map<int, Bitboard>, 64> > RookMoves;
-		//std::array<std::unordered_map<int, Bitboard>, 64>* RookMoves;
-
 		std::unique_ptr< std::array<std::unordered_map<int, Bitboard>, 64> > BishopMoves;
-		//std::array<std::unordered_map<int, Bitboard>, 64>* BishopMoves;
 
 		std::unique_ptr< std::array<std::array<Bitboard, 64>, 64> > InBetweenLookup;
-		//std::array<std::array<Bitboard, 64>, 64>* InBetweenLookup;
-
 		std::unique_ptr< std::unordered_map<int, Bitboard> > m_PinRays;
-		//std::unordered_map<int, Bitboard>* m_PinRays;
 
 		Logger logger = Logger( "Movegenerator.log", Logger::Debug );
 

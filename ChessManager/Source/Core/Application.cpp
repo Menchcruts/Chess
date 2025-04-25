@@ -520,7 +520,8 @@ void ChessApp::MakeMove()
     {
         AudioDir /= "move-self.mp3";
     }
-    m_SoundEngine->play2D( AudioDir.string().c_str() );
+    
+    ma_engine_play_sound( miniaudio_engine.get(), AudioDir.string().c_str(), NULL );
 
     m_BoardVariables->MoveHistory.emplace_back( move );  // Add move to history
 
@@ -1084,9 +1085,15 @@ ChessApp::ChessApp()
     ImGui_ImplGlfw_InitForOpenGL( m_Window, true );
     ImGui_ImplOpenGL3_Init( "#version 330 core" );
 
-    printf( "OpenGL version: %s\n", glGetString( GL_VERSION ) );
+    m_logger.info( "OpenGL version: {}", (const char*)glGetString( GL_VERSION ) );
 
-    m_SoundEngine = irrklang::createIrrKlangDevice();
+    miniaudio_engine = std::make_unique<ma_engine>();
+    miniaudio_result = ma_engine_init( NULL, miniaudio_engine.get() );
+    if ( miniaudio_result != MA_SUCCESS )
+    {
+        m_logger.error( "Error initializing miniaudio soundengine" );
+        throw std::runtime_error( "Error initializing miniaudio soundengine" );
+    }
 
     Settings = new AppSettings();
     m_BoardVariables = new BoardVariables();
@@ -1102,13 +1109,13 @@ ChessApp::ChessApp()
 ChessApp::~ChessApp()
 {
     // Cleanup
-    m_SoundEngine->drop();
-
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
     glfwDestroyWindow( m_Window );
     glfwTerminate();
+
+    ma_engine_uninit( miniaudio_engine.get() );
 
     delete Settings;
     delete m_BoardVariables;

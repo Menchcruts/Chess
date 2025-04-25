@@ -19,8 +19,19 @@ public:
 	};
 	
 	explicit Logger( const std::filesystem::path& filepath, Level inital = Level::Info )
-		: m_file( std::make_shared<std::ofstream>( log_folder / filepath.string(), std::ios::trunc)), m_LogLevel(inital)
+		: m_LogLevel(inital)
 	{
+		namespace fs = std::filesystem;
+		if ( !fs::is_directory( log_folder ) || !fs::exists( log_folder ) )
+			fs::create_directory( log_folder );
+
+#ifdef DEBUG	// Force minimum level to debug on all loggers
+		if ( m_LogLevel < Level::Debug )
+			m_LogLevel = Level::Debug;
+#endif // DEBUG
+
+		m_file = std::make_shared<std::ofstream>( log_folder / filepath, std::ios::trunc);
+		
 		if ( !*m_file )
 			throw std::runtime_error( "Cannot open log file " + filepath.string() );
 	}
@@ -35,7 +46,7 @@ public:
 		
 		auto now = time_point_cast<seconds>(system_clock::now());
 		std::string final_msg = std::format( 
-			"[{0} / {1:%H:%M:%S}]: {2}", 
+			"[{0} | {1:%H:%M:%S}]: {2}", 
 			GetLevelName( LogLvl ), 
 			now,
 			std::format( fmt, std::forward<Args>( args )... )

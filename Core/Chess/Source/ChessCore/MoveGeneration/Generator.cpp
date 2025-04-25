@@ -87,6 +87,8 @@ namespace Chess::MoveGen
 
 		std::unordered_map<int, Bitboard> Masks;
 
+		const std::array<Bitboard, 64>& BlockerMasks = Diagonal ? BishopBlockerMasks : RookBlockerMasks;
+
 		Bitboard BlockerMask, MoveMask;
 		int MagicIdx;
 		std::vector<Bitboard> BlockerPerms;
@@ -107,7 +109,7 @@ namespace Chess::MoveGen
 		for ( short Sq = 0; Sq < 64; Sq++ )
 		{
 			Masks.clear();
-			BlockerMask = RookBlockerMasks[Sq];
+			BlockerMask = BlockerMasks[Sq];
 			BlockerPerms = CreateBlockerPerms( BlockerMask );
 
 			for ( auto& BlockMask : BlockerPerms )
@@ -249,6 +251,7 @@ namespace Chess::MoveGen
 		Bitboard MoveMask = KingMoves[Sq];
 		MoveMask &= ~(FriendlyPieces | AttackMask);
 
+		logger.debug( "King movemask: {}", MoveMask.m_Bitboard );
 		AddMovesFromBitboard( Sq, MoveMask );
 
 		// Castling
@@ -314,6 +317,7 @@ namespace Chess::MoveGen
 			MoveMask &= AlignMask;
 		}
 
+		logger.debug( "Knight movemask: {}", MoveMask.m_Bitboard );
 		AddMovesFromBitboard( Sq, MoveMask );
 	}
 
@@ -326,6 +330,10 @@ namespace Chess::MoveGen
 	{
 		Bitboard Occupied = AllPieces & BishopBlockerMasks[Sq];
 		Bitboard MoveMask = GetBishopMoveMask( Sq, Occupied );
+		MoveMask &= ~(FriendlyPieces);
+
+		logger.debug( "Bishop occ: {}", Occupied.m_Bitboard );
+		logger.debug( "Bishop movemask: {}", MoveMask.m_Bitboard );
 
 		if ( m_PinRays->contains( Sq ) )
 		{
@@ -340,6 +348,7 @@ namespace Chess::MoveGen
 	{
 		Bitboard Occupied = AllPieces & RookBlockerMasks[Sq];
 		Bitboard MoveMask = GetRookMoveMask( Sq, Occupied );
+		MoveMask &= ~(FriendlyPieces);
 
 		if ( m_PinRays->contains( Sq ) )
 		{
@@ -357,6 +366,8 @@ namespace Chess::MoveGen
 
 		Occupied = AllPieces & RookBlockerMasks[Sq];
 		MoveMask |= GetRookMoveMask( Sq, Occupied );
+
+		MoveMask &= ~(FriendlyPieces);
 
 		if ( m_PinRays->contains( Sq ) )
 		{
@@ -387,6 +398,8 @@ namespace Chess::MoveGen
 
 	void MoveGenerator::GenerateMoves( Chessboard* board )
 	{
+		logger.info( "Move generation started" );
+		
 		m_Board = board;
 
 		if ( m_Board->m_WhiteToPlay )
@@ -417,8 +430,14 @@ namespace Chess::MoveGen
 		AllPieces = FriendlyPieces | EnemyPieces;
 
 		ClearMoveList(); // Clear the list
+		FindPinned();
 
 		Bitboard Pieces = FriendlyPieces;
+
+		logger.debug( "All pieces = {}", AllPieces.m_Bitboard );
+		logger.debug( "Friendly pieces = {}", Pieces.m_Bitboard );
+		logger.debug( "Enemy pieces = {}", EnemyPieces.m_Bitboard );
+
 		while ( Pieces )
 		{
 			int sq = Pieces.BitscanForward();

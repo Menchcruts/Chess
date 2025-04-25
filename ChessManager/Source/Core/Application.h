@@ -5,7 +5,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-#include "irrKlang.h"
+#include "miniaudio.h"
 
 #include "Chess.h"
 #include <chrono>
@@ -13,6 +13,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <thread>
+#include <memory>
 #include "Images/Images.h"
 #include "Logger.h"
 
@@ -136,7 +137,6 @@ class ChessApp
 
 private:
 	GLFWwindow* m_Window;
-	irrklang::ISoundEngine* m_SoundEngine;
 
 	AppSettings* Settings;
 
@@ -155,6 +155,9 @@ private:
 	Chess::Chessboard m_Chessboard;
 	
 	std::array<std::unordered_map<Chess::PieceType, Image>, 2> m_PieceImages;
+
+	std::unique_ptr<ma_engine> miniaudio_engine;
+	ma_result miniaudio_result;
 
 	Logger m_logger = Logger( "App.log", Logger::Debug );
 

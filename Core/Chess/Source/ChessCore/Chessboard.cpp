@@ -1,5 +1,4 @@
 #include "Chessboard.h"
-#include "Stopwatch/Stopwatch.h"
 #include <iostream>
 
 static const Chess::PieceType GetPieceFromRepr( char Piece )
@@ -284,6 +283,7 @@ namespace Chess
         }
 
         m_logger.info( "Engine has finished loading FEN '{}'", FEN_Pos );
+        GenerateMoves();
     }
 
     void Chessboard::MakeMove( Move move )
