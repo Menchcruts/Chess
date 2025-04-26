@@ -5,13 +5,20 @@ project "ImGui"
     staticruntime "off"
     location "./ImGui/"
 
-    files { "/ImGui/*.h", "/ImGui/*.cpp", "/ImGui/backends/**.h", "/ImGui/backends/**.cpp" }
+    files { 
+        "./ImGui/*.h", 
+        "./ImGui/*.cpp", 
+        "./ImGui/backends/*glfw*.h", 
+        "./ImGui/backends/*glfw*.cpp",
+        "./ImGui/backends/*opengl*.h", 
+        "./ImGui/backends/*opengl*.cpp"
+     }
 
     includedirs
     {
-        "/ImGui/",
-        "/ImGui/backends",
-        "/GLFW/include"
+        "./ImGui/",
+        "./ImGui/backends",
+        "./GLFW/include"
     }
 
     links

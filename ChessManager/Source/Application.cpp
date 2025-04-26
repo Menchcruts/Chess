@@ -564,7 +564,7 @@ void ChessApp::DrawDebugScreen()
 
     ImGui::SeparatorText( "Basic info" );
     ImGui::Text( "FPS: %f", io.Framerate );
-    ImGui::Text( "Current font used: %s", io.Fonts->Fonts[0]->ConfigData->Name );
+    ImGui::Text( "Current font used: %s", io.Fonts->Fonts[0]->GetDebugName() );
 
     ImGui::SeparatorText( "Chessboard window Info" );
 
