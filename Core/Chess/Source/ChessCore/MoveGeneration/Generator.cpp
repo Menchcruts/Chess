@@ -79,6 +79,7 @@ namespace Chess::MoveGen
 	void MoveGenerator::ClearMoveList()
 	{
 		m_Moves->fill( Move() );
+		MoveListTop = 0;
 	}
 
 	std::unique_ptr<std::array<std::unordered_map<int, Bitboard>, 64>> MoveGenerator::CreateSlidingMoves( bool Diagonal )
@@ -251,7 +252,6 @@ namespace Chess::MoveGen
 		Bitboard MoveMask = KingMoves[Sq];
 		MoveMask &= ~(FriendlyPieces | AttackMask);
 
-		logger.debug( "King movemask: {}", MoveMask.m_Bitboard );
 		AddMovesFromBitboard( Sq, MoveMask );
 
 		// Castling
@@ -317,23 +317,53 @@ namespace Chess::MoveGen
 			MoveMask &= AlignMask;
 		}
 
-		logger.debug( "Knight movemask: {}", MoveMask.m_Bitboard );
 		AddMovesFromBitboard( Sq, MoveMask );
 	}
 
 	void MoveGenerator::GetPawnMoves( short Sq )
 	{
-		Bitboard MoveMask = FriendlyColor == Color::White ? WhitePawnMoves[Sq] : BlackPawnMoves[Sq];
-	}
+		Bitboard MoveMask = m_Board->m_WhiteToPlay ? WhitePawnMoves[Sq] : BlackPawnMoves[Sq];
 
+		bool double_push = false;
+		int DoublePushRank = m_Board->m_WhiteToPlay ? 3 : 4;
+
+		while ( MoveMask )
+		{
+			int target = MoveMask.BitscanForward();
+			MoveMask &= MoveMask - 1;
+
+			if ( AllPieces.IsOccupied( target ) )
+				break;
+
+			double_push = (target >> 3) == DoublePushRank;
+
+			MoveFlag flag = double_push ? MoveFlag::DoublePawnMove : MoveFlag::None;
+			AddMove( Move( Sq, target, flag ) );
+		}
+
+		Bitboard AttackMask = m_Board->m_WhiteToPlay ? WhitePawnAttacks[Sq] : BlackPawnAttacks[Sq];
+		
+		while ( AttackMask )
+		{
+			int target = AttackMask.BitscanForward();
+			AttackMask &= AttackMask - 1;
+
+			if ( target == m_Board->m_EnPassantSquare && CanEnPassant(Sq, target, m_Board->m_EnPassantSquare) )
+			{
+				AddMove( Move( Sq, target, MoveFlag::EnPassant ) );
+			}
+			else if ( EnemyPieces.IsOccupied( target ) )
+			{
+				AddMove( Move( Sq, target, MoveFlag::Capture ) );
+			}
+		}
+	}
+	
 	void MoveGenerator::GetBishopMoves( short Sq )
 	{
 		Bitboard Occupied = AllPieces & BishopBlockerMasks[Sq];
 		Bitboard MoveMask = GetBishopMoveMask( Sq, Occupied );
 		MoveMask &= ~(FriendlyPieces);
-
-		logger.debug( "Bishop occ: {}", Occupied.m_Bitboard );
-		logger.debug( "Bishop movemask: {}", MoveMask.m_Bitboard );
 
 		if ( m_PinRays->contains( Sq ) )
 		{
@@ -380,12 +410,7 @@ namespace Chess::MoveGen
 
 	bool MoveGenerator::CanEnPassant( short startSquare, short targetSquare, short epCaptureSquare ) const
 	{
-		Bitboard enemyOrtho;
-		if ( FriendlyColor == Color::White )
-			enemyOrtho = m_Board->m_Bitboards.RookBlack | m_Board->m_Bitboards.QueenBlack;
-		else
-			enemyOrtho = m_Board->m_Bitboards.RookWhite | m_Board->m_Bitboards.QueenWhite;
-
+		Bitboard enemyOrtho = EnemyRQ;
 		if ( enemyOrtho )
 		{
 			Bitboard Occupied = (m_Board->m_Bitboards.AllPieces() ^ (Bit << epCaptureSquare | Bit << startSquare | Bit << targetSquare));
@@ -429,14 +454,12 @@ namespace Chess::MoveGen
 		EnemyPieces = m_Board->m_Bitboards.GetColorMask( EnemyColor );
 		AllPieces = FriendlyPieces | EnemyPieces;
 
+		WhiteToPlay = FriendlyColor == Color::White;
+
 		ClearMoveList(); // Clear the list
 		FindPinned();
 
 		Bitboard Pieces = FriendlyPieces;
-
-		logger.debug( "All pieces = {}", AllPieces.m_Bitboard );
-		logger.debug( "Friendly pieces = {}", Pieces.m_Bitboard );
-		logger.debug( "Enemy pieces = {}", EnemyPieces.m_Bitboard );
 
 		while ( Pieces )
 		{
@@ -469,6 +492,7 @@ namespace Chess::MoveGen
 				break;
 			}
 		}
+		logger.info( "Move generation finished. Number of legal moves: {}", MoveListTop );
 	}
 
 	std::array<Move, 218> MoveGenerator::GetMoveList() const

@@ -490,7 +490,6 @@ void ChessApp::MakeMove()
 {
     const Chess::Move& move = m_BoardVariables->NextMove;
     m_logger.info( "Move({0}, {1})", move.Start(), move.Target() );
-    //std::cout << "Move( " << move.Start() << ", " << move.Target() << " )\n";
     m_Chessboard.MakeMove( move );
     m_BoardVisuals.LastMove = move;
     
@@ -500,6 +499,7 @@ void ChessApp::MakeMove()
     else
         m_WhiteClock.UpdateLastPoll();
 
+    m_Chessboard.GenerateMoves();
     UpdateBoardInfo();
     Chess::MoveFlag flag = move.Flag();
 
@@ -549,6 +549,8 @@ void ChessApp::UnMakeMove()
         m_BoardVisuals.LastMove = Chess::Move();
 
     m_MoveHandling = MoveHandling();
+
+    m_Chessboard.GenerateMoves();
     UpdateBoardInfo();
 }
 
@@ -674,6 +676,7 @@ void ChessApp::DrawDebugScreen()
 void ChessApp::ResetBoard()
 {
     m_Chessboard.LoadFEN( "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" );
+    m_Chessboard.GenerateMoves();
     UpdateBoardInfo();
 
     m_BoardVisuals.HighlightedSquares = 0;
@@ -717,6 +720,7 @@ void ChessApp::HandleMoveList()
         m_LegalMovesDict[Start].Moves.insert( move );
         m_LegalMovesDict[Start].Targets.insert( move.Target() );
     }
+    m_logger.info( "Number of legal moves: {}", m_BoardVariables->NumberOfLegalMoves );
 }
 
 void ChessApp::DrawBitboardScreen()
@@ -978,9 +982,9 @@ void ChessApp::LoadFonts()
     fs::path OutfitPath = FontsPath / fs::path( "Outfit\\static\\Outfit-Regular.ttf" );
 
     Settings->Fonts.Gabarito = io.Fonts->AddFontFromFileTTF( GabaritoPath.string().c_str(), 24.0f );
-    Settings->Fonts.Noto_Sans = io.Fonts->AddFontFromFileTTF( Noto_SansPath.string().c_str(), 24.0f );
+    /*Settings->Fonts.Noto_Sans = io.Fonts->AddFontFromFileTTF( Noto_SansPath.string().c_str(), 24.0f );
     Settings->Fonts.Lexend = io.Fonts->AddFontFromFileTTF( LexendPath.string().c_str(), 24.0f );
-    Settings->Fonts.Outfit = io.Fonts->AddFontFromFileTTF( OutfitPath.string().c_str(), 24.0f );
+    Settings->Fonts.Outfit = io.Fonts->AddFontFromFileTTF( OutfitPath.string().c_str(), 24.0f );*/
 
     io.Fonts->Build();
 
@@ -1103,6 +1107,7 @@ ChessApp::ChessApp()
 
     m_BoardVariables->MoveHistory.reserve( 128 );
 
+    m_Chessboard.GenerateMoves();
     UpdateBoardInfo();
 }
 

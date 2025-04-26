@@ -80,7 +80,6 @@ namespace Chess
 
     std::array<Move, 218> Chessboard::GetMoveList() const
     {
-        //return std::array<Move, 218>();
         return m_MoveGenerator->GetMoveList();
     }
  
@@ -123,8 +122,6 @@ namespace Chess
 
     void Chessboard::GenerateMoves()
     {
-        //LOG( INFO ) << "Generating moves...\n";
-        //Logger::instance().info( "Generating moves..." );
         m_MoveGenerator->GenerateMoves( this );
     }
 
@@ -283,7 +280,6 @@ namespace Chess
         }
 
         m_logger.info( "Engine has finished loading FEN '{}'", FEN_Pos );
-        GenerateMoves();
     }
 
     void Chessboard::MakeMove( Move move )
@@ -412,8 +408,6 @@ namespace Chess
             ++m_FullmoveClock;
 
         m_WhiteToPlay = !m_WhiteToPlay;
-
-        GenerateMoves();
     }
 
     void Chessboard::UnMakeMove( Move move )
@@ -480,8 +474,6 @@ namespace Chess
 
         if ( !m_WhiteToPlay )
             --m_FullmoveClock;
-
-        GenerateMoves();
     }
 
     int Chessboard::RunPerft( int Depth, bool ShowInfo )

@@ -65,3 +65,13 @@ project "ChessManager"
         runtime "Release"
         optimize "On"
         symbols "Off"
+
+    filter "Release or Dist"
+        kind "WindowedApp"
+        entrypoint "mainCRTStartup"
+        -- filter "system:windows"
+        --     entrypoint "mainCRTStartup"
+        
+        -- filter "system:linux"
+        --     entrypoint "WinMainCRTStartup"
+        --     buildoptions { "-mwindows" }

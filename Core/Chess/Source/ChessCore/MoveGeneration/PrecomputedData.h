@@ -234,12 +234,14 @@ namespace Chess::MoveGen
 		{
 			ChessCoord Start( Sq );
 
+			int start_rank = Start.Rank;
+
 			Start += Change;
 			if ( !Start.IsValid() )
 				continue;
 			result[Sq] |= (Bit << Start.AsSquare());
 
-			if ( Start.Rank == StartRank )
+			if ( start_rank == StartRank )
 			{
 				Start += Change;
 				if ( !Start.IsValid() )
@@ -249,7 +251,31 @@ namespace Chess::MoveGen
 		}
 		return result;
 	}
+	constexpr std::array<Bitboard, 64> CreatePawnAttackBitboards( bool White )
+	{
+		std::array<Bitboard, 64> result{ };
+
+		ChessCoord left  = White ? ChessCoord(1, -1) : ChessCoord(-1, -1);
+		ChessCoord right = White ? ChessCoord(1,  1) : ChessCoord(-1,  1);
+
+		for ( short Sq = 0; Sq < 64; Sq++ )
+		{
+			ChessCoord Square( Sq );
+
+			ChessCoord LeftAttack  = Square += left;
+			if ( LeftAttack.IsValid() )
+				result[Sq] |= Bit << LeftAttack.AsSquare();
+
+			ChessCoord RightAttack = Square += right;
+			if ( RightAttack.IsValid() )
+				result[Sq] |= Bit << RightAttack.AsSquare();
+		}
+		return result;
+	}
 
 	constexpr auto WhitePawnMoves = CreatePawnBitboards( true );
 	constexpr auto BlackPawnMoves = CreatePawnBitboards( false );
+
+	constexpr auto WhitePawnAttacks = CreatePawnAttackBitboards( true );
+	constexpr auto BlackPawnAttacks = CreatePawnAttackBitboards( false );
 }

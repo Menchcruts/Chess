@@ -15,7 +15,7 @@ namespace Chess::MoveGen
 {	
 	class MoveGenerator
 	{
-	private:		
+	private:
 		std::unique_ptr<std::array<Move, 218>> m_Moves;
 		
 		std::unique_ptr< std::array<std::unordered_map<int, Bitboard>, 64> > RookMoves;
@@ -47,6 +47,7 @@ namespace Chess::MoveGen
 
 		bool InCheck = false;
 		bool InDoubleCheck = false;
+		bool WhiteToPlay = true;
 
 	private:
 		void AddMove( Move move);
