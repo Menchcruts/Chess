@@ -1,7 +1,3 @@
-[submodule "Dependencies/ImGui"]
-	path = Dependencies/ImGui
-	url = https://github.com/Menchcruts/ImGui.git
-	branch = docking
 [submodule "Dependencies/miniaudio"]
 	path = Dependencies/miniaudio
 	url = https://github.com/mackron/miniaudio.git
