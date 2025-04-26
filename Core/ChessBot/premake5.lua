@@ -5,11 +5,10 @@ project "ChessBot"
     targetdir "Binaries/%{cfg.buildcfg}"
     staticruntime "off"
 
-    files { "Source/**.h", "Source/**.cpp" }
+    files { "./**.h", "./**.cpp" }
 
     includedirs
     {
-        "Source",
         "../Utils"
     }
 

@@ -1,4 +1,4 @@
-#include "ChessBot.h"
+#include "Source/Bot.h"
 
 namespace ChessBot 
 {

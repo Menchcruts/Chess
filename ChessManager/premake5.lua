@@ -2,18 +2,17 @@ project "ChessManager"
     kind "ConsoleApp"
     language "C++"
     cppdialect "C++20"
+    cdialect "C17"
     staticruntime "off"
 
-    files { "Source/**.h", "Source/**.cpp", "../Dependencies/miniaudio/miniaudio.c" }
+    files { "./**.h", "./**.cpp", "../Dependencies/miniaudio/miniaudio.c" }
 
     includedirs
     {
-        "Source",
-
         -- Include Core libraries
-        "../Core/Chess/Source/",
-        "../Core/ChessBotLocal/Source/",
-        "../Core/Utils",
+        "../Core/Chess/",
+        "../Core/ChessBot/",
+        "../Core/Utils/",
 
         -- Include dependencies
         "../Dependencies/GLFW/include/",
@@ -29,7 +28,7 @@ project "ChessManager"
         "GLFW",
         "GLEW",
         "ImGui",
-        "opengl32.lib",
+        "opengl32",
         "Chess",
         "ChessBot"
     }
@@ -58,20 +57,7 @@ project "ChessManager"
         defines { "RELEASE" }
         runtime "Release"
         optimize "On"
-        symbols "On"
-
-    filter "configurations:Dist"
-        defines { "DIST" }
-        runtime "Release"
-        optimize "On"
         symbols "Off"
-
-    filter "Release or Dist"
         kind "WindowedApp"
         entrypoint "mainCRTStartup"
-        -- filter "system:windows"
-        --     entrypoint "mainCRTStartup"
         
-        -- filter "system:linux"
-        --     entrypoint "WinMainCRTStartup"
-        --     buildoptions { "-mwindows" }
