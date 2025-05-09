@@ -8,6 +8,7 @@
 
 #include "Application.h"
 #include "Logger.h"
+#include "Testing/ChessTester.h"
 
 
 static const std::filesystem::path AssetsDir( "Assets" );
@@ -499,7 +500,6 @@ void ChessApp::MakeMove()
     else
         m_WhiteClock.UpdateLastPoll();
 
-    m_Chessboard.GenerateMoves();
     UpdateBoardInfo();
     Chess::MoveFlag flag = move.Flag();
 
@@ -550,7 +550,6 @@ void ChessApp::UnMakeMove()
 
     m_MoveHandling = MoveHandling();
 
-    m_Chessboard.GenerateMoves();
     UpdateBoardInfo();
 }
 
@@ -628,6 +627,13 @@ void ChessApp::DrawDebugScreen()
         memset( m_BoardVariables->NewFen, 0, sizeof( m_BoardVariables->NewFen ) );
     }
 
+    ImGui::SeparatorText( "Testing" );
+
+    if ( ImGui::Button( "Run Test1" ) )
+    {
+        RunTest( ChessTester::Test1 );
+    }
+
     ImGui::SeparatorText( "Chessboard Variables" );
 
     ImGui::ColorEdit4( "Even Color", &Settings->Colors.EvenColor.Value.x );
@@ -676,7 +682,6 @@ void ChessApp::DrawDebugScreen()
 void ChessApp::ResetBoard()
 {
     m_Chessboard.LoadFEN( "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" );
-    m_Chessboard.GenerateMoves();
     UpdateBoardInfo();
 
     m_BoardVisuals.HighlightedSquares = 0;
@@ -918,10 +923,10 @@ int ChessApp::PerftTest( Chess::Chessboard& Board, int Depth, bool* Cancel, bool
 
         Board.MakeMove( Move );
         move_nodes = PerftTest( Board, Depth - 1, Cancel, false, Result );
-        if ( Verbose && !(*Cancel) )
+        /*if ( Verbose && !(*Cancel) )
         {
             std::cout << Move.GetRepr() << ": " << move_nodes << "\n";
-        }
+        }*/
         n_nodes += move_nodes;
         Board.UnMakeMove( Move );
     }
@@ -969,6 +974,21 @@ void ChessApp::DrawPerftScreen()
     ImGui::End();
 }
 
+template<typename T>
+void ChessApp::RunTest( T(*test)() )
+{
+    if ( m_TestRunning )
+        return;
+
+    m_TestRunning = true;
+    m_TestFinished = false;
+    m_TestThread = std::thread( [test, this]()
+        {
+            test();
+            this->m_TestFinished = true;
+        } );
+}
+
 void ChessApp::LoadFonts()
 {
     namespace fs = std::filesystem;
@@ -1002,14 +1022,16 @@ void ChessApp::LoadPieceImages()
             Chess::PieceType piece = (Chess::PieceType)p;
             fs::path ImagePath = PiecesDir / GetPieceFileName( piece, color );
 
-            Image image;
+            m_PieceImages[c][piece] = Image( ImagePath );
+
+            /*Image image;
             if ( !LoadImageTexture( ImagePath, &image, 0.67f ) )
             {
                 m_logger.error( "Error loading image at path {}", ImagePath.string() );
                 throw std::exception();
             }
             m_logger.debug( "Loaded image {}", ImagePath.string() );
-            m_PieceImages[c][piece] = image;
+            m_PieceImages[c][piece] = image;*/
         }
     }
 }
@@ -1107,7 +1129,6 @@ ChessApp::ChessApp()
 
     m_BoardVariables->MoveHistory.reserve( 128 );
 
-    m_Chessboard.GenerateMoves();
     UpdateBoardInfo();
 }
 
@@ -1131,6 +1152,9 @@ ChessApp::~ChessApp()
         m_logger.info( "Canceling perft benchmark in progress..." );
         m_PerftSettings.PerftThread.join();
     }
+
+    if ( m_TestThread.joinable() )
+        m_TestThread.join();
 }
 
 void ChessApp::Run()
@@ -1157,6 +1181,12 @@ void ChessApp::Run()
 
         if ( m_PerftSettings.Finished && m_PerftSettings.PerftThread.joinable() )
             m_PerftSettings.PerftThread.join();
+
+        if ( m_TestRunning && m_TestFinished && m_TestThread.joinable() )
+        {
+            m_TestThread.join();
+            m_TestRunning = false;
+        }
 
         // Create a fullscreen dock space
         SetupDockspace();

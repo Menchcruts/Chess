@@ -9,7 +9,7 @@ project "Chess"
 
     includedirs
     {
-        "../Utils/"
+        
     }
 
     targetdir ("../bin/" .. OutputDir .. "/%{prj.name}")

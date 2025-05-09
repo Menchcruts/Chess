@@ -9,11 +9,10 @@
 
 struct Image
 {
-    ImTextureID Texture;
-    int Width;
-    int Height;
+    ImTextureID Texture = 0;
+    int Width = 0;
+    int Height = 0;
+
+    Image() = default;
+    Image(std::filesystem::path ImagePath );
 };
-
-bool LoadImageData( std::filesystem::path FilePath, GLFWimage* OutImage, float Scale );
-
-bool LoadImageTexture( std::filesystem::path FilePath, Image* OutImage, float Scale );

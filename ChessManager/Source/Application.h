@@ -14,6 +14,8 @@
 #include <unordered_map>
 #include <thread>
 #include <memory>
+#include <functional>
+
 #include "Images/Images.h"
 #include "Logger.h"
 
@@ -157,13 +159,17 @@ private:
 	std::array<std::unordered_map<Chess::PieceType, Image>, 2> m_PieceImages;
 
 	std::unique_ptr<ma_engine> miniaudio_engine;
-	ma_result miniaudio_result;
 
 	Logger m_logger = Logger( "App.log", Logger::Debug );
 
+	std::thread m_TestThread;
+
 	MoveHandling m_MoveHandling;
 
+	ma_result miniaudio_result;
 	bool m_EnableViewports = true;
+	bool m_TestFinished = false;
+	bool m_TestRunning = false;
 
 private:
 	void LoadFonts();
@@ -193,6 +199,9 @@ private:
 	void StartPerftTest();
 	int PerftTest( Chess::Chessboard& Board, int Depth, bool* Cancel, bool Verbose, PerftResult* Result );
 	void DrawPerftScreen();
+
+	template<typename T>
+	void RunTest( T(*test)() );
 
 public:
 	ChessApp();
