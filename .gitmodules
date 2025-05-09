@@ -1,7 +1,7 @@
 [submodule "Dependencies/miniaudio"]
 	path = Dependencies/miniaudio
 	url = https://github.com/mackron/miniaudio.git
-[submodule "Dependencies/ImGui"]
-	path = Dependencies/ImGui
+[submodule "Dependencies/ImGui/ImGui"]
+	path = Dependencies/ImGui/ImGui
 	url = https://github.com/ocornut/imgui.git
 	branch = docking

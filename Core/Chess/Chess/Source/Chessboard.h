@@ -9,7 +9,7 @@
 #include "Move.h"
 #include "CastlingRights.h"
 #include "MoveGeneration/Generator.h"
-#include "Logger.h"
+#include "Utils/Logger.h"
 
 
 namespace Chess

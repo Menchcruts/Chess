@@ -7,8 +7,8 @@
 #include <thread>
 
 #include "Application.h"
-#include "Logger.h"
-#include "Testing/ChessTester.h"
+#include "Utils/Logger.h"
+//#include "Testing/ChessTester.h"
 
 
 static const std::filesystem::path AssetsDir( "Assets" );
@@ -631,7 +631,7 @@ void ChessApp::DrawDebugScreen()
 
     if ( ImGui::Button( "Run Test1" ) )
     {
-        RunTest( ChessTester::Test1 );
+        //RunTest( ChessTester::Test1 );
     }
 
     ImGui::SeparatorText( "Chessboard Variables" );

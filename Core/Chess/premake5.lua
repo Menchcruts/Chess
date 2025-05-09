@@ -2,18 +2,20 @@ project "Chess"
     kind "StaticLib"
     language "C++"
     cppdialect "C++20"
-    targetdir "Binaries/%{cfg.buildcfg}"
+    cdialect "C17"
     staticruntime "off"
-
-    files { "./**.h", "./**.cpp" }
-
-    includedirs
-    {
-        
-    }
 
     targetdir ("../bin/" .. OutputDir .. "/%{prj.name}")
     objdir ("../bin/Intermediates/" .. OutputDir .. "/%{prj.name}")
+
+    files {
+        "%{prj.name}/**.h",
+        "%{prj.name}/**.cpp"
+    }
+
+    includedirs {
+        "../Utils/"
+    }
 
     filter "system:windows"
         systemversion "latest"

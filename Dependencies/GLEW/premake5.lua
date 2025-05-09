@@ -9,14 +9,14 @@ project "GLEW"
 
 	includedirs
 	{
-		"include"
+		"%{prj.name}/include"
 	}
 
 	files
 	{
-		"src/glew.c",
-		"src/glewinfo.c",
-		"src/visualinfo.c"
+		"%{prj.name}/src/glew.c",
+		"%{prj.name}/src/glewinfo.c",
+		"%{prj.name}/src/visualinfo.c"
 	}
 
 	filter "system:windows"

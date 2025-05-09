@@ -7,7 +7,7 @@
 #include "../Bitboard.h"
 #include "../CastlingRights.h"
 #include "../Pieces.h"
-#include "Logger.h"
+#include "Utils/Logger.h"
 
 namespace Chess { class Chessboard; }	// For some reason the compiler doesn't know what a Chessboard is unless we define it here as well
 

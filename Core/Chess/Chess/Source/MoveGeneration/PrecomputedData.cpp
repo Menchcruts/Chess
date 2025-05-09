@@ -1,5 +1,5 @@
 #include "PrecomputedData.h"
-#include "Logger.h"
+#include "Utils/Logger.h"
 #include <unordered_map>
 
 namespace Chess::MoveGen

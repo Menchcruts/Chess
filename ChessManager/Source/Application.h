@@ -7,7 +7,7 @@
 
 #include "miniaudio.h"
 
-#include "Chess.h"
+#include "Chess/Chess.h"
 #include <chrono>
 #include <array>
 #include <unordered_set>
@@ -17,7 +17,7 @@
 #include <functional>
 
 #include "Images/Images.h"
-#include "Logger.h"
+#include "Utils/Logger.h"
 
 #include "Clock/Clock.h"
 

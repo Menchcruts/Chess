@@ -15,11 +15,11 @@ project "ChessManager"
         "../Core/Utils/",
 
         -- Include dependencies
-        "../Dependencies/GLFW/include/",
-        "../Dependencies/ImGui/",
-        "../Dependencies/ImGui/backends/",
+        "../Dependencies/GLFW/GLFW/include/",
+        "../Dependencies/ImGui/ImGui/",
+        "../Dependencies/ImGui/ImGui/backends/",
         "../Dependencies/stb_image/",
-        "../Dependencies/GLEW/include/",
+        "../Dependencies/GLEW/GLEW/include/",
         "../Dependencies/miniaudio/"
     }
 

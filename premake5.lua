@@ -17,7 +17,7 @@ group "Core"
 
 group "Dependencies"
     include "Dependencies/GLFW/"
-    include "Dependencies/ImGui.lua"
+    include "Dependencies/ImGui/"
     include "Dependencies/GLEW/"
     
 group ""
