@@ -1,7 +1,7 @@
 -- premake5.lua
 workspace "Chess_V1.0"
    architecture "x64"
-   configurations { "Debug", "Release", "Dist" }
+   configurations { "Debug", "Release" }
    startproject "ChessManager"
 
    -- Workspace-wide build options for MSVC

@@ -46,7 +46,7 @@ namespace Chess::MoveGen
 					/*if ( FriendlyAlongRay )
 						PinRays |= Ray;
 					else*/
-						CheckMask |= Ray;
+						Checkmask |= Ray;
 
 					break;
 				}
@@ -194,6 +194,55 @@ namespace Chess::MoveGen
 		return InBetweenLookup->at( Start )[Target];
 	}
 
+	void MoveGenerator::GenerateAttackmask()
+	{
+		Attackmask = 0;
+		Bitboard pieceAttacks;
+		Bitboard Enemies = EnemyPieces;
+		while ( Enemies )
+		{
+			int sq = Enemies.BitscanForward();
+			Enemies &= Enemies - 1;
+
+			ChessPiece piece = m_Board->m_Bitboards.GetPieceAtSquare( sq );
+			switch ( piece.type )
+			{
+			case Chess::PieceType::King:
+				pieceAttacks = KingMoves[sq];
+				break;
+			case Chess::PieceType::Pawn:
+				pieceAttacks = WhiteToPlay ? BlackPawnAttacks[sq] : WhitePawnAttacks[sq];
+				break;
+			case Chess::PieceType::Knight:
+				pieceAttacks = KnightMoves[sq];
+				break;
+			case Chess::PieceType::Bishop:
+				pieceAttacks = GetBishopMoveMask( sq, AllPieces );
+				break;
+			case Chess::PieceType::Rook:
+				pieceAttacks = GetRookMoveMask( sq, AllPieces );
+				break;
+			case Chess::PieceType::Queen:
+				pieceAttacks = GetRookMoveMask( sq, AllPieces ) | GetBishopMoveMask( sq, AllPieces );
+				break;
+			case Chess::PieceType::None:
+			default:
+				break;
+			}
+			if ( pieceAttacks.IsOccupied( FriendlyKingSq ) )
+			{
+				InDoubleCheck = InCheck;
+				InCheck = true;
+
+				Checkmask |= Bit << sq;
+				if ( piece.IsSlidingPiece() )
+					Checkmask |= GetAlignMask( FriendlyKingSq, sq );
+
+			}
+			Attackmask |= pieceAttacks;
+		}
+	}
+
 	void MoveGenerator::FindPinned()
 	{
 		m_PinRays->clear();
@@ -232,7 +281,7 @@ namespace Chess::MoveGen
 			{
 				InCheck = true;
 				Bitboard Ray = GetAlignMask( sq, FriendlyKingSq );
-				CheckMask |= (Ray | Bit << sq);
+				Checkmask |= (Ray | Bit << sq);
 			}
 
 			Bitboard Blockers = FriendlyPieces;
@@ -250,7 +299,7 @@ namespace Chess::MoveGen
 	void MoveGenerator::GetKingMoves( short Sq )
 	{
 		Bitboard MoveMask = KingMoves[Sq];
-		MoveMask &= ~(FriendlyPieces | AttackMask);
+		MoveMask &= ~(FriendlyPieces | Attackmask);
 
 		AddMovesFromBitboard( Sq, MoveMask );
 
@@ -279,7 +328,7 @@ namespace Chess::MoveGen
 				BlockerMask = KingSideBlock;
 				CheckMask = KingSideCheck;
 
-				if ( (BlockerMask & ~(FriendlyPieces | EnemyPieces)) == KingSideBlock && (CheckMask & ~(AttackMask)) == KingSideCheck )
+				if ( (BlockerMask & ~(FriendlyPieces | EnemyPieces)) == KingSideBlock && (CheckMask & ~(Attackmask)) == KingSideCheck )
 				{
 					CastleTarget = IsWhite ? 6 : 62;
 					AddMove( Move( Sq, CastleTarget, MoveFlag::CastleKing ) );
@@ -297,7 +346,7 @@ namespace Chess::MoveGen
 				BlockerMask = QueenSideBlock;
 				CheckMask = QueenSideCheck;
 
-				if ( (BlockerMask & ~(FriendlyPieces | EnemyPieces)) == QueenSideBlock && (CheckMask & ~(AttackMask)) == QueenSideCheck )
+				if ( (BlockerMask & ~(FriendlyPieces | EnemyPieces)) == QueenSideBlock && (CheckMask & ~(Attackmask)) == QueenSideCheck )
 				{
 					CastleTarget = IsWhite ? 2 : 58;
 					AddMove( Move( Sq, CastleTarget, MoveFlag::CastleQueen ) );
@@ -310,6 +359,9 @@ namespace Chess::MoveGen
 	{
 		Bitboard MoveMask = KnightMoves[Sq];
 		MoveMask &= ~(FriendlyPieces);
+
+		if ( InCheck )
+			MoveMask &= Checkmask;
 
 		if ( m_PinRays->contains( Sq ) )
 		{
@@ -327,6 +379,9 @@ namespace Chess::MoveGen
 		bool double_push = false;
 		int DoublePushRank = m_Board->m_WhiteToPlay ? 3 : 4;
 
+		if ( InCheck )
+			MoveMask &= Checkmask;
+
 		while ( MoveMask )
 		{
 			int target = MoveMask.BitscanForward();
@@ -343,12 +398,14 @@ namespace Chess::MoveGen
 
 		Bitboard AttackMask = m_Board->m_WhiteToPlay ? WhitePawnAttacks[Sq] : BlackPawnAttacks[Sq];
 		
+		int EPSquare = m_Board->m_EnPassantSquare;
+
 		while ( AttackMask )
 		{
 			int target = AttackMask.BitscanForward();
 			AttackMask &= AttackMask - 1;
 
-			if ( target == m_Board->m_EnPassantSquare && CanEnPassant(Sq, target, m_Board->m_EnPassantSquare) )
+			if ( target == EPSquare && CanEnPassant(Sq, target, EPSquare + (WhiteToPlay ? -8 : 8) ) )
 			{
 				AddMove( Move( Sq, target, MoveFlag::EnPassant ) );
 			}
@@ -365,6 +422,9 @@ namespace Chess::MoveGen
 		Bitboard MoveMask = GetBishopMoveMask( Sq, Occupied );
 		MoveMask &= ~(FriendlyPieces);
 
+		if ( InCheck )
+			MoveMask &= Checkmask;
+
 		if ( m_PinRays->contains( Sq ) )
 		{
 			Bitboard AlignMask = m_PinRays->at( Sq );
@@ -379,6 +439,9 @@ namespace Chess::MoveGen
 		Bitboard Occupied = AllPieces & RookBlockerMasks[Sq];
 		Bitboard MoveMask = GetRookMoveMask( Sq, Occupied );
 		MoveMask &= ~(FriendlyPieces);
+
+		if ( InCheck )
+			MoveMask &= Checkmask;
 
 		if ( m_PinRays->contains( Sq ) )
 		{
@@ -399,6 +462,9 @@ namespace Chess::MoveGen
 
 		MoveMask &= ~(FriendlyPieces);
 
+		if ( InCheck )
+			MoveMask &= Checkmask;
+
 		if ( m_PinRays->contains( Sq ) )
 		{
 			Bitboard AlignMask = m_PinRays->at( Sq );
@@ -413,9 +479,9 @@ namespace Chess::MoveGen
 		Bitboard enemyOrtho = EnemyRQ;
 		if ( enemyOrtho )
 		{
-			Bitboard Occupied = (m_Board->m_Bitboards.AllPieces() ^ (Bit << epCaptureSquare | Bit << startSquare | Bit << targetSquare));
-			Bitboard Attacks = GetRookMoveMask( FriendlyKingSq, Occupied );
-			return (Attacks & enemyOrtho);
+			Bitboard Occ = (AllPieces ^ (Bit << epCaptureSquare | Bit << startSquare | Bit << targetSquare));
+			Bitboard Attacks = GetRookMoveMask( FriendlyKingSq, Occ );
+			return !(Attacks & enemyOrtho);
 		}
 
 		return false;
@@ -457,6 +523,8 @@ namespace Chess::MoveGen
 		WhiteToPlay = FriendlyColor == Color::White;
 
 		ClearMoveList(); // Clear the list
+		
+		GenerateAttackmask();
 		FindPinned();
 
 		Bitboard Pieces = FriendlyPieces;
@@ -467,6 +535,10 @@ namespace Chess::MoveGen
 			Pieces &= Pieces - 1;
 
 			ChessPiece piece = m_Board->m_Bitboards.GetPieceAtSquare( sq );
+
+			if ( InDoubleCheck && piece.type != PieceType::King )
+				continue;
+
 			switch ( piece.type )
 			{
 			case PieceType::King:

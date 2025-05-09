@@ -7,12 +7,14 @@ project "ImGui"
 
     files { 
         "./ImGui/*.h", 
-        "./ImGui/*.cpp", 
+        "./ImGui/*.cpp",
+        -- "./ImGui/misc/**.h",
+        -- "./ImGui/misc/**.cpp",
         "./ImGui/backends/*glfw*.h", 
         "./ImGui/backends/*glfw*.cpp",
         "./ImGui/backends/*opengl*.h", 
         "./ImGui/backends/*opengl*.cpp"
-     }
+    }
 
     includedirs
     {
@@ -24,7 +26,7 @@ project "ImGui"
     links
     {
         "GLFW",
-        "opengl32.lib"
+        "opengl32"
     }
 
     targetdir ("./bin/" .. OutputDir .. "/%{prj.name}")

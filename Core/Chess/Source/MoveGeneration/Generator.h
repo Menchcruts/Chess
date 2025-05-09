@@ -16,6 +16,8 @@ namespace Chess::MoveGen
 	class MoveGenerator
 	{
 	private:
+		Logger logger = Logger( "Movegenerator.log", Logger::Info );
+
 		std::unique_ptr<std::array<Move, 218>> m_Moves;
 		
 		std::unique_ptr< std::array<std::unordered_map<int, Bitboard>, 64> > RookMoves;
@@ -23,8 +25,6 @@ namespace Chess::MoveGen
 
 		std::unique_ptr< std::array<std::array<Bitboard, 64>, 64> > InBetweenLookup;
 		std::unique_ptr< std::unordered_map<int, Bitboard> > m_PinRays;
-
-		Logger logger = Logger( "Movegenerator.log", Logger::Debug );
 
 		Chessboard* m_Board = nullptr;
 
@@ -34,10 +34,10 @@ namespace Chess::MoveGen
 		Bitboard EnemyRQ;
 		Bitboard EnemyBQ;
 
-		Bitboard AttackMask;
+		Bitboard Attackmask;
 		Bitboard Pinned;
 		//Bitboard PinRays;
-		Bitboard CheckMask;
+		Bitboard Checkmask;
 
 		short MoveListTop = 0;
 		short FriendlyKingSq = -1;
@@ -64,6 +64,8 @@ namespace Chess::MoveGen
 		Bitboard XRayBishopAttacks( Bitboard Occupied, Bitboard Blockers, short Sq );
 
 		Bitboard GetAlignMask( int Start, int Target ) const;
+
+		void GenerateAttackmask();
 
 		void FindPinned();
 

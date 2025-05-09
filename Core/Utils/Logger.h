@@ -37,7 +37,7 @@ public:
 	}
 
 	template<typename... Args>
-	void Log( Level LogLvl, std::format_string<Args...> fmt, Args&&... args )
+	void Log( Level LogLvl, std::format_string<Args...> fmt, Args&&... args ) const
 	{
 		using namespace std::chrono;
 
@@ -54,10 +54,10 @@ public:
 		*m_file << final_msg << "\n";
 	}
 
-	template<typename... Args> void info( std::format_string<Args...> fmt, Args&&... args ) { Log( Level::Info, fmt, std::forward<Args>( args )... ); }
-	template<typename... Args> void debug( std::format_string<Args...> fmt, Args&&... args ) { Log( Level::Debug, fmt, std::forward<Args>( args )... ); }
-	template<typename... Args> void warn( std::format_string<Args...> fmt, Args&&... args ) { Log( Level::Warn, fmt, std::forward<Args>( args )... ); }
-	template<typename... Args> void error( std::format_string<Args...> fmt, Args&&... args ) { Log( Level::Error, fmt, std::forward<Args>( args )... ); }
+	template<typename... Args> void info( std::format_string<Args...> fmt, Args&&... args ) const { Log( Level::Info, fmt, std::forward<Args>( args )... ); }
+	template<typename... Args> void debug( std::format_string<Args...> fmt, Args&&... args ) const { Log( Level::Debug, fmt, std::forward<Args>( args )... ); }
+	template<typename... Args> void warn( std::format_string<Args...> fmt, Args&&... args ) const { Log( Level::Warn, fmt, std::forward<Args>( args )... ); }
+	template<typename... Args> void error( std::format_string<Args...> fmt, Args&&... args ) const { Log( Level::Error, fmt, std::forward<Args>( args )... ); }
 
 	void SetLvl( Level LogLvl )
 	{

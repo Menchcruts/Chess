@@ -60,7 +60,7 @@ namespace Chess
 		void MovePiece( int Start, int Target );
 		void PromotePiece( int Square, PieceType NewType );
 
-		int Perft(int Depth, bool FirstPass );
+		void GenerateMoves();
 
 	public:
 		Chessboard();
@@ -71,9 +71,7 @@ namespace Chess
 		void LoadFEN( const std::string& FEN_Pos );
 		void MakeMove( Move move );
 		void UnMakeMove( Move move );
-		
-		void GenerateMoves();
 
-		int RunPerft(int Depth, bool ShowInfo = true	 );
+		int Perft(int Depth );
 	};
 }

@@ -83,7 +83,7 @@ namespace Chess
         return m_MoveGenerator->GetMoveList();
     }
  
-    int Chessboard::Perft( int Depth, bool FirstPass )
+    int Chess::Chessboard::Perft( int Depth )
     {
         if ( Depth < 0 )
             return 0;
@@ -100,21 +100,8 @@ namespace Chess
                 break;
 
             MakeMove( move );
-            if ( !FirstPass )
-            {
-                n_nodes += Perft( Depth - 1, false );
-                UnMakeMove( move );
-            }
-            else
-            {
-                move_nodes = Perft( Depth - 1, false );
-
-                std::string move_repr = move.GetRepr();
-                std::cout << move_repr << ": " << move_nodes << "\n";
-
-                n_nodes += move_nodes;
-                UnMakeMove( move );
-            }
+            n_nodes += Perft( Depth - 1 );
+            UnMakeMove( move );
         }
 
         return n_nodes;
@@ -280,6 +267,7 @@ namespace Chess
         }
 
         m_logger.info( "Engine has finished loading FEN '{}'", FEN_Pos );
+        GenerateMoves();
     }
 
     void Chessboard::MakeMove( Move move )
@@ -408,6 +396,7 @@ namespace Chess
             ++m_FullmoveClock;
 
         m_WhiteToPlay = !m_WhiteToPlay;
+        GenerateMoves();
     }
 
     void Chessboard::UnMakeMove( Move move )
@@ -474,10 +463,7 @@ namespace Chess
 
         if ( !m_WhiteToPlay )
             --m_FullmoveClock;
-    }
 
-    int Chessboard::RunPerft( int Depth, bool ShowInfo )
-    {
-        return Perft( Depth, ShowInfo );
+        GenerateMoves();
     }
 }

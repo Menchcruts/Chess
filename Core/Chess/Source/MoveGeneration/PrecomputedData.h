@@ -262,11 +262,11 @@ namespace Chess::MoveGen
 		{
 			ChessCoord Square( Sq );
 
-			ChessCoord LeftAttack  = Square += left;
+			ChessCoord LeftAttack  = Square + left;
 			if ( LeftAttack.IsValid() )
 				result[Sq] |= Bit << LeftAttack.AsSquare();
 
-			ChessCoord RightAttack = Square += right;
+			ChessCoord RightAttack = Square + right;
 			if ( RightAttack.IsValid() )
 				result[Sq] |= Bit << RightAttack.AsSquare();
 		}
