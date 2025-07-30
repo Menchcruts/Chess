@@ -155,4 +155,32 @@ namespace Chess_Rework
 	inline constexpr CastlingRights operator &( Color c, CastlingRights cr ) { return CastlingRights((c == White ? White_Castling : Black_Castling) & cr); }
 
 	using Bitboard = std::uint64_t;
+
+	using Move = std::uint16_t;
+
+	enum class MoveFlag : std::uint16_t
+	{
+		None = 0b0000,
+		DoublePawnMove = 0b0001,
+
+		CastleKing = 0b0010,
+		CastleQueen = 0b0011,
+
+		Capture = 0b0100,
+		EnPassant = 0b0101,
+
+		PromoteKnight = 0b1000,
+		PromoteBishop = 0b1001,
+		PromoteRook = 0b1010,
+		PromoteQueen = 0b1011,
+
+		PromoteKnightCapture = PromoteKnight | Capture,
+		PromoteBishopCapture = PromoteBishop | Capture,
+		PromoteRookCapture = PromoteRook | Capture,
+		PromoteQueenCapture = PromoteQueen | Capture
+	};
+
+	inline constexpr Square from_square(Move m) { return Square(m & 0b111111); }
+	inline constexpr Square to_square(Move m) { return Square((m >> 6) & 0b111111); }
+	inline constexpr MoveFlag move_flag(Move m) { return MoveFlag((m >> 12) & 0b1111); }
 }
