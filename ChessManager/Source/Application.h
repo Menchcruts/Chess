@@ -176,6 +176,12 @@ private:
 	void LoadPieceImages();
 
 	void SetupDockspace();
+	void PreFrame();
+	void PostFrame();
+	void Draw();
+	void DrawMinimal();
+	void LookupTableTests();
+	void MoveTableTests();
 	
 	void DrawChessboardScreen();
 	void DrawChessBoard( );
@@ -208,4 +214,5 @@ public:
 	~ChessApp();
 
 	void Run();
+	void Minimal();
 };

@@ -8,6 +8,8 @@
 
 #include "Application.h"
 #include "Utils/Logger.h"
+#include "Chess/types.h"
+#include "Chess/Bitboards.h"
 //#include "Testing/ChessTester.h"
 
 
@@ -1060,6 +1062,322 @@ void ChessApp::SetupDockspace()
     ImGui::End();
 }
 
+void ChessApp::PreFrame()
+{
+    glfwPollEvents();
+
+    // Start the Dear ImGui frame
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    SetupDockspace();
+}
+
+void ChessApp::PostFrame()
+{
+    ImGuiIO& io = ImGui::GetIO();
+    
+    ImGui::Render();
+    int display_w, display_h;
+    glfwGetFramebufferSize(m_Window, &display_w, &display_h);
+    glViewport(0, 0, display_w, display_h);
+    glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    if (m_EnableViewports && (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable))
+    {
+        GLFWwindow* backup_current_context = glfwGetCurrentContext();
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+        glfwMakeContextCurrent(backup_current_context);
+    }
+
+    glfwSwapBuffers(m_Window);
+}
+
+void ChessApp::Draw()
+{
+    if (!m_BoardVariables->NextMove.IsNullMove() && !m_PromotionHandling.Promoting)
+    {
+        MakeMove();
+    }
+
+    if (m_PerftSettings.ShowScreen)
+    {
+        DrawPerftScreen();
+    }
+    if (m_BitboardSettings.ShowScreen)
+    {
+        DrawBitboardScreen();
+    }
+
+    DrawDebugScreen();
+
+    DrawChessboardScreen();
+}
+
+void ChessApp::DrawMinimal()
+{
+    using Chess_Rework::Bitboard, Chess_Rework::Square;
+
+    static int sq1 = 0;
+    static int sq2 = 0;
+
+    static int min = 0;
+    static int max = 63;
+    
+    static int idx = 0; 
+    const char* table_names[] = { "Line Bitboard", "Between Bitboard" };
+
+    static Bitboard current_bitboard = 0;
+
+    static const auto& LineBB = Chess_Rework::Bitboards::LineBB;
+	static const auto& BetweenBB = Chess_Rework::Bitboards::BetweenBB;
+
+	static bool show_picked = true;
+
+    if (ImGui::IsKeyPressed(ImGuiKey_Space))
+		show_picked = !show_picked;
+
+    ImGui::Begin("Bitboard viewer");
+    if (ImGui::BeginTable("BitboardTable", 8, ImGuiTableFlags_NoPadInnerX | ImGuiTableFlags_NoBordersInBody))
+    {
+        for (int i = 0; i < 8; ++i)
+            ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed);
+    
+	    ImU32 lightColor = IM_COL32(235, 236, 208, 255);
+	    ImU32 lightRedColor = IM_COL32(235, 125, 106, 255);
+
+	    ImU32 darkColor = IM_COL32(115, 149, 82, 255);
+	    ImU32 darkRedColor = IM_COL32(211, 108, 80, 255);
+
+	    ImU32 Green = IM_COL32(0, 255, 0, 255);
+	    ImU32 Blue = IM_COL32(0, 0, 255, 255);
+    
+        for (int rank = 0; rank < 8; ++rank)
+        {
+            for (int file = 0; file < 8; ++file)
+            {
+                int sq = (7 - rank) * 8 + file;
+
+                bool isDark = ((rank + file) % 2) == 1;
+			    ImU32 cellColor = isDark ? darkColor : lightColor;
+
+                if (Chess_Rework::Bitboards::is_occupied(current_bitboard, Square(sq)))
+                {
+				    cellColor = isDark ? darkRedColor : lightRedColor;
+                }
+
+			    if (sq == sq1 && show_picked)
+                    cellColor = Green;
+			    else if (sq == sq2 && show_picked)
+				    cellColor = Blue;
+            
+                ImGui::TableNextColumn();
+			    ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cellColor);
+			    ImGui::Dummy(ImVec2(100.f, 100.f));
+
+                if (ImGui::IsItemClicked(0))
+                    sq1 = sq;
+                else if (ImGui::IsItemClicked(1))
+                    sq2 = sq;
+            }
+        }
+        ImGui::EndTable();
+    }
+    ImGui::End();
+
+
+    ImGui::Begin("Selectors");
+    if (ImGui::BeginListBox("Tables"))
+    {
+		for (int n = 0; n < IM_ARRAYSIZE(table_names); ++n)
+		{
+			const bool is_selected = (idx == n);
+            if (ImGui::Selectable(table_names[n], is_selected))
+				idx = n;
+
+			if (is_selected)
+				ImGui::SetItemDefaultFocus();
+		}
+        ImGui::EndListBox();
+    }
+
+	current_bitboard = (idx == 0) ? LineBB[sq1][sq2] : BetweenBB[sq1][sq2];
+    
+    ImGui::NewLine();
+
+	ImGui::Text("Current table: %s", table_names[idx]);
+	ImGui::Text("Bitboard: %d", current_bitboard);
+
+    ImGui::End();
+}
+
+void ChessApp::LookupTableTests()
+{
+    using Chess_Rework::Bitboard, Chess_Rework::Square;
+
+    static int sq1 = 0;
+    static int sq2 = 0;
+
+    static int min = 0;
+    static int max = 63;
+
+    static int idx = 0;
+    const char* table_names[] = { "Line Bitboard", "Between Bitboard" };
+     
+    static Bitboard current_bitboard = 0;
+
+    static const auto& LineBB = Chess_Rework::Bitboards::LineBB;
+    static const auto& BetweenBB = Chess_Rework::Bitboards::BetweenBB;
+
+    static bool show_picked = true;
+
+    if (ImGui::IsKeyPressed(ImGuiKey_Space))
+        show_picked = !show_picked;
+    
+    ImGui::Begin("Lookup table tests");
+
+    if (ImGui::BeginTable("BitboardTable", 8, ImGuiTableFlags_NoPadInnerX | ImGuiTableFlags_NoBordersInBody))
+    {
+        for (int i = 0; i < 8; ++i)
+            ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed);
+
+        ImU32 lightColor = IM_COL32(235, 236, 208, 255);
+        ImU32 lightRedColor = IM_COL32(235, 125, 106, 255);
+
+        ImU32 darkColor = IM_COL32(115, 149, 82, 255);
+        ImU32 darkRedColor = IM_COL32(211, 108, 80, 255);
+
+        ImU32 Green = IM_COL32(0, 255, 0, 255);
+        ImU32 Blue = IM_COL32(0, 0, 255, 255);
+
+        for (int rank = 0; rank < 8; ++rank)
+        {
+            for (int file = 0; file < 8; ++file)
+            {
+                int sq = (7 - rank) * 8 + file;
+
+                bool isDark = ((rank + file) % 2) == 1;
+                ImU32 cellColor = isDark ? darkColor : lightColor;
+
+                if (Chess_Rework::Bitboards::is_occupied(current_bitboard, Square(sq)))
+                {
+                    cellColor = isDark ? darkRedColor : lightRedColor;
+                }
+
+                if (sq == sq1 && show_picked)
+                    cellColor = Green;
+                else if (sq == sq2 && show_picked)
+                    cellColor = Blue;
+
+                ImGui::TableNextColumn();
+                ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cellColor);
+                ImGui::Dummy(ImVec2(100.f, 100.f));
+
+                if (ImGui::IsItemClicked(0))
+                    sq1 = sq;
+                else if (ImGui::IsItemClicked(1))
+                    sq2 = sq;
+            }
+        }
+        ImGui::EndTable();
+    }
+
+    ImGui::SeparatorText("Options");
+    ImGui::ListBox("##Tables", &idx, table_names, IM_ARRAYSIZE(table_names));
+    ImGui::NewLine();
+
+	ImGui::Text("Left or right click to select squares.");
+
+    current_bitboard = (idx == 0) ? LineBB[sq1][sq2] : BetweenBB[sq1][sq2];
+
+    ImGui::Text("Bitboard: %I64u", current_bitboard);
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Click to copy to clipboard.");
+    if (ImGui::IsItemClicked(0))
+        ImGui::SetClipboardText(std::to_string(current_bitboard).c_str());
+
+    ImGui::End();
+}
+
+void ChessApp::MoveTableTests()
+{
+    using Chess_Rework::Bitboard, Chess_Rework::Square, Chess_Rework::PieceType, Chess_Rework::Color;
+
+	ImGui::Begin("Move table tests");
+
+	static int selected_square = 0;
+    static Bitboard occupied;
+    static int idx = 0;
+    static bool is_white = true;
+	const char* type_names[] = { "King", "Pawn", "Knight", "Bishop", "Rook", "Queen" };
+
+	PieceType type = PieceType(idx + 1); // 0 is null piece, so we start from 1
+    Bitboard current_bitboard;
+    if ( type == PieceType::Pawn)
+		current_bitboard = Chess_Rework::Bitboards::attacks(Square(selected_square), is_white ? Color::White : Color::Black);
+    else
+	    current_bitboard = Chess_Rework::Bitboards::attacks(Square(selected_square), type, occupied);
+
+    ImU32 lightColor = IM_COL32(235, 236, 208, 255);
+    ImU32 lightRedColor = IM_COL32(235, 125, 106, 255);
+
+    ImU32 darkColor = IM_COL32(115, 149, 82, 255);
+    ImU32 darkRedColor = IM_COL32(211, 108, 80, 255);
+
+    ImU32 Green = IM_COL32(0, 255, 0, 255);
+    ImU32 Blue = IM_COL32(0, 0, 255, 255);
+
+	if (ImGui::BeginTable("MoveTable", 8, ImGuiTableFlags_NoPadInnerX | ImGuiTableFlags_NoBordersInBody))
+	{
+		for (int i = 0; i < 8; ++i)
+			ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed);
+
+		for (int rank = 0; rank < 8; ++rank)
+		{
+			for (int file = 0; file < 8; ++file)
+			{
+				int sq = (7 - rank) * 8 + file;
+                bool isDark = ((rank + file) % 2) == 1;
+
+				ImU32 cellColor = isDark ? darkColor : lightColor;
+
+                if (sq == selected_square)
+                    cellColor = Green;
+
+                if (Chess_Rework::Bitboards::is_occupied(current_bitboard, Square(sq)))
+					cellColor = isDark ? darkRedColor : lightRedColor;
+				if (Chess_Rework::Bitboards::is_occupied(occupied, Square(sq)))
+					cellColor = Blue;
+
+				ImGui::TableNextColumn();
+                ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cellColor);
+				ImGui::Dummy(ImVec2(100.f, 100.f));
+                if (ImGui::IsItemClicked(0))
+                    selected_square = sq;
+                else if (ImGui::IsItemClicked(1))
+                    occupied ^= Chess_Rework::Bitboards::from_sq(Square(sq));
+			}
+		}
+		ImGui::EndTable();
+	}
+
+	ImGui::SeparatorText("Options");
+	ImGui::ListBox("##Types", &idx, type_names, IM_ARRAYSIZE(type_names));
+	ImGui::Checkbox("Is white", &is_white);
+
+    ImGui::Text("Bitboard: %I64u", current_bitboard);
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Click to copy to clipboard.");
+    if (ImGui::IsItemClicked(0))
+        ImGui::SetClipboardText(std::to_string(current_bitboard).c_str());
+
+    ImGui::End();
+}
 
 
 ChessApp::ChessApp()
@@ -1160,16 +1478,9 @@ ChessApp::~ChessApp()
 void ChessApp::Run()
 {
     // Main loop
-    while ( !glfwWindowShouldClose( m_Window ) )
+    while (!glfwWindowShouldClose(m_Window))
     {
-        glfwPollEvents();
-
-        // Start the Dear ImGui frame
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-
-        ImGuiIO& io = ImGui::GetIO();
+        PreFrame();
 
         if ( m_BoardVariables->GameStarted )
         {
@@ -1188,67 +1499,30 @@ void ChessApp::Run()
             m_TestRunning = false;
         }
 
-        // Create a fullscreen dock space
-        SetupDockspace();
-
         if ( m_PerftSettings.Finished )
         {
             m_PerftSettings.Running = false;
         }
-
-        if ( m_PerftSettings.ShowScreen )
-        {
-            DrawPerftScreen();
-        }
-        if ( m_BitboardSettings.ShowScreen )
-        {
-            DrawBitboardScreen();
-        }
-
-        DrawDebugScreen();
-
-        //ImGui::ShowDemoWindow();
-
-        //if ( ImGui::Begin( "Example Window" ) )
-        //{
-        //    // Begin a child window of a fixed size, enabling the border.
-        //    // The size can be set to fit just the text, or you can size it as desired.
-        //    ImU32 FillColor = IM_COL32( 150, 100, 200, 255 );
-        //    ImVec4 var = ImGui::ColorConvertU32ToFloat4( FillColor );
-        //    ImGui::PushStyleColor( ImGuiCol_ChildBg, var );
-        //    ImGui::BeginChild( "TextBox", ImVec2( 150, 40 ), ImGuiChildFlags_Border /*border*/ );
-
-        //    ImGui::TextColored( ImVec4( 0.f, 0.f, 0.f, 1.f ), "Hello, ImGui!" );
-        //    
-        //    ImGui::EndChild();
-        //    ImGui::PopStyleColor();
-        //}
-        //ImGui::End();
-
-        DrawChessboardScreen();
+        
         if ( !m_BoardVariables->NextMove.IsNullMove() && !m_PromotionHandling.Promoting )
         {
             MakeMove();
         }
 
-        // Rendering
-        ImGui::Render();
-        int display_w, display_h;
-        glfwGetFramebufferSize( m_Window, &display_w, &display_h );
-        glViewport( 0, 0, display_w, display_h );
-        glClearColor( 0.45f, 0.55f, 0.60f, 1.00f );
-        glClear( GL_COLOR_BUFFER_BIT );
+        Draw();
 
-        ImGui_ImplOpenGL3_RenderDrawData( ImGui::GetDrawData() );
+        PostFrame();
+    }
+}
 
-        if ( m_EnableViewports && (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) )
-        {
-            GLFWwindow* backup_current_context = glfwGetCurrentContext();
-            ImGui::UpdatePlatformWindows();
-            ImGui::RenderPlatformWindowsDefault();
-            glfwMakeContextCurrent( backup_current_context );
-        }
-
-        glfwSwapBuffers( m_Window );
+void ChessApp::Minimal()
+{
+    while (!glfwWindowShouldClose(m_Window))
+    {
+        PreFrame();
+        LookupTableTests();
+		MoveTableTests();
+        //ImGui::ShowDemoWindow();
+        PostFrame();
     }
 }
