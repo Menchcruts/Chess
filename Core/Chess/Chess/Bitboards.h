@@ -207,11 +207,11 @@ namespace Chess_Rework::Bitboards
 		}
 	}
 
-	constexpr Bitboard line_bb( Square sq1, Square sq2 )
+	constexpr Bitboard get_line_bb( Square sq1, Square sq2 )
 	{
 		return LineBB[sq1][sq2];
 	}
-	constexpr Bitboard between_bb( Square sq1, Square sq2 )
+	constexpr Bitboard get_between_bb( Square sq1, Square sq2 )
 	{
 		return BetweenBB[sq1][sq2];
 	}
