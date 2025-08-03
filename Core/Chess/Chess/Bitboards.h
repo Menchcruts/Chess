@@ -220,8 +220,8 @@ namespace Chess_Rework::Bitboards
 	constexpr int lsb( Bitboard bb ) { return std::countr_zero( bb ); }
 	constexpr int msb( Bitboard bb ) { return std::countl_zero( bb ); }
 
-	constexpr int bitscan_forward( Bitboard bb ) { return lsb( bb ); }
-	constexpr int bitscan_forward_auto( Bitboard& bb ) { int bit = lsb( bb ); bb &= bb - 1; return bit; }
+	constexpr Square bitscan_forward(Bitboard bb) { return Square(lsb(bb)); }
+	constexpr Square bitscan_forward_auto(Bitboard& bb) { int bit = lsb(bb); bb &= bb - 1; return Square(bit); }
 
 	template<typename _Ty = Square>
 	inline int distance( Square x, Square y );
