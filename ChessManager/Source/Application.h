@@ -179,10 +179,12 @@ private:
 	void PreFrame();
 	void PostFrame();
 	void Draw();
+
 	void DrawMinimal();
 	void LookupTableTests();
 	void MoveTableTests();
-	
+	void ChessboardTests();
+
 	void DrawChessboardScreen();
 	void DrawChessBoard( );
 	void DrawPieceSelected(ImDrawList* DrawList) const;
