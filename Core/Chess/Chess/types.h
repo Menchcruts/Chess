@@ -3,9 +3,9 @@
 
 namespace Chess_Rework
 {
-	class Chessboard;
+	class Chessboard_New;
 
-	enum Square
+	enum Square : std::uint16_t
 	{
 		SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
 		SQ_A2, SQ_B2, SQ_C2, SQ_D2, SQ_E2, SQ_F2, SQ_G2, SQ_H2,
@@ -19,7 +19,7 @@ namespace Chess_Rework
 		NoSquare
 	};
 
-	enum File
+	enum File : std::uint16_t
 	{
 		File_A,
 		File_B,
@@ -31,7 +31,7 @@ namespace Chess_Rework
 		File_H
 	};
 
-	enum Rank
+	enum Rank : std::uint16_t
 	{
 		Rank_1,
 		Rank_2,
@@ -43,7 +43,7 @@ namespace Chess_Rework
 		Rank_8
 	};
 
-	enum Direction
+	enum Direction : std::int16_t
 	{
 		Dir_North = 8,
 		Dir_South = -Dir_North,
@@ -65,6 +65,11 @@ namespace Chess_Rework
 	inline constexpr Square operator +( Square sq, Direction dir ) { return Square( int( sq ) + int( dir ) ); }
 	inline constexpr Square operator -( Square sq, Direction dir ) { return Square( int( sq ) - int( dir ) ); }
 
+	inline constexpr Square operator +(Square sq1, Square sq2) { return Square(int(sq1) + int(sq2)); }
+	inline constexpr Square operator -(Square sq1, Square sq2) { return Square(int(sq1) - int(sq2)); }
+	inline constexpr Square operator +=(Square& sq, Square sq2) { return sq = sq + sq2; }
+	inline constexpr Square operator -=(Square& sq, Square sq2) { return sq = sq - sq2; }
+
 	inline constexpr Square& operator +=( Square& sq, Direction dir ) { return sq = sq + dir; }
 	inline constexpr Square& operator -=( Square& sq, Direction dir ) { return sq = sq - dir; }
 
@@ -83,7 +88,7 @@ namespace Chess_Rework
 #undef ENABLE_INCS_OPERATORS_ON
 
 
-	enum Color
+	enum Color : std::uint8_t
 	{
 		White,
 		Black,
@@ -96,7 +101,7 @@ namespace Chess_Rework
 	inline constexpr Rank relative_rank( Color c, Rank r ) { return Rank( r ^ (c * 7) ); }
 
 
-	enum PieceType
+	enum PieceType : std::uint8_t
 	{
 		NoPieceType,
 		King,
@@ -107,7 +112,7 @@ namespace Chess_Rework
 		Queen
 	};
 
-	enum Piece
+	enum Piece : std::uint8_t
 	{
 		NoPiece,
 
@@ -131,7 +136,7 @@ namespace Chess_Rework
 	inline constexpr bool is_type_of( Piece p, PieceType type ) { return type_of( p ) == type; }
 	inline constexpr Piece make_piece( Color c, PieceType type ) { return Piece( type + (c << 3) ); }
 
-	enum CastlingRights
+	enum CastlingRights : std::uint8_t
 	{
 		No_Castling,
 		White_OO,
@@ -154,33 +159,47 @@ namespace Chess_Rework
 
 	inline constexpr CastlingRights operator &( Color c, CastlingRights cr ) { return CastlingRights((c == White ? White_Castling : Black_Castling) & cr); }
 
+	inline constexpr bool has_castling_rights( CastlingRights cr, CastlingRights cr_to_check )
+	{
+		return (cr & cr_to_check) != CastlingRights::No_Castling;
+	}
+
 	using Bitboard = std::uint64_t;
 
 	using Move = std::uint16_t;
 
-	enum class MoveFlag : std::uint16_t
+	enum MoveFlag : std::uint16_t
 	{
-		None = 0b0000,
-		DoublePawnMove = 0b0001,
+		None			= 0b0000,
+		DoublePawnMove	= 0b0001,
 
-		CastleKing = 0b0010,
-		CastleQueen = 0b0011,
+		CastleKing		= 0b0010,
+		CastleQueen		= 0b0011,
 
-		Capture = 0b0100,
-		EnPassant = 0b0101,
+		Capture			= 0b0100,
+		EnPassant		= 0b0101,
 
-		PromoteKnight = 0b1000,
-		PromoteBishop = 0b1001,
-		PromoteRook = 0b1010,
-		PromoteQueen = 0b1011,
+		PromoteKnight	= 0b1000,
+		PromoteBishop	= 0b1001,
+		PromoteRook		= 0b1010,
+		PromoteQueen	= 0b1011,
 
-		PromoteKnightCapture = PromoteKnight | Capture,
-		PromoteBishopCapture = PromoteBishop | Capture,
-		PromoteRookCapture = PromoteRook | Capture,
-		PromoteQueenCapture = PromoteQueen | Capture
+		PromoteKnightCapture	= PromoteKnight | Capture,
+		PromoteBishopCapture	= PromoteBishop | Capture,
+		PromoteRookCapture		= PromoteRook	| Capture,
+		PromoteQueenCapture		= PromoteQueen	| Capture
 	};
+
+	static constexpr const Move NullMove = Move(0);
 
 	inline constexpr Square from_square(Move m) { return Square(m & 0b111111); }
 	inline constexpr Square to_square(Move m) { return Square((m >> 6) & 0b111111); }
 	inline constexpr MoveFlag move_flag(Move m) { return MoveFlag((m >> 12) & 0b1111); }
+	
+	inline constexpr Move make_move(Square from, Square to, MoveFlag flag = MoveFlag::None) { 
+		return Move((int(from) & 0b111111) | ((int(to) & 0b111111) << 6) | (int(flag) << 12));
+	}
+	inline constexpr void set_flag(Move& m, MoveFlag flag) { 
+		m = Move((int(m) & 0xFFF) | (int(flag) << 12));
+	}
 }
