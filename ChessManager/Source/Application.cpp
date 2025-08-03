@@ -10,6 +10,7 @@
 #include "Utils/Logger.h"
 #include "Chess/types.h"
 #include "Chess/Bitboards.h"
+#include "Chess/Chessboard_new.h"
 //#include "Testing/ChessTester.h"
 
 
@@ -1379,6 +1380,168 @@ void ChessApp::MoveTableTests()
     ImGui::End();
 }
 
+void ChessApp::ChessboardTests()
+{
+    using Chess_Rework::Piece, Chess_Rework::Square, Chess_Rework::Color, Chess_Rework::CastlingRights;
+    
+    static Chess_Rework::Chessboard_New board;
+    ImU32 lightColor = IM_COL32(235, 236, 208, 255);
+    ImU32 lightRedColor = IM_COL32(235, 125, 106, 255);
+
+    ImU32 darkColor = IM_COL32(115, 149, 82, 255);
+    ImU32 darkRedColor = IM_COL32(211, 108, 80, 255);
+
+    ImU32 Green = IM_COL32(0, 255, 0, 255);
+    ImU32 Blue = IM_COL32(0, 0, 255, 255);
+
+	static ImVec2 cellSize(100.f, 100.f);
+
+    static int from_square = 0;
+    static int to_square = 0;
+    
+    static Chess_Rework::Move last_move = Chess_Rework::NullMove;
+
+    auto AllPieces = board.GetBitboards().GetAllPieces();
+	static bool highlight_bitboard_squares = false;
+
+    ImGui::Begin("Chessboard tests");
+    if (ImGui::BeginTable("ChessboardTable", 8, ImGuiTableFlags_NoPadInnerX | ImGuiTableFlags_NoBordersInBody))
+    {
+        for (int i = 0; i < 8; ++i)
+            ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed);
+
+        for (int rank = 0; rank < 8; ++rank)
+        {
+            for (int file = 0; file < 8; ++file)
+            {
+                int sq = (7 - rank) * 8 + file;
+                bool isDark = ((rank + file) % 2) == 1;
+                ImU32 cellColor = isDark ? darkColor : lightColor;
+
+                if (highlight_bitboard_squares && Chess_Rework::Bitboards::is_occupied(AllPieces, Square(sq)))
+                    cellColor = isDark ? darkRedColor : lightRedColor;
+
+                if (sq == from_square)
+                    cellColor = Green;
+                else if (sq == to_square)
+					cellColor = Blue;
+
+                ImGui::TableNextColumn();
+                ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cellColor);
+
+				Piece piece = board.GetPiece(Square(sq));
+                if (piece != Piece::NoPiece)
+                {
+                    Chess::PieceType piece_type = Chess::PieceType((Chess_Rework::type_of(piece)));
+					Chess_Rework::Color piece_color = Chess_Rework::color_of(piece);
+                    ImGui::Image(
+						m_PieceImages[piece_color][piece_type].Texture,
+                        cellSize
+                    );
+                }
+                else
+                {
+                    ImGui::Dummy(cellSize);
+				}
+                if (ImGui::IsItemClicked(0))
+                    from_square = sq;
+                else if (ImGui::IsItemClicked(1))
+                    to_square = sq;
+            }
+        }
+        ImGui::EndTable();
+	}
+    
+	static char fen_buffer[96];
+
+    if (ImGui::Button("Reset board"))
+    {
+        board.ResetBoard();
+    }
+	ImGui::SameLine();
+    ImGui::PushItemWidth(750);
+    if (ImGui::InputText("Custom FEN", fen_buffer, IM_ARRAYSIZE(fen_buffer), ImGuiInputTextFlags_EnterReturnsTrue))
+    {
+		board.LoadFEN(fen_buffer);
+		memset(fen_buffer, 0, sizeof(fen_buffer)); // Clear the buffer
+	}
+	ImGui::PopItemWidth();
+
+	ImGui::PushItemWidth(50);
+	if (ImGui::InputInt("From square (Green)", &from_square, 0, 0, ImGuiInputTextFlags_CharsDecimal))
+    {
+        if (from_square < 0)
+            from_square = 0; // Reset to a valid square
+        else if (from_square > 63)
+			from_square = 63; // Reset to a valid square
+    }
+    if (ImGui::InputInt("To square (Blue)", &to_square, 0, 0, ImGuiInputTextFlags_CharsDecimal))
+    {
+        if (to_square < 0)
+            to_square = 0; // Reset to a valid square
+        else if (to_square > 63)
+			to_square = 63; // Reset to a valid square
+    }
+	ImGui::PopItemWidth();
+
+    if (ImGui::Button("Make move"))
+    {
+        if (from_square != to_square)
+        {
+            Chess_Rework::Move move = Chess_Rework::make_move(Square(from_square), Square(to_square));
+		    board.MakeMove(move);
+			last_move = move;
+        }
+		from_square = to_square = 0;
+    }
+	ImGui::SameLine();
+    if (ImGui::Button("Unmake last move"))
+    {
+        if (last_move != Chess_Rework::NullMove)
+        {
+            board.UnMakeMove(last_move);
+            last_move = board.GetLastMove();
+        }
+	}
+	ImGui::SameLine();
+    if (ImGui::Button("Make white CastleOO"))
+    {
+        Chess_Rework::Move move = Chess_Rework::make_move(Square::SQ_E1, Square::SQ_G1, Chess_Rework::MoveFlag::CastleKing);
+		board.MakeMove(move);
+		last_move = move;
+    }
+	ImGui::SameLine();
+    if (ImGui::Button("Make black CastleOO"))
+    {
+        Chess_Rework::Move move = Chess_Rework::make_move(Square::SQ_E8, Square::SQ_G8, Chess_Rework::MoveFlag::CastleKing);
+        board.MakeMove(move);
+        last_move = move;
+	}
+
+	ImGui::Checkbox("Highlight bitboard squares", &highlight_bitboard_squares);
+
+	bool w_to_play          = board.IsWhiteToMove();
+    CastlingRights w_castle = board.GetCastlingRights(Color::White);
+	CastlingRights b_castle = board.GetCastlingRights(Color::Black);
+    int halfmove_clock      = board.GetHalfMoveClock();
+	int fullmove_clock      = board.GetFullMoveClock();
+	Square ep_square        = board.GetEnPassantSquare();
+
+    ImGui::SeparatorText("Board Info");
+	ImGui::Text("%s to play", w_to_play ? "White" : "Black");
+    ImGui::Text("Castling rights: %s%s | %s%s",
+        w_castle & CastlingRights::White_OO ? "K" : "",
+        w_castle & CastlingRights::White_OOO ? "Q" : "",
+        b_castle & CastlingRights::Black_OO ? "k" : "",
+        b_castle & CastlingRights::Black_OOO ? "q" : ""
+	);
+	ImGui::Text("Halfmove clock: %d", halfmove_clock);
+	ImGui::Text("Fullmove clock: %d", fullmove_clock);
+    ImGui::Text("En Passant square: %s (%d)", is_ok(ep_square) ? GetSquareName(int(ep_square)).c_str() : "None", int(ep_square));
+
+	ImGui::End();
+}
+
 
 ChessApp::ChessApp()
 {
@@ -1522,6 +1685,7 @@ void ChessApp::Minimal()
         PreFrame();
         LookupTableTests();
 		MoveTableTests();
+		ChessboardTests();
         //ImGui::ShowDemoWindow();
         PostFrame();
     }
