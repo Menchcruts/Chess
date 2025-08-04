@@ -1521,8 +1521,7 @@ void ChessApp::ChessboardTests()
 	ImGui::Checkbox("Highlight bitboard squares", &highlight_bitboard_squares);
 
 	bool w_to_play          = board.IsWhiteToMove();
-    CastlingRights w_castle = board.GetCastlingRights(Color::White);
-	CastlingRights b_castle = board.GetCastlingRights(Color::Black);
+    CastlingRights castle = board.GetCastlingRights();
     int halfmove_clock      = board.GetHalfMoveClock();
 	int fullmove_clock      = board.GetFullMoveClock();
 	Square ep_square        = board.GetEnPassantSquare();
@@ -1530,10 +1529,10 @@ void ChessApp::ChessboardTests()
     ImGui::SeparatorText("Board Info");
 	ImGui::Text("%s to play", w_to_play ? "White" : "Black");
     ImGui::Text("Castling rights: %s%s | %s%s",
-        w_castle & CastlingRights::White_OO ? "K" : "",
-        w_castle & CastlingRights::White_OOO ? "Q" : "",
-        b_castle & CastlingRights::Black_OO ? "k" : "",
-        b_castle & CastlingRights::Black_OOO ? "q" : ""
+        castle& CastlingRights::White_OO ? "K" : "",
+        castle& CastlingRights::White_OOO ? "Q" : "",
+        castle& CastlingRights::Black_OO ? "k" : "",
+        castle& CastlingRights::Black_OOO ? "q" : ""
 	);
 	ImGui::Text("Halfmove clock: %d", halfmove_clock);
 	ImGui::Text("Fullmove clock: %d", fullmove_clock);

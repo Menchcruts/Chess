@@ -1,4 +1,5 @@
 #include "Chessboard_new.h"
+#include "MoveGen.h"
 #include <ranges>
 #include <string>
 #include <algorithm>
@@ -80,8 +81,7 @@ void Chess_Rework::Chessboard_New::MakeMove(Move move)
     m_PrevStates.emplace_back(PrevState{
         .HalfMoveClock = m_HalfMoveClock,
         .EP_Square = m_EP_Square,
-        .WhiteCastle = m_WhiteCastle,
-        .BlackCastle = m_BlackCastle,
+		.CastlingRights = m_CastlingRights,
         .CapturedPiece = captured_piece
 		});
 
@@ -94,23 +94,23 @@ void Chess_Rework::Chessboard_New::MakeMove(Move move)
 	PlacePiece(to_sq, moving_piece);
 
     // Update castling rights
-	CastlingRights& current_castle  = m_WhiteToMove ? m_WhiteCastle : m_BlackCastle;
-	CastlingRights castleOO         = m_WhiteToMove ? CastlingRights::White_OO : CastlingRights::Black_OO;
-	CastlingRights castleOOO        = m_WhiteToMove ? CastlingRights::White_OOO : CastlingRights::Black_OOO;
+	CastlingRights color_mask   = m_WhiteToMove ? CastlingRights::White_Castling : CastlingRights::Black_Castling;
+	CastlingRights castleOO     = m_WhiteToMove ? CastlingRights::White_OO : CastlingRights::Black_OO;
+	CastlingRights castleOOO    = m_WhiteToMove ? CastlingRights::White_OOO : CastlingRights::Black_OOO;
 
-	if (moving_piece_type == PieceType::King && current_castle != CastlingRights::No_Castling)
-		current_castle = CastlingRights::No_Castling;   // Remove all castling rights if king moves for the first time
+    if (moving_piece_type == King && has_castling_rights(m_CastlingRights, color_mask))
+		m_CastlingRights ^= color_mask; // Remove castling rights for the color
 
     if (moving_piece_type == PieceType::Rook)
     {
 		Square OO_rook_sq     = m_WhiteToMove ? Square::SQ_H1 : Square::SQ_H8;
         Square OOO_rook_sq    = m_WhiteToMove ? Square::SQ_A1 : Square::SQ_A8;
         
-        if (from_sq == OO_rook_sq && has_castling_rights(current_castle, castleOO))
-            current_castle ^= castleOO; // Remove kingside castling rights
+        if (from_sq == OO_rook_sq && has_castling_rights(m_CastlingRights, castleOO))
+            m_CastlingRights ^= castleOO; // Remove kingside castling rights
         
-        else if (from_sq == OOO_rook_sq && has_castling_rights(current_castle, castleOOO))
-			current_castle ^= castleOOO; // Remove queenside castling rights
+        else if (from_sq == OOO_rook_sq && has_castling_rights(m_CastlingRights, castleOOO))
+            m_CastlingRights ^= castleOOO; // Remove queenside castling rights
     }
 
 	// Update en passant square
@@ -167,8 +167,7 @@ void Chess_Rework::Chessboard_New::UnMakeMove(Move move)
 	Piece captured_piece = prev_state.CapturedPiece;
 	PieceType captured_piece_type = type_of(captured_piece);
 
-	m_WhiteCastle = prev_state.WhiteCastle;
-	m_BlackCastle = prev_state.BlackCastle;
+	m_CastlingRights = prev_state.CastlingRights;
 	m_EP_Square = prev_state.EP_Square;
 	m_HalfMoveClock = prev_state.HalfMoveClock;
 	
@@ -231,17 +230,16 @@ void Chess_Rework::Chessboard_New::LoadFEN(const std::string_view& FEN_String)
 
 
 	// Set castling rights
-	m_WhiteCastle = CastlingRights::No_Castling;
-	m_BlackCastle = CastlingRights::No_Castling;
+	m_CastlingRights = CastlingRights::No_Castling;
 
     for (const auto& castle_char : CastleString)
     {
         switch (castle_char)
         {
-            case 'K': m_WhiteCastle |= CastlingRights::White_OO; break; // White kingside
-            case 'Q': m_WhiteCastle |= CastlingRights::White_OOO; break; // White queenside
-            case 'k': m_BlackCastle |= CastlingRights::Black_OO; break; // Black kingside
-            case 'q': m_BlackCastle |= CastlingRights::Black_OOO; break; // Black queenside
+            case 'K': m_CastlingRights |= CastlingRights::White_OO; break; // White kingside
+            case 'Q': m_CastlingRights |= CastlingRights::White_OOO; break; // White queenside
+            case 'k': m_CastlingRights |= CastlingRights::Black_OO; break; // Black kingside
+            case 'q': m_CastlingRights |= CastlingRights::Black_OOO; break; // Black queenside
             default: break; // Ignore any other characters
         }
 	}
