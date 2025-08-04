@@ -276,4 +276,8 @@ namespace Chess_Rework::Bitboards
 			return 0;
 		}
 	}
+	inline Bitboard attacks(Square sq, PieceType pt, Bitboard blockers, Color c) 
+	{
+		return pt == Pawn ? attacks(sq, c) : attacks(sq, pt, blockers);
+	}
 }
