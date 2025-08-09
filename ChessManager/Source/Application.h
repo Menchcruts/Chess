@@ -184,6 +184,7 @@ private:
 	void LookupTableTests();
 	void MoveTableTests();
 	void ChessboardTests();
+	void MoveGenTests();
 
 	void DrawChessboardScreen();
 	void DrawChessBoard( );
