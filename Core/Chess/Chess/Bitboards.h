@@ -154,12 +154,11 @@ namespace Chess_Rework::Bitboards
 		}
 	}
 
-	constexpr Bitboard from_sq( Square sq ) { assert(is_ok(sq));  return Bitboard( 1ULL << sq ); }
+	constexpr Bitboard from_sq( Square sq ) { return is_ok(sq) ? Bitboard( 1ULL << sq ) : 0; }
 
-	constexpr Bitboard is_occupied(Bitboard bb, Square sq)
+	constexpr bool is_occupied(Bitboard bb, Square sq)
 	{
-		assert(is_ok(sq));
-		return bb & from_sq(sq);
+		return is_ok(sq) && bb & from_sq(sq);
 	}
 
 	template<Color C>
@@ -171,7 +170,8 @@ namespace Chess_Rework::Bitboards
 
 	constexpr int Squares_to_Edge( Square sq, Direction dir )
 	{
-		assert( is_ok( sq ) );
+		if (!is_ok(sq))
+			return -1;
 		
 		Rank Current_Rank = rank_of( sq );
 		File Current_File = file_of( sq );
@@ -207,11 +207,11 @@ namespace Chess_Rework::Bitboards
 		}
 	}
 
-	constexpr Bitboard line_bb( Square sq1, Square sq2 )
+	constexpr Bitboard get_line_bb( Square sq1, Square sq2 )
 	{
 		return LineBB[sq1][sq2];
 	}
-	constexpr Bitboard between_bb( Square sq1, Square sq2 )
+	constexpr Bitboard get_between_bb( Square sq1, Square sq2 )
 	{
 		return BetweenBB[sq1][sq2];
 	}
@@ -220,8 +220,8 @@ namespace Chess_Rework::Bitboards
 	constexpr int lsb( Bitboard bb ) { return std::countr_zero( bb ); }
 	constexpr int msb( Bitboard bb ) { return std::countl_zero( bb ); }
 
-	constexpr int bitscan_forward( Bitboard bb ) { return lsb( bb ); }
-	constexpr int bitscan_forward_auto( Bitboard& bb ) { int bit = lsb( bb ); bb &= bb - 1; return bit; }
+	constexpr Square bitscan_forward(Bitboard bb) { return Square(lsb(bb)); }
+	constexpr Square bitscan_forward_auto(Bitboard& bb) { int bit = lsb(bb); bb &= bb - 1; return Square(bit); }
 
 	template<typename _Ty = Square>
 	inline int distance( Square x, Square y );
@@ -247,7 +247,9 @@ namespace Chess_Rework::Bitboards
 	inline Bitboard attacks( Square sq, PieceType pt )
 	{
 		assert(pt == King || pt == Knight);
-		assert(is_ok(sq));
+		if (!is_ok(sq))
+			return 0;
+
 		return (pt == King)   ? KingAttacks[sq] : 
 			   (pt == Knight) ? KnightAttacks[sq] : 
 								0;
@@ -263,7 +265,8 @@ namespace Chess_Rework::Bitboards
 		if (!(pt == Bishop || pt == Rook || pt == Queen))
 			return attacks(sq, pt);
 		//assert(pt == Bishop || pt == Rook || pt == Queen);
-		assert(is_ok(sq));
+		if (!is_ok(sq))
+			return 0;
 
 		switch ( pt )
 		{
@@ -275,5 +278,9 @@ namespace Chess_Rework::Bitboards
 		default:
 			return 0;
 		}
+	}
+	inline Bitboard attacks(Square sq, PieceType pt, Bitboard blockers, Color c) 
+	{
+		return pt == Pawn ? attacks(sq, c) : attacks(sq, pt, blockers);
 	}
 }

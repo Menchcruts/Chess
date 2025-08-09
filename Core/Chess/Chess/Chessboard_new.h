@@ -4,7 +4,6 @@
 #include <array>
 #include <vector>
 #include <string_view>
-#include <unordered_set>
 
 namespace Chess_Rework
 {
@@ -102,8 +101,7 @@ namespace Chess_Rework
 		{
 			int HalfMoveClock = 0;
 			Square EP_Square = NoSquare;
-			CastlingRights WhiteCastle = CastlingRights::No_Castling;
-			CastlingRights BlackCastle = CastlingRights::No_Castling;
+			CastlingRights CastlingRights = CastlingRights::No_Castling;
 			Piece CapturedPiece = NoPiece; // Possibly move this to separate vector later
 		};
 
@@ -124,9 +122,9 @@ namespace Chess_Rework
 		Piece RemovePiece(Square sq);
 		Piece GetPiece(Square sq) const;
 
-		CastlingRights GetCastlingRights(Color c) const
+		CastlingRights GetCastlingRights() const
 		{
-			return c == White ? m_WhiteCastle : m_BlackCastle;
+			return m_CastlingRights;
 		}
 		bool IsWhiteToMove() const
 		{
@@ -153,8 +151,17 @@ namespace Chess_Rework
 			return m_MoveHistory.empty() ? NullMove : m_MoveHistory.back();
 		}
 
+		const std::vector<Move>& GetMoves() const
+		{
+			return m_Moves;
+		}
+
+		friend class MoveGenerator;
+		friend class MoveGeneratorNonStatic;
+
 	private:
 		// Piece placements
+		std::vector<Move> m_Moves = make_reserved_vector<Move>(218);
 		PieceBitboards m_Bitboards;
 		std::array<Piece, 64> m_BoardArray{};
 
@@ -168,11 +175,9 @@ namespace Chess_Rework
 		bool m_WhiteToMove = true;
 		Square m_EP_Square = NoSquare;
 		
-		CastlingRights m_WhiteCastle = CastlingRights::No_Castling;
-		CastlingRights m_BlackCastle = CastlingRights::No_Castling;
+		CastlingRights m_CastlingRights = CastlingRights::No_Castling;
 
 	private:
 		void GenerateMoves();
-	//	Move* GetMoves();
 	};
 }

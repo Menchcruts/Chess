@@ -157,11 +157,14 @@ namespace Chess_Rework
 	inline constexpr CastlingRights operator |( CastlingRights cr1, CastlingRights cr2 ) { return CastlingRights( int( cr1 ) | int( cr2 ) ); }
 	inline constexpr CastlingRights& operator |=( CastlingRights& cr1, CastlingRights cr2 ) { return cr1 = cr1 | cr2; }
 
+	inline constexpr CastlingRights operator &(CastlingRights cr1, CastlingRights cr2) { return CastlingRights(int(cr1) & int(cr2)); }
+	inline constexpr CastlingRights& operator &=(CastlingRights& cr1, CastlingRights cr2) { return cr1 = cr1 & cr2; }
+
 	inline constexpr CastlingRights operator &( Color c, CastlingRights cr ) { return CastlingRights((c == White ? White_Castling : Black_Castling) & cr); }
 
 	inline constexpr bool has_castling_rights( CastlingRights cr, CastlingRights cr_to_check )
 	{
-		return (cr & cr_to_check) != CastlingRights::No_Castling;
+		return (cr & cr_to_check) == cr_to_check;
 	}
 
 	using Bitboard = std::uint64_t;
@@ -189,6 +192,9 @@ namespace Chess_Rework
 		PromoteRookCapture		= PromoteRook	| Capture,
 		PromoteQueenCapture		= PromoteQueen	| Capture
 	};
+
+	inline constexpr MoveFlag operator |(MoveFlag f1, MoveFlag f2) { return MoveFlag(int(f1) | int(f2)); }
+	inline constexpr MoveFlag& operator |=(MoveFlag& f1, MoveFlag f2) { return f1 = f1 | f2; }
 
 	static constexpr const Move NullMove = Move(0);
 
