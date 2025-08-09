@@ -4,7 +4,6 @@
 #include <array>
 #include <vector>
 #include <string_view>
-#include <unordered_set>
 
 namespace Chess_Rework
 {
@@ -152,10 +151,17 @@ namespace Chess_Rework
 			return m_MoveHistory.empty() ? NullMove : m_MoveHistory.back();
 		}
 
+		const std::vector<Move>& GetMoves() const
+		{
+			return m_Moves;
+		}
+
 		friend class MoveGenerator;
+		friend class MoveGeneratorNonStatic;
 
 	private:
 		// Piece placements
+		std::vector<Move> m_Moves = make_reserved_vector<Move>(218);
 		PieceBitboards m_Bitboards;
 		std::array<Piece, 64> m_BoardArray{};
 
@@ -173,6 +179,5 @@ namespace Chess_Rework
 
 	private:
 		void GenerateMoves();
-	//	Move* GetMoves();
 	};
 }

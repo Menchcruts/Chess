@@ -157,6 +157,9 @@ namespace Chess_Rework
 	inline constexpr CastlingRights operator |( CastlingRights cr1, CastlingRights cr2 ) { return CastlingRights( int( cr1 ) | int( cr2 ) ); }
 	inline constexpr CastlingRights& operator |=( CastlingRights& cr1, CastlingRights cr2 ) { return cr1 = cr1 | cr2; }
 
+	inline constexpr CastlingRights operator &(CastlingRights cr1, CastlingRights cr2) { return CastlingRights(int(cr1) & int(cr2)); }
+	inline constexpr CastlingRights& operator &=(CastlingRights& cr1, CastlingRights cr2) { return cr1 = cr1 & cr2; }
+
 	inline constexpr CastlingRights operator &( Color c, CastlingRights cr ) { return CastlingRights((c == White ? White_Castling : Black_Castling) & cr); }
 
 	inline constexpr bool has_castling_rights( CastlingRights cr, CastlingRights cr_to_check )

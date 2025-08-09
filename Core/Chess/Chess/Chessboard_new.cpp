@@ -61,7 +61,7 @@ void Chess_Rework::Chessboard_New::MakeMove(Move move)
 	Square to_sq = to_square(move);
 	MoveFlag flag = move_flag(move);
 
-    std::cout << "Making move: " << move << " from " << from_sq << " to " << to_sq << " with flag: " << flag << "\n";
+    //std::cout << "Making move: " << move << " from " << from_sq << " to " << to_sq << " with flag: " << flag << "\n";
     
     Piece moving_piece = GetPiece(from_sq);
 	PieceType moving_piece_type = type_of(moving_piece);
@@ -86,6 +86,8 @@ void Chess_Rework::Chessboard_New::MakeMove(Move move)
 		});
 
 	m_MoveHistory.emplace_back(move);
+
+    Direction forward_dir = m_WhiteToMove ? Dir_North : Dir_South;
 
     // Update the board and bitboards
 	RemovePiece(from_sq);
@@ -112,10 +114,10 @@ void Chess_Rework::Chessboard_New::MakeMove(Move move)
         else if (from_sq == OOO_rook_sq && has_castling_rights(m_CastlingRights, castleOOO))
             m_CastlingRights ^= castleOOO; // Remove queenside castling rights
     }
-
+    
 	// Update en passant square
     if (flag == MoveFlag::DoublePawnMove)
-        m_EP_Square = to_sq + (moving_piece == W_Pawn ? Dir_North : Dir_South);
+        m_EP_Square = to_sq - forward_dir;
     else
         m_EP_Square = NoSquare; // Clear en passant square
 
@@ -145,11 +147,12 @@ void Chess_Rework::Chessboard_New::MakeMove(Move move)
         ++m_HalfMoveClock; // Increment half move clock otherwise
 
 	m_WhiteToMove = !m_WhiteToMove; // Switch turn
+    GenerateMoves();
 }
 
 void Chess_Rework::Chessboard_New::UnMakeMove(Move move)
 {
-    if (move != m_MoveHistory.back())
+    if (m_MoveHistory.empty() || move != m_MoveHistory.back())
         return; // Future logging
 
 	m_MoveHistory.pop_back();
@@ -201,6 +204,8 @@ void Chess_Rework::Chessboard_New::UnMakeMove(Move move)
         PlacePiece(rook_to_sq, GetPiece(rook_from_sq));
 		RemovePiece(rook_from_sq);
     }
+
+    GenerateMoves();
 }
 
 void Chess_Rework::Chessboard_New::LoadFEN(const std::string_view& FEN_String)
@@ -305,9 +310,11 @@ void Chess_Rework::Chessboard_New::LoadFEN(const std::string_view& FEN_String)
 			CurrentSquare += Square(1); // Move to the next square
         }
 	}
+
+    GenerateMoves();
 }
 
 void Chess_Rework::Chessboard_New::GenerateMoves()
 {
-
+    MoveGenerator::GenerateMoves(*this, m_Moves);
 }

@@ -154,12 +154,11 @@ namespace Chess_Rework::Bitboards
 		}
 	}
 
-	constexpr Bitboard from_sq( Square sq ) { assert(is_ok(sq));  return Bitboard( 1ULL << sq ); }
+	constexpr Bitboard from_sq( Square sq ) { return is_ok(sq) ? Bitboard( 1ULL << sq ) : 0; }
 
-	constexpr Bitboard is_occupied(Bitboard bb, Square sq)
+	constexpr bool is_occupied(Bitboard bb, Square sq)
 	{
-		assert(is_ok(sq));
-		return bb & from_sq(sq);
+		return is_ok(sq) && bb & from_sq(sq);
 	}
 
 	template<Color C>
@@ -171,7 +170,8 @@ namespace Chess_Rework::Bitboards
 
 	constexpr int Squares_to_Edge( Square sq, Direction dir )
 	{
-		assert( is_ok( sq ) );
+		if (!is_ok(sq))
+			return -1;
 		
 		Rank Current_Rank = rank_of( sq );
 		File Current_File = file_of( sq );
@@ -247,7 +247,9 @@ namespace Chess_Rework::Bitboards
 	inline Bitboard attacks( Square sq, PieceType pt )
 	{
 		assert(pt == King || pt == Knight);
-		assert(is_ok(sq));
+		if (!is_ok(sq))
+			return 0;
+
 		return (pt == King)   ? KingAttacks[sq] : 
 			   (pt == Knight) ? KnightAttacks[sq] : 
 								0;
@@ -263,7 +265,8 @@ namespace Chess_Rework::Bitboards
 		if (!(pt == Bishop || pt == Rook || pt == Queen))
 			return attacks(sq, pt);
 		//assert(pt == Bishop || pt == Rook || pt == Queen);
-		assert(is_ok(sq));
+		if (!is_ok(sq))
+			return 0;
 
 		switch ( pt )
 		{
