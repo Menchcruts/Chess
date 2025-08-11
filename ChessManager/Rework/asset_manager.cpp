@@ -46,7 +46,7 @@ namespace assets
     }
 
     // ---------------------------- helpers ------------------------------------
-    bool ImageManager::has(const std::string& logical) const
+    bool ImageManager::has(std::string_view logical) const
     {
         std::scoped_lock lock(mtx_);
         auto [key, _] = resolveLogical_(logical);
@@ -54,7 +54,7 @@ namespace assets
         return images_.find(key) != images_.end();
     }
 
-    bool ImageManager::isLoaded(const std::string& logical) const
+    bool ImageManager::isLoaded(std::string_view logical) const
     {
         std::scoped_lock lock(mtx_);
         auto [key, _] = resolveLogical_(logical);
@@ -62,7 +62,7 @@ namespace assets
         return it != images_.end() && it->second.obj && it->second.obj->valid();
     }
 
-    bool ImageManager::existsOnDisk(const std::string& logical) const
+    bool ImageManager::existsOnDisk(std::string_view logical) const
     {
         std::scoped_lock lock(mtx_);
         auto [key, physical] = resolveLogical_(logical);
@@ -71,7 +71,7 @@ namespace assets
         return fs::exists(physical);
     }
 
-    std::optional<fs::path> ImageManager::resolve(const std::string& logical) const
+    std::optional<fs::path> ImageManager::resolve(std::string_view logical) const
     {
         auto [_, physical] = resolveLogical_(logical);
         return physical;
@@ -102,7 +102,7 @@ namespace assets
     }
 
     // ---------------------------- get / load ---------------------------------
-    ImageManager::Ptr ImageManager::get(const std::string& logical)
+    ImageManager::Ptr ImageManager::get(std::string_view logical)
     {
         std::scoped_lock lock(mtx_);
         auto [key, _] = resolveLogical_(logical);
@@ -112,9 +112,8 @@ namespace assets
         it->second.last_access = Clock::now();
         return it->second.obj;
     }
-    ImageManager::Ptr ImageManager::get(const fs::path& path) { return get(path.string()); }
 
-    ImageManager::Ptr ImageManager::load(const std::string& logical, const ImageLoadOptions& opt)
+    ImageManager::Ptr ImageManager::load(std::string_view logical, const ImageLoadOptions& opt)
     {
         std::scoped_lock lock(mtx_);
         auto [key, physical] = resolveLogical_(logical);
@@ -125,7 +124,8 @@ namespace assets
         {
             rec.obj = std::make_shared<Image>();
             rec.path = physical;
-            rec.label = logical;
+            rec.label = isAliasSyntax_(logical) ? std::string{ logical }
+                                                : aliasLabelFor_(physical);
             rec.options = opt;
         }
 
@@ -138,9 +138,19 @@ namespace assets
         return rec.obj;
     }
 
-    ImageManager::Ptr ImageManager::load(const fs::path& path, const ImageLoadOptions& opt) { return load(path.string(), opt); }
-    ImageManager::Ptr ImageManager::load(const std::string& logical) { return load(logical, defaults_); }
-    ImageManager::Ptr ImageManager::load(const fs::path& path) { return load(path.string(), defaults_); }
+    ImageManager::Ptr ImageManager::load(std::string_view logical) { return load(logical, defaults_); }
+
+    // ----- PATH versions (distinct names to avoid overload ambiguity) --------
+    ImageManager::Ptr ImageManager::getPath(const fs::path& path) { return get(path.string()); }
+
+    ImageManager::Ptr ImageManager::loadPath(const fs::path& path, const ImageLoadOptions& opt)
+    {
+        return load(path.string(), opt);
+    }
+    ImageManager::Ptr ImageManager::loadPath(const fs::path& path)
+    {
+        return load(path.string(), defaults_);
+    }
 
     ImageManager::Ptr ImageManager::loadFromMemory(const std::string& key, const unsigned char* bytes, int byte_count,
         const ImageLoadOptions& opt)
@@ -171,62 +181,56 @@ namespace assets
         return out;
     }
     std::vector<ImageManager::Ptr> ImageManager::loadAll(const std::vector<std::string>& logicals) { return loadAll(logicals, defaults_); }
-    std::vector<ImageManager::Ptr> ImageManager::loadAll(const std::vector<fs::path>& paths, const ImageLoadOptions& opt)
+    std::vector<ImageManager::Ptr> ImageManager::loadAllPaths(const std::vector<fs::path>& paths, const ImageLoadOptions& opt)
     {
         std::vector<Ptr> out; out.reserve(paths.size());
-        for (auto const& p : paths) out.push_back(load(p.string(), opt));
+        for (auto const& p : paths) out.push_back(loadPath(p, opt));
         return out;
     }
-    std::vector<ImageManager::Ptr> ImageManager::loadAll(const std::vector<fs::path>& paths) { return loadAll(paths, defaults_); }
+    std::vector<ImageManager::Ptr> ImageManager::loadAllPaths(const std::vector<fs::path>& paths) { return loadAllPaths(paths, defaults_); }
 
     // Directory preload
     int ImageManager::preloadDir(const fs::path& dir, const std::vector<std::string>& exts, bool recursive)
     {
         int count = 0;
         if (!fs::exists(dir)) return 0;
-        // Pre-normalize extensions
-        std::vector<std::string> exts_lower;
-        exts_lower.reserve(exts.size());
+
+        // Pre-normalize extension list once (lowercase)
+        std::vector<std::string> exts_lower; exts_lower.reserve(exts.size());
         for (const auto& sx : exts)
         {
-            std::string s = sx; // non-const copy
-            std::transform(s.begin(), s.end(), s.begin(),
-                [](unsigned char c) { return (char)std::tolower(c); });
+            std::string s = sx;
+            std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return (char)std::tolower(c); });
             exts_lower.push_back(std::move(s));
         }
 
         auto match = [&](const fs::path& p)
             {
                 std::string e = p.extension().string();
-                std::transform(e.begin(), e.end(), e.begin(),
-                    [](unsigned char c) { return (char)std::tolower(c); });
-                for (const auto& s : exts_lower)
-                {
-                    if (e == s) return true;
-                }
+                std::transform(e.begin(), e.end(), e.begin(), [](unsigned char c) { return (char)std::tolower(c); });
+                for (const auto& s : exts_lower) if (e == s) return true;
                 return false;
             };
+
         if (recursive)
         {
             for (auto& entry : fs::recursive_directory_iterator(dir))
             {
-                if (entry.is_regular_file() && match(entry.path())) { load(entry.path()); ++count; }
+                if (entry.is_regular_file() && match(entry.path())) { loadPath(entry.path()); ++count; }
             }
         }
         else
         {
             for (auto& entry : fs::directory_iterator(dir))
             {
-                if (entry.is_regular_file() && match(entry.path())) { load(entry.path()); ++count; }
+                if (entry.is_regular_file() && match(entry.path())) { loadPath(entry.path()); ++count; }
             }
         }
         return count;
     }
 
     // ---------------------------- reload / housekeeping -----------------------
-    bool ImageManager::reload(const fs::path& path) { return reload(path.string()); }
-
-    bool ImageManager::reload(const std::string& logical)
+    bool ImageManager::reload(std::string_view logical)
     {
         std::scoped_lock lock(mtx_);
         auto [key, physical] = resolveLogical_(logical);
@@ -244,7 +248,7 @@ namespace assets
         return rec.obj->valid();
     }
 
-    bool ImageManager::reload(const std::string& logical, const ImageLoadOptions& opt)
+    bool ImageManager::reload(std::string_view logical, const ImageLoadOptions& opt)
     {
         std::scoped_lock lock(mtx_);
         auto [key, physical] = resolveLogical_(logical);
@@ -261,6 +265,8 @@ namespace assets
         rec.last_access = Clock::now();
         return rec.obj->valid();
     }
+
+    bool ImageManager::reloadPath(const fs::path& path) { return reload(path.string()); }
 
     int ImageManager::reloadChanged()
     {
@@ -301,14 +307,14 @@ namespace assets
         return removed;
     }
 
-    bool ImageManager::unload(const std::string& logical)
+    bool ImageManager::unload(std::string_view logical)
     {
         std::scoped_lock lock(mtx_);
         auto [key, _] = resolveLogical_(logical);
         return !key.empty() && images_.erase(key) > 0;
     }
 
-    bool ImageManager::unload(const fs::path& path) { return unload(path.string()); }
+    bool ImageManager::unloadPath(const fs::path& path) { return unload(path.string()); }
 
     void ImageManager::clear()
     {
@@ -375,23 +381,66 @@ namespace assets
         dst = std::move(tmp);
     }
 
-    bool ImageManager::isAliasSyntax_(const std::string& s) { return s.find("://") != std::string::npos; }
+    bool ImageManager::isAliasSyntax_(std::string_view s) { return s.find("://") != std::string::npos; }
 
-    std::pair<std::string, fs::path> ImageManager::resolveLogical_(const std::string& logical) const
+    std::string ImageManager::aliasLabelFor_(const fs::path& physical) const
+    {
+        // Canonicalize for stable comparisons
+        std::error_code ec;
+        fs::path phys_can = fs::weakly_canonical(physical, ec);
+        if (ec) phys_can = physical.lexically_normal();
+        const std::string phys = phys_can.generic_string();
+
+        std::string best_label;
+        std::size_t best_len = 0;
+
+        for (const auto& [alias, roots] : aliases_)
+        {
+            for (const auto& root : roots)
+            {
+                fs::path root_can = fs::weakly_canonical(root, ec);
+                if (ec) root_can = root.lexically_normal();
+                const std::string base = root_can.generic_string();
+
+                // prefix match with boundary (exact dir or followed by '/')
+                if (phys.size() >= base.size() &&
+                    phys.compare(0, base.size(), base) == 0 &&
+                    (phys.size() == base.size() || phys[base.size()] == '/'))
+                {
+
+                    // relative part (skip the '/')
+                    const std::string rel =
+                        (phys.size() == base.size()) ? std::string{} : phys.substr(base.size() + 1);
+
+                    const std::string candidate = alias + "://" + rel;
+                    if (base.size() > best_len)
+                    {
+                        best_len = base.size();
+                        best_label = candidate;
+                    }
+                }
+            }
+        }
+
+        // Fallback: no alias root matched; show the physical path
+        return best_label.empty() ? phys : best_label;
+    }
+
+    std::pair<std::string, fs::path> ImageManager::resolveLogical_(std::string_view logical) const
     {
         if (!isAliasSyntax_(logical))
         {
-            const fs::path p = logical;
+            const fs::path p = std::string{ logical };
             return { normalize_(p), p };
         }
         const auto pos = logical.find("://");
-        const std::string alias = logical.substr(0, pos);
-        fs::path relative = logical.substr(pos + 3);
+        const std::string alias = std::string{ logical.substr(0, pos) };
+        fs::path relative = std::string{ logical.substr(pos + 3) };
 
         auto it = aliases_.find(alias);
         if (it == aliases_.end() || it->second.empty())
         {
-            const fs::path p = logical;
+            const fs::path p = std::string{ logical };
             return { normalize_(p), p };
         }
 
@@ -411,18 +460,47 @@ namespace assets
 #ifdef IMGUI_VERSION
 #include "imgui.h"
 
-    void DrawImageManagerPanel(ImageManager& mgr)
+    namespace
+    {
+        inline ImVec2 DrawTexturePreview(ImTextureID tex, int iw, int ih,
+            float max_w, float max_h, bool border)
+        {
+            if (!tex || iw <= 0 || ih <= 0) return ImVec2(0, 0);
+            if (max_w <= 0) max_w = ImGui::GetContentRegionAvail().x;
+            if (max_h <= 0) max_h = static_cast<float>(ih);
+            const float sx = max_w / static_cast<float>(iw);
+            const float sy = max_h / static_cast<float>(ih);
+            const float s = (max_h > 0) ? (sx < sy ? sx : sy) : sx;
+            const float w = static_cast<float>(iw) * s;
+            const float h = static_cast<float>(ih) * s;
+            const ImVec4 border_col = border ? ImGui::GetStyleColorVec4(ImGuiCol_Border)
+                : ImVec4(0, 0, 0, 0);
+            ImGui::Image(tex, ImVec2(w, h), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), border_col);
+            return ImVec2(w, h);
+        }
+    }
+
+    bool DrawImageManagerPanel(ImageManager& mgr, ImagePanelState& state)
     {
         if (ImGui::Button("Reload Changed")) { (void)mgr.reloadChanged(); }
         ImGui::SameLine();
         if (ImGui::Button("Prune Unused")) { (void)mgr.pruneUnused(); }
         ImGui::SameLine();
         if (ImGui::Button("Clear All")) { mgr.clear(); }
+        ImGui::SameLine();
+        ImGui::Checkbox("Inline Preview", &state.preview_inline);
+        ImGui::SameLine();
+        ImGui::Checkbox("Preview Window", &state.preview_window);
 
         ImGui::Separator();
 
+        bool selection_changed = false;
         auto rows = mgr.snapshot();
-        if (ImGui::BeginTable("##image_mgr", 7, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders | ImGuiTableFlags_SizingStretchProp))
+
+        const ImGuiTableFlags flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders
+            | ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
+
+        if (ImGui::BeginTable("##image_mgr", 7, flags, ImVec2(0, state.table_height)))
         {
             ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch, 0.35f);
             ImGui::TableSetupColumn("Path", ImGuiTableColumnFlags_WidthStretch, 0.45f);
@@ -436,7 +514,23 @@ namespace assets
             for (auto const& r : rows)
             {
                 ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex(0); ImGui::TextUnformatted(r.label.c_str());
+
+                ImGui::TableSetColumnIndex(0);
+                const bool is_selected = (state.selected_key == r.key);
+                if (ImGui::Selectable((r.label + "##row").c_str(), is_selected, ImGuiSelectableFlags_SpanAllColumns))
+                {
+                    state.selected_key = r.key;
+                    state.selected_label = r.label;
+                    selection_changed = true;
+                }
+                if (ImGui::IsItemHovered())
+                {
+                    ImGui::BeginTooltip();
+                    ImGui::TextUnformatted(r.path.c_str());
+                    ImGui::Text("Size: %dx%d", r.w, r.h);
+                    ImGui::EndTooltip();
+                }
+
                 ImGui::TableSetColumnIndex(1); ImGui::TextUnformatted(r.path.c_str());
                 ImGui::TableSetColumnIndex(2); ImGui::TextUnformatted(r.exists ? "Yes" : "No");
                 ImGui::TableSetColumnIndex(3); ImGui::Text("%dx%d", r.w, r.h);
@@ -459,7 +553,57 @@ namespace assets
             }
             ImGui::EndTable();
         }
+
+        // Inline preview below the table
+        if (state.preview_inline && !state.selected_key.empty())
+        {
+            ImGui::Separator();
+            ImGui::TextUnformatted("Preview:");
+            ImGui::SliderFloat("Max Height", &state.preview_max_height, 64.0f, 1024.0f, "%.0f px");
+            auto img = mgr.get(state.selected_key);
+            if (img && img->valid())
+            {
+                DrawTexturePreview(img->ImGuiID(), img->width(), img->height(),
+                    ImGui::GetContentRegionAvail().x, state.preview_max_height, true);
+            }
+            else
+            {
+                ImGui::TextDisabled("No image available.");
+            }
+        }
+
+        // Separate preview window
+        if (state.preview_window && !state.selected_key.empty())
+        {
+            ImGui::SetNextWindowSize(ImVec2(480, 400), ImGuiCond_FirstUseEver);
+            if (ImGui::Begin("Image Preview", &state.preview_window))
+            {
+                ImGui::TextUnformatted(state.selected_label.c_str());
+                ImGui::Separator();
+                ImGui::SliderFloat("Max Height##wnd", &state.preview_max_height, 64.0f, 2048.0f, "%.0f px");
+                auto img = mgr.get(state.selected_key);
+                if (img && img->valid())
+                {
+                    DrawTexturePreview(img->ImGuiID(), img->width(), img->height(),
+                        ImGui::GetContentRegionAvail().x, state.preview_max_height, true);
+                }
+                else
+                {
+                    ImGui::TextDisabled("No image available.");
+                }
+            }
+            ImGui::End();
+        }
+
+        return selection_changed;
     }
+
+    void DrawImageManagerPanel(ImageManager& mgr)
+    {
+        static ImagePanelState s; // persistent selection & prefs
+        (void)DrawImageManagerPanel(mgr, s);
+    }
+
 #endif // IMGUI_VERSION
 
 } // namespace assets

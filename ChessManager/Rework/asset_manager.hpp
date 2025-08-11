@@ -5,7 +5,13 @@
 // - In-place reload (shared_ptr<Image> stays valid)
 // - Hot-reload via last_write_time()
 // - Batch loading and path aliasing (e.g., textures://ui/button.png)
-// - Optional ImGui debug panel (decl only here) 
+// - Optional ImGui debug panel (decl only here)
+//
+// Overload note:
+// To avoid ambiguous calls with string literals (const char*) that can convert
+// to either std::string or std::filesystem::path, this API uses DISTINCT names
+// for logical-string vs physical-path operations (e.g., load vs loadPath).
+// This removes overload ambiguity across compilers.
 //
 // Requirements:
 // - C++17+
@@ -15,7 +21,9 @@
 #include <filesystem>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 #include <chrono>
@@ -40,6 +48,8 @@ namespace assets
         using Ptr = std::shared_ptr<Image>;
 
         ImageManager();
+        ImageManager(const ImageManager&) = delete;
+        ImageManager& operator=(const ImageManager&) = delete;
 
         // Defaults ---------------------------------------------------------
         void setDefaultOptions(const ImageLoadOptions& o);
@@ -54,23 +64,25 @@ namespace assets
         std::vector<std::string> listAliases() const;
 
         // Helpers ----------------------------------------------------------
-        bool has(const std::string& logical) const;          // present in cache
-        bool isLoaded(const std::string& logical) const;     // present and valid Image
-        bool existsOnDisk(const std::string& logical) const; // resolves alias and checks filesystem or memory-backed
-        std::optional<fs::path> resolve(const std::string& logical) const; // resolve logical to physical path
+        bool has(std::string_view logical) const;          // present in cache
+        bool isLoaded(std::string_view logical) const;     // present and valid Image
+        bool existsOnDisk(std::string_view logical) const; // resolves alias and checks filesystem or memory-backed
+        std::optional<fs::path> resolve(std::string_view logical) const; // resolve logical to physical path
         std::vector<std::string> findMissing(const std::vector<std::string>& logicals) const; // which don't exist on disk
         std::size_t totalApproxBytes() const; // rough VRAM usage estimate (w*h*4)
 
-        // Get / Load -------------------------------------------------------
-        Ptr get(const std::string& logical);
-        Ptr get(const fs::path& path);
+        // Get / Load (LOGICAL STRING) -------------------------------------
+        Ptr get(std::string_view logical);
 
-        Ptr load(const std::string& logical, const ImageLoadOptions& opt);
-        Ptr load(const std::string& logical);
-        Ptr load(const fs::path& path, const ImageLoadOptions& opt);
-        Ptr load(const fs::path& path);
+        Ptr load(std::string_view logical, const ImageLoadOptions& opt);
+        Ptr load(std::string_view logical);
 
-        // Memory-backed entries (not hot-reloaded)
+        // Get / Load (PHYSICAL PATH) --------------------------------------
+        Ptr getPath(const fs::path& path);
+        Ptr loadPath(const fs::path& path, const ImageLoadOptions& opt);
+        Ptr loadPath(const fs::path& path);
+
+        // Memory-backed entries (not hot-reloaded) -------------------------
         Ptr loadFromMemory(const std::string& key, const unsigned char* bytes, int byte_count,
             const ImageLoadOptions& opt);
         Ptr loadFromMemory(const std::string& key, const unsigned char* bytes, int byte_count);
@@ -78,21 +90,22 @@ namespace assets
         // Batch ------------------------------------------------------------
         std::vector<Ptr> loadAll(const std::vector<std::string>& logicals, const ImageLoadOptions& opt);
         std::vector<Ptr> loadAll(const std::vector<std::string>& logicals);
-        std::vector<Ptr> loadAll(const std::vector<fs::path>& paths, const ImageLoadOptions& opt);
-        std::vector<Ptr> loadAll(const std::vector<fs::path>& paths);
+        std::vector<Ptr> loadAllPaths(const std::vector<fs::path>& paths, const ImageLoadOptions& opt);
+        std::vector<Ptr> loadAllPaths(const std::vector<fs::path>& paths);
 
         // Directory preload ------------------------------------------------
         int preloadDir(const fs::path& dir, const std::vector<std::string>& exts, bool recursive = true);
 
         // Reload / Housekeeping -------------------------------------------
-        bool reload(const fs::path& path);
-        bool reload(const std::string& logical);
-        bool reload(const std::string& logical, const ImageLoadOptions& opt);
+        bool reload(std::string_view logical);
+        bool reload(std::string_view logical, const ImageLoadOptions& opt);
+        bool reloadPath(const fs::path& path);
+
         int  reloadChanged();
 
         int  pruneUnused();
-        bool unload(const std::string& logical); // remove a single cached entry
-        bool unload(const fs::path& path);
+        bool unload(std::string_view logical); // remove a single cached entry by logical
+        bool unloadPath(const fs::path& path);
 
         void clear();
         std::size_t size() const;
@@ -126,13 +139,14 @@ namespace assets
         };
 
         // Helpers implemented in .cpp
-        std::pair<std::string, fs::path> resolveLogical_(const std::string& logical) const;
+        std::pair<std::string, fs::path> resolveLogical_(std::string_view logical) const;
         static std::string normalize_(const fs::path& p);
         static fs::path canonDir_(const fs::path& p);
         static fs::file_time_type safeTimestamp_(const fs::path& p);
         static void loadInto_(Image& dst, const fs::path& p, const ImageLoadOptions& opt);
         static void loadIntoMemory_(Image& dst, const unsigned char* bytes, int byte_count, const ImageLoadOptions& opt);
-        static bool isAliasSyntax_(const std::string& s);
+        static bool isAliasSyntax_(std::string_view s);
+        std::string aliasLabelFor_(const fs::path& physical) const;
 
         mutable std::mutex mtx_;
         std::unordered_map<std::string, Record> images_;                    // key: normalized physical path
@@ -141,6 +155,19 @@ namespace assets
     };
 
 #ifdef IMGUI_VERSION
+    struct ImagePanelState
+    {
+        std::string selected_key;     // cache key (normalized physical path)
+        std::string selected_label;   // original logical label (alias/path shown in table)
+
+        bool  preview_inline = true;    // show preview below the table
+        bool  preview_window = false;   // show separate preview window
+
+        float preview_max_height = 256.0f; // max preview height in pixels
+        float table_height = 500.0f; // table height (when using inline preview)
+    };
+    
+    bool DrawImageManagerPanel(ImageManager& mgr, ImagePanelState& state);
     void DrawImageManagerPanel(ImageManager& mgr);
 #endif
 
