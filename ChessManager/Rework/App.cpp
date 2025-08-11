@@ -1,4 +1,8 @@
 #include "App.h"
+#include "asset_manager.hpp"
+#include "Windows/TestWindow.h"
+
+#include "Chess/Bitboards.h"
 
 App::App() :
     m_Logger("AppRework.log")
@@ -44,6 +48,16 @@ App::App() :
 
     m_Logger.info("OpenGL version: {}", (const char*)glGetString(GL_VERSION));
 
+    m_Images = std::make_unique<assets::ImageManager>();
+    m_Images->addAlias("Pieces", "Assets/Pieces");
+    m_Images->preloadDir("Assets/Pieces", { ".png" });
+
+    Chess_Rework::Bitboards::init();
+
+    m_Board = std::make_unique<Chess_Rework::Chessboard_New>();
+    m_Board->ResetBoard();
+
+    auto& window = AddWindow<TestWindow>("Test window", *m_Board);
 }
 
 App::~App()
@@ -81,6 +95,11 @@ void App::SetupDockspace()
     ImGuiID dockspace_id = ImGui::GetID("MainDockSpace");
     ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
     ImGui::End();
+}
+
+void App::LoadImages()
+{
+    m_Images->loadPath("Assets/textures/image.png");
 }
 
 void App::PreFrame()
@@ -137,4 +156,10 @@ void App::Draw()
     {
         window->Draw();
     }
+
+    ImGui::Begin("Image Manager");
+
+    assets::DrawImageManagerPanel(*m_Images);
+
+    ImGui::End();
 }
