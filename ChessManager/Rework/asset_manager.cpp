@@ -459,6 +459,7 @@ namespace assets
     // ---------------------------- ImGui panel ---------------------------------
 #ifdef IMGUI_VERSION
 #include "imgui.h"
+#include "../Assets/Fonts/Icons/IconsFontAwesome5Pro.h"
 
     namespace
     {
@@ -482,11 +483,11 @@ namespace assets
 
     bool DrawImageManagerPanel(ImageManager& mgr, ImagePanelState& state)
     {
-        if (ImGui::Button("Reload Changed")) { (void)mgr.reloadChanged(); }
+        if (ImGui::Button(ICON_FA_REDO " Reload Changed")) { (void)mgr.reloadChanged(); }
         ImGui::SameLine();
-        if (ImGui::Button("Prune Unused")) { (void)mgr.pruneUnused(); }
+        if (ImGui::Button(ICON_FA_BROOM " Prune Unused")) { (void)mgr.pruneUnused(); }
         ImGui::SameLine();
-        if (ImGui::Button("Clear All")) { mgr.clear(); }
+        if (ImGui::Button(ICON_FA_TRASH " Clear All")) { mgr.clear(); }
         ImGui::SameLine();
         ImGui::Checkbox("Inline Preview", &state.preview_inline);
         ImGui::SameLine();
@@ -539,7 +540,7 @@ namespace assets
                 ImGui::TableSetColumnIndex(6);
                 if (!r.memory_backed)
                 {
-                    if (ImGui::SmallButton((std::string("Reload##") + r.key).c_str()))
+                    if (ImGui::SmallButton((std::string(ICON_FA_REDO " Reload##") + r.key).c_str()))
                     {
                         mgr.reload(r.key);
                     }
@@ -547,7 +548,7 @@ namespace assets
                 else
                 {
                     ImGui::BeginDisabled();
-                    ImGui::SmallButton((std::string("Reload##") + r.key).c_str());
+                    ImGui::SmallButton((std::string(ICON_FA_REDO " Reload##") + r.key).c_str());
                     ImGui::EndDisabled();
                 }
             }
