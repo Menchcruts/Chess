@@ -1,6 +1,8 @@
 #include "App.h"
 #include "asset_manager.hpp"
 #include "Windows/TestWindow.h"
+#include "../Assets/Fonts/Icons/IconsFontAwesome5Pro.h"
+//#include "../Assets/Fonts/Icons/IconsForkAwesome.h"
 
 #include "Chess/Bitboards.h"
 
@@ -49,11 +51,11 @@ App::App() :
     m_Logger.info("OpenGL version: {}", (const char*)glGetString(GL_VERSION));
 
     m_Images = std::make_unique<assets::ImageManager>();
-    m_Images->addAlias("Pieces", "Assets/Pieces");
-    m_Images->preloadDir("Assets/Pieces", { ".png" });
-
+    LoadImages();
+    LoadFonts();
+    
     Chess_Rework::Bitboards::init();
-
+    
     m_Board = std::make_unique<Chess_Rework::Chessboard_New>();
     m_Board->ResetBoard();
 
@@ -99,7 +101,25 @@ void App::SetupDockspace()
 
 void App::LoadImages()
 {
-    m_Images->loadPath("Assets/textures/image.png");
+    m_Images->addAlias("Pieces", "Assets/Pieces");
+    m_Images->preloadDir("Assets/Pieces", { ".png" });
+}
+
+void App::LoadFonts()
+{
+    ImGuiIO& io = ImGui::GetIO();
+    ImFontAtlas* atlas = io.Fonts;
+    
+    const std::string assets_fonts_text = "Assets/Fonts/Text/";
+
+    atlas->AddFontFromFileTTF((assets_fonts_text + "Roboto-Medium.ttf").c_str(), 17.f);
+
+    ImFontConfig config;
+    config.MergeMode = true;
+    config.GlyphMinAdvanceX = 20.f;
+    atlas->AddFontFromFileTTF("Assets/Fonts/Icons/FontAwesome5_Pro_900.ttf", 13.f, &config);
+
+    atlas->AddFontDefault();
 }
 
 void App::PreFrame()
@@ -162,4 +182,8 @@ void App::Draw()
     assets::DrawImageManagerPanel(*m_Images);
 
     ImGui::End();
+
+    ImGui::ShowStyleEditor();
+
+    //ImGui::ShowDemoWindow();
 }

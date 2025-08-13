@@ -43,6 +43,7 @@ private:
 	void SetupDockspace();
 
 	void LoadImages();
+	void LoadFonts();
 
 	template<class _Window, typename... Args> requires WindowType<_Window>
 	_Window& AddWindow(std::string name, Args&&... args)
