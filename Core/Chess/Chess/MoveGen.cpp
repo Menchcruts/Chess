@@ -62,6 +62,9 @@ void Chess_Rework::MoveGenerator::GenMoves(std::vector<Move>& moves) const
 
 	moves.clear();
 
+	memset(Bitboards::LegalTargets, 0, sizeof(Bitboards::LegalTargets));
+	Bitboards::PromoMask.clear();
+
 	Rank PromotionRank		= WhiteToMove ? Rank_8 : Rank_1;
 	Direction ForwardDir	= WhiteToMove ? Dir_North : Dir_South;
 
@@ -113,8 +116,11 @@ void Chess_Rework::MoveGenerator::GenMoves(std::vector<Move>& moves) const
 			if (to_sq == Board.m_EP_Square && type == Pawn)
 				flag |= MoveFlag::EnPassant;
 
+			Bitboards::LegalTargets[sq] |= from_sq(to_sq);
+
 			if (rank_of(to_sq) == PromotionRank && type == Pawn)
 			{
+				Bitboards::PromoMask[(size_t(sq) * 64) + size_t(to_sq)] = true;
 				for (auto promotion_flag : { PromoteQueen, PromoteRook, PromoteBishop, PromoteKnight })
 					moves.emplace_back(make_move(
 						sq,
@@ -219,9 +225,15 @@ void Chess_Rework::MoveGenerator::AddPawnPushes(Square sq, std::vector<Move>& mo
 
 	if (!(Single & AllPieces))	// Single push
 	{
+		Square to_sq = bitscan_forward(Single);
+		Bitboards::LegalTargets[sq] |= from_sq(to_sq);
+
 		std::vector<MoveFlag> flags;
 		if (promoting)
+		{
+			Bitboards::PromoMask[size_t(sq) * 64 + size_t(to_sq)] = true;
 			flags = std::vector<MoveFlag>({ PromoteQueen, PromoteRook, PromoteBishop, PromoteKnight });
+		}
 		else
 			flags = std::vector<MoveFlag>({ MoveFlag::None });
 
@@ -229,7 +241,7 @@ void Chess_Rework::MoveGenerator::AddPawnPushes(Square sq, std::vector<Move>& mo
 		{
 			moves.emplace_back(make_move(
 				sq,
-				bitscan_forward(Single),
+				to_sq,
 				flag
 			));
 		}
@@ -237,9 +249,12 @@ void Chess_Rework::MoveGenerator::AddPawnPushes(Square sq, std::vector<Move>& mo
 
 	if (can_double_push && Double && !(Combined & AllPieces))
 	{
+		Square to_sq = bitscan_forward(Double);
+		Bitboards::LegalTargets[sq] |= from_sq(to_sq);
+
 		moves.emplace_back(make_move(
 			sq,
-			bitscan_forward(Double),
+			to_sq,
 			DoublePawnMove
 		));
 	}
@@ -261,11 +276,14 @@ void Chess_Rework::MoveGenerator::AddCastlingMoves(std::vector<Move>& moves) con
 		Bitboard RookPath = KingPath;
 
 		if (!(KingPath & AttackedSquares) && !(RookPath && AllPieces))
+		{
+			Bitboards::LegalTargets[KingSquare] |= from_sq(KingTo);
 			moves.emplace_back(make_move(
 				KingSquare,
 				KingTo,
 				CastleKing
 			));
+		}
 	}
 	if (CastleRights & Queen_Side)
 	{
@@ -276,11 +294,14 @@ void Chess_Rework::MoveGenerator::AddCastlingMoves(std::vector<Move>& moves) con
 		Bitboard RookPath = KingPath | shift(KingPath, Dir_West);
 
 		if (!(KingPath & AttackedSquares) && !(RookPath && AllPieces))
+		{
+			Bitboards::LegalTargets[KingSquare] |= from_sq(KingTo);
 			moves.emplace_back(make_move(
 				KingSquare,
 				KingTo,
 				CastleQueen
 			));
+		}
 	}
 }
 
