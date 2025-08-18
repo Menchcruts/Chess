@@ -1,6 +1,6 @@
 #include "App.h"
 #include "asset_manager.hpp"
-#include "Windows/TestWindow.h"
+#include "Windows/ChessWindow.h"
 #include "../Assets/Fonts/Icons/IconsFontAwesome5Pro.h"
 //#include "../Assets/Fonts/Icons/IconsForkAwesome.h"
 
@@ -59,7 +59,7 @@ App::App() :
     m_Board = std::make_unique<Chess_Rework::Chessboard_New>();
     m_Board->ResetBoard();
 
-    auto& window = AddWindow<TestWindow>("Test window", *m_Board);
+    auto& window = AddWindow<ChessWindow>("Chessboard", *m_Board);
 }
 
 App::~App()
