@@ -21,6 +21,9 @@ namespace Chess_Rework::Bitboards
 	Bitboard RookBlockers[64];
 	Bitboard BishopBlockers[64];
 
+	Bitboard LegalTargets[64];
+	std::vector<bool> PromoMask(64*64);
+
 	Magic Magics[64][2];
 
 	static Bitboard safe_destination( Square x, int dx, int tol = 2 )
