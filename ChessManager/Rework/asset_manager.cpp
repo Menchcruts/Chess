@@ -529,6 +529,10 @@ namespace assets
                     ImGui::BeginTooltip();
                     ImGui::TextUnformatted(r.path.c_str());
                     ImGui::Text("Size: %dx%d", r.w, r.h);
+                    auto img = mgr.get(r.key);
+                    DrawTexturePreview(img->ImGuiID(), img->width(), img->height(),
+                        ImGui::GetContentRegionAvail().x, 150.f, true);
+
                     ImGui::EndTooltip();
                 }
 
