@@ -5,7 +5,7 @@ project "ChessManager"
     cdialect "C17"
     staticruntime "off"
 
-    files { "./**.h", "./**.cpp", "../Dependencies/miniaudio/miniaudio.c" }
+    files { "./**.h", "./**.hpp", "./**.cpp" }
 
     includedirs
     {
