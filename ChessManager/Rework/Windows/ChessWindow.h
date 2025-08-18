@@ -5,10 +5,10 @@
 #include <string>
 
 
-class TestWindow : public Window
+class ChessWindow : public Window
 {
 public:
-	TestWindow(std::string Name, Chess_Rework::Chessboard_New& board, assets::ImageManager& images);
+	ChessWindow(std::string Name, Chess_Rework::Chessboard_New& board, assets::ImageManager& images);
 	void Draw();
 
 private:
@@ -27,6 +27,7 @@ private:
 private:
 	std::string GetPieceImageName(Chess_Rework::Piece piece) const;
 	void DrawSelectedPiece(Chess_Rework::Piece piece) const;
+	void DrawTargetCircle(bool IsHovered, bool PieceOnSquare, float CellSize) const;
 	bool AttemptMakeMove(int sq1, int sq2);
 	void HandlePieceMoving(int& SelectedSquare, bool& SelectedAgain, Chess_Rework::Piece& PieceHeld, int CurrentSq, Chess_Rework::Piece PieceOnSq);
 
