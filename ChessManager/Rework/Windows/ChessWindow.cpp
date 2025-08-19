@@ -82,6 +82,14 @@ void ChessWindow::Draw()
 	ImGui::Text("Square selected: %d", SelectedSquare);
 	ImGui::Text("Selected again: %s", SelectedAgain ? "True" : "False");
 	ImGui::Text("Square hovered: %d", HoveredSquare);
+	ImGui::Text("Legal target: %s", is_legal(Square(SelectedSquare), Square(HoveredSquare)) ? "True" : "False");
+	ImGui::Text("Testing: %I64u", Chess::Bitboards::LegalTargets[1]);
+	ImGui::Text("Size: %I64u", sizeof(Chess::Bitboards::LegalTargets));
+	ImGui::Text("Size2: %I64u", Chess::Bitboards::PromoMask.size());
+	ImGui::Text("Cap: %I64u", Chess::Bitboards::PromoMask.capacity());
+
+	auto& moves = Board.GetMoves();
+	ImGui::Text("Number of moves: %d", moves.size());
 
 	HoveredSquare = -1;
 
