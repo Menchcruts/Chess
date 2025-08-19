@@ -233,18 +233,20 @@ void Chess_Rework::MoveGenerator::AddPawnPushes(Square sq, std::vector<Move>& mo
 		std::vector<MoveFlag> flags;
 		if (promoting)
 		{
-			Bitboards::PromoMask[size_t(sq) * 64 + size_t(to_sq)] = true;
-			flags = std::vector<MoveFlag>({ PromoteQueen, PromoteRook, PromoteBishop, PromoteKnight });
+			Bitboards::PromoMask[(size_t(sq) * 64) + size_t(to_sq)] = true;
+			for (auto promotion_flag : { PromoteQueen, PromoteRook, PromoteBishop, PromoteKnight })
+				moves.emplace_back(make_move(
+					sq,
+					to_sq,
+					promotion_flag
+				));
 		}
 		else
-			flags = std::vector<MoveFlag>({ MoveFlag::None });
-
-		for (auto flag : flags)
 		{
 			moves.emplace_back(make_move(
 				sq,
 				to_sq,
-				flag
+				MoveFlag::None
 			));
 		}
 	}
