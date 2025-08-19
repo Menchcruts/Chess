@@ -290,10 +290,14 @@ namespace Chess_Rework::Bitboards
 
 	inline bool is_legal(Square from, Square to)
 	{
+		if (!(is_ok(from) && is_ok(to)))
+			return false;
 		return is_occupied(LegalTargets[from], to);
 	}
 	inline bool is_promotion_move(Square from, Square to)
 	{
+		if (!(is_ok(from) && is_ok(to)))
+			return false;
 		return PromoMask[size_t(from) * 64 + size_t(to)];
 	}
 }

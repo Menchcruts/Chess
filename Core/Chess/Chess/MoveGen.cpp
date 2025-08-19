@@ -2,6 +2,7 @@
 #include "Chessboard_new.h"
 #include "Bitboards.h"
 #include <iostream>
+#include <algorithm>
 
 namespace Chess_Rework
 {
@@ -63,7 +64,7 @@ void Chess_Rework::MoveGenerator::GenMoves(std::vector<Move>& moves) const
 	moves.clear();
 
 	memset(Bitboards::LegalTargets, 0, sizeof(Bitboards::LegalTargets));
-	Bitboards::PromoMask.clear();
+	std::fill(Bitboards::PromoMask.begin(), Bitboards::PromoMask.end(), false);
 
 	Rank PromotionRank		= WhiteToMove ? Rank_8 : Rank_1;
 	Direction ForwardDir	= WhiteToMove ? Dir_North : Dir_South;
@@ -137,6 +138,7 @@ void Chess_Rework::MoveGenerator::GenMoves(std::vector<Move>& moves) const
 				));
 			}
 		}
+		std::cout << "Square: " << int(sq) << " - " << Bitboards::LegalTargets[sq] << "\n";
 	}
 }
 

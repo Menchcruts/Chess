@@ -22,6 +22,8 @@ namespace Chess_Rework::Bitboards
 	Bitboard BishopBlockers[64];
 
 	Bitboard LegalTargets[64];
+
+	// This is stored as a vector only for space optimizations
 	std::vector<bool> PromoMask(64*64);
 
 	Magic Magics[64][2];
