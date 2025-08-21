@@ -19,6 +19,7 @@ void ChessWindow::Draw()
 	static int SelectedSquare = -1;
 	static bool SelectedAgain = false;
 	static int HoveredSquare = -1;
+	bool any_hovered = false;
 
 	float CellSide = 100.f;
 	ImVec2 Cellsize = ImVec2(CellSide, CellSide);
@@ -62,12 +63,12 @@ void ChessWindow::Draw()
 				{
 					HoveredSquare = sq;
 					SquareIsHovered = true;
+					any_hovered = true;
 					HandlePieceMoving(SelectedSquare, SelectedAgain, PieceHeld, sq, piece);
 				}
 
 				if (SelectedSquare != -1 && is_legal(Square(SelectedSquare), Square(sq)))
 				{
-					std::cout << "Drawing circle\n";
 					DrawTargetCircle(SquareIsHovered, piece != Piece::NoPiece, CellSide);
 				}
 			}
@@ -83,15 +84,16 @@ void ChessWindow::Draw()
 	ImGui::Text("Selected again: %s", SelectedAgain ? "True" : "False");
 	ImGui::Text("Square hovered: %d", HoveredSquare);
 	ImGui::Text("Legal target: %s", is_legal(Square(SelectedSquare), Square(HoveredSquare)) ? "True" : "False");
-	ImGui::Text("Testing: %I64u", Chess::Bitboards::LegalTargets[1]);
+	ImGui::Text("Testing: %I64u", SelectedSquare != -1 ? Chess::Bitboards::LegalTargets[SelectedSquare] : 0);
+	ImGui::Text("Bitboard for square %d: %I64u", HoveredSquare, HoveredSquare != -1 ? Chess::Bitboards::LegalTargets[HoveredSquare] : 0);
 	ImGui::Text("Size: %I64u", sizeof(Chess::Bitboards::LegalTargets));
-	ImGui::Text("Size2: %I64u", Chess::Bitboards::PromoMask.size());
-	ImGui::Text("Cap: %I64u", Chess::Bitboards::PromoMask.capacity());
+	ImGui::Text("Size2: %I64u", sizeof(Chess::Bitboards::PromoMask));
 
 	auto& moves = Board.GetMoves();
 	ImGui::Text("Number of moves: %d", moves.size());
 
-	HoveredSquare = -1;
+	if (!any_hovered)
+		HoveredSquare = -1;
 
 	ImGui::End();
 }

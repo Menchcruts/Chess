@@ -185,5 +185,5 @@ void App::Draw()
 
     ImGui::ShowStyleEditor();
 
-    //ImGui::ShowDemoWindow();
+    ImGui::ShowDemoWindow();
 }
