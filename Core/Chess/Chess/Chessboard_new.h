@@ -157,7 +157,6 @@ namespace Chess_Rework
 		}
 
 		friend class MoveGenerator;
-		friend class MoveGeneratorNonStatic;
 
 	private:
 		// Piece placements

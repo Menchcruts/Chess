@@ -316,5 +316,7 @@ void Chess_Rework::Chessboard_New::LoadFEN(const std::string_view& FEN_String)
 
 void Chess_Rework::Chessboard_New::GenerateMoves()
 {
-    MoveGenerator::GenerateMoves(*this, m_Moves);
+    MoveGenerator gen(*this);
+    gen.GenMoves(m_Moves);
+    //MoveGenerator::GenerateMoves(*this, m_Moves);
 }
