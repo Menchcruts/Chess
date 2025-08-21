@@ -23,12 +23,12 @@ namespace Chess_Rework::Bitboards
 	extern Bitboard BishopAttacks[64];
 	extern Bitboard RookAttacks[64];
 	extern Bitboard QueenAttacks[64];
-	
+
 	extern Bitboard RookBlockers[64];
 	extern Bitboard BishopBlockers[64];
 
 	extern Bitboard LegalTargets[64];
-	extern std::vector<bool> PromoMask;
+	extern Bitboard PromoMask[64];
 
 	struct Magic
 	{
