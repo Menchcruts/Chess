@@ -182,10 +182,8 @@ void App::Draw()
         window->Draw();
     }
 
-    ImGui::Begin("Image Manager");
-
-    assets::DrawImageManagerPanel(*m_Images);
-
+    if (ImGui::Begin("Image Manager"))
+        assets::DrawImageManagerPanel(*m_Images);
     ImGui::End();
 
     ImGui::ShowStyleEditor();
