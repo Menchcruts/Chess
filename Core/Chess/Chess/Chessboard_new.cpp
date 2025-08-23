@@ -330,6 +330,47 @@ void Chess_Rework::Chessboard_New::LoadFEN(const std::string_view& FEN_String)
     GenerateMoves();
 }
 
+/* This method creates a move with necessary flags for the user. */
+Chess_Rework::Move Chess_Rework::Chessboard_New::CreateMove(Square From, Square To, PieceType PromotionType) const
+{
+    PieceType PieceType = type_of(GetPiece(From));
+    MoveFlag flag = MoveFlag::None;
+
+    if (GetPiece(To) != Piece::NoPiece)
+        flag |= Capture;
+    else if (To == m_EP_Square)
+        flag |= EnPassant;
+
+    if (PieceType == Pawn)
+    {
+        switch (PromotionType)
+        {
+        case Queen:
+            flag |= PromoteQueen; break;
+        case Rook:
+            flag |= PromoteRook; break;
+        case Bishop:
+            flag |= PromoteBishop; break;
+        case Knight:
+            flag |= PromoteKnight; break;
+        default: break;
+        }
+        if (Bitboards::distance(From, To) == 2)
+            flag |= DoublePawnMove;
+    }
+    else if (PieceType == King && Bitboards::distance(From, To) == 2)
+    {
+        Square KingSide     = m_WhiteToMove ? SQ_G1 : SQ_G8;
+        Square QueenSide    = m_WhiteToMove ? SQ_C1 : SQ_C8;
+        if (To == KingSide)
+            flag |= CastleKing;
+        else if (To == QueenSide)
+            flag |= CastleQueen;
+    }
+
+    return make_move(From, To, flag);
+}
+
 void Chess_Rework::Chessboard_New::GenerateMoves()
 {
     MoveGenerator gen(*this);

@@ -155,6 +155,7 @@ namespace Chess_Rework
 		{
 			return m_Moves;
 		}
+		Move CreateMove(Square From, Square To, PieceType PromotionType = PieceType::NoPieceType) const;
 
 		friend class MoveGenerator;
 
