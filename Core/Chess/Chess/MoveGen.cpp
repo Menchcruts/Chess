@@ -41,16 +41,18 @@ Chess_Rework::MoveGenerator::MoveGenerator(const Chessboard_New& board) :
 	Board(board),
 	
 	WhiteToMove(board.m_WhiteToMove),
-	FriendlyColor(WhiteToMove ? White : Black),
+	FriendlyColor((board.m_WhiteToMove ? White : Black)),
 	EnemyColor(~FriendlyColor),
 	
-	AllPieces(board.m_Bitboards.GetAllPieces()),
-	FriendlyPieces(board.m_Bitboards.GetPieces(FriendlyColor)),
-	EnemyPieces(board.m_Bitboards.GetPieces(EnemyColor)),
-
-	CastleRights(board.m_CastlingRights & (WhiteToMove ? White_Castling : Black_Castling)),
-	KingSquare(Bitboards::bitscan_forward(WhiteToMove ? board.m_Bitboards.WKings : board.m_Bitboards.BKings))
+	CastleRights(board.m_CastlingRights & (board.m_WhiteToMove ? White_Castling : Black_Castling)),
+	KingSquare(Bitboards::bitscan_forward(
+		board.m_WhiteToMove ? board.m_Bitboards.WKings : board.m_Bitboards.BKings)
+	)
 {
+	AllPieces = board.m_Bitboards.GetAllPieces();
+	FriendlyPieces = board.m_Bitboards.GetPieces(FriendlyColor);
+	EnemyPieces = board.m_Bitboards.GetPieces(EnemyColor);
+
 	CreateAttackedBitboard();
 	CreatePinnedBitboard();
 }
@@ -138,7 +140,6 @@ void Chess_Rework::MoveGenerator::GenMoves(std::vector<Move>& moves) const
 				));
 			}
 		}
-		std::cout << "Square: " << int(sq) << " - " << Bitboards::LegalTargets[sq] << "\n";
 	}
 }
 
