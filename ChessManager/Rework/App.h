@@ -30,6 +30,7 @@ public:
 
 private:
 	std::vector<std::unique_ptr<Window>> m_Windows;
+	std::vector<Chess_Rework::Move> m_MoveHistory;
 	Logger m_Logger;
 
 	std::unique_ptr<assets::ImageManager> m_Images;

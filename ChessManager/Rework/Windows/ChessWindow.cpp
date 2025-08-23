@@ -5,8 +5,14 @@
 #include <iostream>
 #include <format>
 
-ChessWindow::ChessWindow(std::string Name, Chess_Rework::Chessboard_New& board, assets::ImageManager& images) :
-	Window(std::move(Name)), Board(board), Images(images)
+ChessWindow::ChessWindow(
+	std::string Name, 
+	Chess_Rework::Chessboard_New& board, 
+	std::function<void(Chess_Rework::Move)> MakeMoveFunc,
+	std::function<void()> UnMakeMoveFunc,
+	assets::ImageManager& images
+) :
+	Window(std::move(Name)), Board(board), MakeMove(MakeMoveFunc), UnMakeMove(UnMakeMoveFunc), Images(images)
 {
 	MoveHistory.reserve(8);
 }
@@ -15,10 +21,12 @@ void ChessWindow::Draw()
 {
 	namespace Chess = Chess_Rework;
 	using Chess::Piece, Chess::Move;
-
+	
 	MouseClicked	= ImGui::IsMouseClicked(ImGuiMouseButton_Left);
 	MouseReleased	= ImGui::IsMouseReleased(ImGuiMouseButton_Left);
 	LeftMouseDown	= ImGui::IsMouseDown(ImGuiMouseButton_Left);
+
+	ImGui::Begin(WindowName.c_str());
 
 	DrawBoard();
 
@@ -32,12 +40,9 @@ void ChessWindow::Draw()
 	ImGui::Text("Hovered square: %d", HoveredSquare);
 	ImGui::Text("Current state: %s", state_name.c_str());
 
-	if (ImGui::Button("Unmake last move") && !MoveHistory.empty())
+	if (ImGui::Button("Unmake last move"))
 	{
-		Move last_move = MoveHistory.back();
-		MoveHistory.pop_back();
-
-		Board.UnMakeMove(last_move);
+		UnMakeMove();
 	}
 
 	ImGui::End();
@@ -89,8 +94,6 @@ void ChessWindow::DrawBoard()
 
 	float CellSide = 100.f;
 	ImVec2 CellSize = ImVec2(CellSide, CellSide);
-
-	ImGui::Begin(WindowName.c_str());
 
 	bool MouseOverBoard = false;
 	if (ImGui::BeginTable("Chessboard", 8))
@@ -341,8 +344,7 @@ void ChessWindow::HandleMoving_Dragging()
 			}
 			// Making a move
 			Move move = Board.CreateMove(Square(SelectedSquare), Square(TargetSquare));
-			Board.MakeMove(move);
-			MoveHistory.emplace_back(move);
+			MakeMove(move);
 
 			SelectedSquare = TargetSquare = -1;
 			State = InputState::Idle;
@@ -388,8 +390,7 @@ void ChessWindow::HandleMoving_Selected()
 			}
 			// Making a move
 			Move move = Board.CreateMove(Square(SelectedSquare), Square(TargetSquare));
-			Board.MakeMove(move);
-			MoveHistory.emplace_back(move);
+			MakeMove(move);
 
 			SelectedSquare = TargetSquare = -1;
 			State = InputState::Idle;
@@ -418,8 +419,7 @@ void ChessWindow::HandleMoving_Promotion()
 	if (PromotionType != PieceType::NoPieceType)
 	{		
 		Move move = Board.CreateMove(Square(SelectedSquare), Square(TargetSquare), PromotionType);
-		Board.MakeMove(move);
-		MoveHistory.emplace_back(move);
+		MakeMove(move);
 
 		PromotionType = PieceType::NoPieceType;
 		SelectedSquare = TargetSquare = -1;

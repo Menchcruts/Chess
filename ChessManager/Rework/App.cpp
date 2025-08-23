@@ -55,7 +55,8 @@ App::App() :
     LoadFonts();
     
     Chess_Rework::Bitboards::init();
-    
+    m_MoveHistory.reserve(128);
+
     m_Board = std::make_unique<Chess_Rework::Chessboard_New>();
     m_Board->ResetBoard();
 
@@ -101,7 +102,27 @@ void App::SetupDockspace()
 
 void App::LoadWindows()
 {
-    (void)AddWindow<ChessWindow>("Chessboard", *m_Board);
+    auto MakeMove = [this](Chess_Rework::Move move)
+        {
+            this->m_Board->MakeMove(move);
+            this->m_MoveHistory.emplace_back(move);
+        };
+    auto UnMakeMove = [this]()
+        {
+            if (this->m_MoveHistory.empty())
+                return;
+
+            Chess_Rework::Move last_move = this->m_MoveHistory.back();
+            this->m_MoveHistory.pop_back();
+            this->m_Board->UnMakeMove(last_move);
+        };
+    
+    (void)AddWindow<ChessWindow>(
+        "Chessboard", 
+        *m_Board,
+        MakeMove,
+        UnMakeMove
+    );
 }
 
 void App::LoadImages()
@@ -186,7 +207,7 @@ void App::Draw()
         assets::DrawImageManagerPanel(*m_Images);
     ImGui::End();
 
-    ImGui::ShowStyleEditor();
+    //ImGui::ShowStyleEditor();
 
     ImGui::ShowDemoWindow();
 }

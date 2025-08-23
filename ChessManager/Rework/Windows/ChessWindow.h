@@ -4,11 +4,18 @@
 #include "../asset_manager.hpp"
 #include <string>
 #include <vector>
+#include <functional>
 
 class ChessWindow : public Window
 {
 public:
-	ChessWindow(std::string Name, Chess_Rework::Chessboard_New& board, assets::ImageManager& images);
+	ChessWindow(
+		std::string Name,
+		Chess_Rework::Chessboard_New& board,
+		std::function<void(Chess_Rework::Move)> MakeMoveFunc,
+		std::function<void()> UnMakeMoveFunc,
+		assets::ImageManager& images
+	);
 	void Draw();
 
 private:
@@ -44,6 +51,8 @@ private:
 	const char* GetStateName(InputState state) const;
 
 private:
+	std::function<void(Chess_Rework::Move)> MakeMove;
+	std::function<void()> UnMakeMove;
 	std::vector<Chess_Rework::Move> MoveHistory;
 
 	WindowColors Colors;
