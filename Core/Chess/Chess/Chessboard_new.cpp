@@ -78,6 +78,13 @@ void Chess_Rework::Chessboard_New::MakeMove(Move move)
     Piece captured_piece = GetPiece(capture_sq);
 	PieceType captured_piece_type = type_of(captured_piece);
 
+    Piece PromotionPiece = NoPiece;
+
+    if (flag & MoveFlag::PromoteKnight)
+    {
+        PromotionPiece = make_piece(m_WhiteToMove ? White : Black, GetPromotionPiece(flag));
+    }
+
     m_PrevStates.emplace_back(PrevState{
         .HalfMoveClock = m_HalfMoveClock,
         .EP_Square = m_EP_Square,
@@ -93,7 +100,11 @@ void Chess_Rework::Chessboard_New::MakeMove(Move move)
 	RemovePiece(from_sq);
     if (is_capture)
         RemovePiece(capture_sq);
-	PlacePiece(to_sq, moving_piece);
+
+    if (PromotionPiece != NoPiece)
+        PlacePiece(to_sq, PromotionPiece);
+    else
+	    PlacePiece(to_sq, moving_piece);
 
     // Update castling rights
 	CastlingRights color_mask   = m_WhiteToMove ? CastlingRights::White_Castling : CastlingRights::Black_Castling;
@@ -170,6 +181,8 @@ void Chess_Rework::Chessboard_New::UnMakeMove(Move move)
 	Piece captured_piece = prev_state.CapturedPiece;
 	PieceType captured_piece_type = type_of(captured_piece);
 
+    bool WasPromotion = bool(flag & PromoteKnight);
+
 	m_CastlingRights = prev_state.CastlingRights;
 	m_EP_Square = prev_state.EP_Square;
 	m_HalfMoveClock = prev_state.HalfMoveClock;
@@ -188,7 +201,10 @@ void Chess_Rework::Chessboard_New::UnMakeMove(Move move)
 	RemovePiece(to_sq);
     if (is_capture)
 		PlacePiece(capture_sq, captured_piece);
-    PlacePiece(from_sq, moving_piece);
+    if (WasPromotion)
+        PlacePiece(from_sq, make_piece(m_WhiteToMove ? White : Black, Pawn));
+    else
+        PlacePiece(from_sq, moving_piece);
 
     if (flag == MoveFlag::CastleKing)
     {
@@ -319,4 +335,20 @@ void Chess_Rework::Chessboard_New::GenerateMoves()
     MoveGenerator gen(*this);
     gen.GenMoves(m_Moves);
     //MoveGenerator::GenerateMoves(*this, m_Moves);
+}
+
+Chess_Rework::PieceType Chess_Rework::Chessboard_New::GetPromotionPiece(MoveFlag flag) const
+{
+    flag = MoveFlag(flag & 0b1011); // Filter out the capture flag if its there
+    
+    if ((flag & PromoteKnight) == flag)
+        return Knight;
+    else if ((flag & PromoteBishop) == flag)
+        return Bishop;
+    else if ((flag & PromoteRook) == flag)
+        return Rook;
+    else if ((flag & PromoteQueen) == flag)
+        return Queen;
+
+    return NoPieceType;
 }

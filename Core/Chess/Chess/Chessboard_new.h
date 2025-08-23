@@ -178,5 +178,6 @@ namespace Chess_Rework
 
 	private:
 		void GenerateMoves();
+		PieceType GetPromotionPiece(MoveFlag flag) const;
 	};
 }
