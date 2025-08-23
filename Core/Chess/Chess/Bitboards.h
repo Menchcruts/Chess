@@ -298,6 +298,6 @@ namespace Chess_Rework::Bitboards
 	{
 		if (!(is_ok(from) && is_ok(to)))
 			return false;
-		return PromoMask[size_t(from) * 64 + size_t(to)];
+		return is_occupied(PromoMask[from], to);
 	}
 }
