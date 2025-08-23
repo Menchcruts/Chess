@@ -35,9 +35,6 @@ private:
 	void DrawTargetCircle(bool IsHovered, bool PieceOnSquare, float CellSize) const;
 	void DrawPromotionWindow(ImVec2 CellSize);
 
-	bool AttemptMakeMove(int sq1, int sq2);
-	void HandlePieceMoving(int& SelectedSquare, bool& SelectedAgain, Chess_Rework::Piece& PieceHeld, int CurrentSq, Chess_Rework::Piece PieceOnSq);
-
 	void HandleMoving();
 	void HandleMoving_Idle();
 	void HandleMoving_Dragging();

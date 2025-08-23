@@ -260,64 +260,24 @@ void ChessWindow::DrawTargetCircle(bool IsHovered, bool PieceOnSquare, float Cel
 	ImVec2 CircleCenter = ImVec2(CursorPos.x + CellSize_Half, CursorPos.y - CellSize_Half);
 
 	ImColor MoveCircle_Color = IM_COL32(255, 0, 0, 127);
+	if (PieceOnSquare && !IsHovered)
+	{
+		float Thickness = 0.10f * CellSize;
+		float Offset = (Thickness - 1) / 2;
+		// We subtract the offset to compensate for circle thickness
+		DrawList->AddCircle(CircleCenter, CellSize_Half - Offset, MoveCircle_Color, 0, Thickness);
+		return;
+	}
+
 	float MoveCircle_Rad;
-	if (IsHovered)
-		MoveCircle_Rad = 21.f;
+	if (PieceOnSquare && IsHovered)
+		MoveCircle_Rad = CellSize_Half;
+	else if (IsHovered)
+		MoveCircle_Rad = 0.225 * CellSize;	// 22.5f
 	else
-		MoveCircle_Rad = 15.f;
+		MoveCircle_Rad = 0.15 * CellSize;	// 15.0f
 
-	if (PieceOnSquare)
-	{
-		if (IsHovered)
-		{
-			MoveCircle_Rad = CellSize_Half - 4.f; // Compensate for circle width
-			DrawList->AddCircle(CircleCenter, MoveCircle_Rad, MoveCircle_Color, 0, 9.f);
-			return;
-		}
-		else
-		{
-			MoveCircle_Rad = CellSize_Half;
-		}
-	}
 	DrawList->AddCircleFilled(CircleCenter, MoveCircle_Rad, MoveCircle_Color);
-}
-
-bool ChessWindow::AttemptMakeMove(int sq1, int sq2)
-{
-	std::cout << "Attempted to make from " << sq1 << " to " << sq2 << "\n";
-	return false;
-}
-
-void ChessWindow::HandlePieceMoving(int& SelectedSquare, bool& SelectedAgain, Chess_Rework::Piece& PieceHeld, int CurrentSq, Chess_Rework::Piece PieceOnSq)
-{
-	using Chess_Rework::Piece;
-	
-	if (ImGui::IsMouseClicked(0))
-	{
-		if (SelectedSquare != -1 && CurrentSq != SelectedSquare)
-		{
-			if (PieceOnSq != Piece::NoPiece) { SelectedSquare = CurrentSq; SelectedAgain = false; PieceHeld = PieceOnSq; }
-			else
-			{
-				bool success = AttemptMakeMove(SelectedSquare, CurrentSq);
-				if (!success) { SelectedSquare = -1; PieceHeld = Piece::NoPiece; }
-			}
-		}
-		else if (PieceOnSq != Piece::NoPiece)
-		{
-			if (CurrentSq == SelectedSquare) { SelectedAgain = true; }
-			else { SelectedSquare = CurrentSq; }
-			PieceHeld = PieceOnSq;
-		}
-		else { SelectedSquare = -1; PieceHeld = Piece::NoPiece; }
-	}
-	else if (ImGui::IsMouseReleased(0))
-	{
-		if (PieceHeld != Piece::NoPiece && SelectedSquare != CurrentSq && SelectedSquare != -1) { bool success = AttemptMakeMove(SelectedSquare, CurrentSq); }
-		if (SelectedAgain && CurrentSq == SelectedSquare) { SelectedSquare = -1; SelectedAgain = false; }
-
-		PieceHeld = Piece::NoPiece;
-	}
 }
 
 void ChessWindow::HandleMoving()
