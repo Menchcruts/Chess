@@ -59,7 +59,7 @@ App::App() :
     m_Board = std::make_unique<Chess_Rework::Chessboard_New>();
     m_Board->ResetBoard();
 
-    auto& window = AddWindow<ChessWindow>("Chessboard", *m_Board);
+    LoadWindows();
 }
 
 App::~App()
@@ -97,6 +97,11 @@ void App::SetupDockspace()
     ImGuiID dockspace_id = ImGui::GetID("MainDockSpace");
     ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
     ImGui::End();
+}
+
+void App::LoadWindows()
+{
+    (void)AddWindow<ChessWindow>("Chessboard", *m_Board);
 }
 
 void App::LoadImages()

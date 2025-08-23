@@ -42,6 +42,7 @@ private:
 	void Draw();
 	void SetupDockspace();
 
+	void LoadWindows();
 	void LoadImages();
 	void LoadFonts();
 
