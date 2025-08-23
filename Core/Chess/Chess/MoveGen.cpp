@@ -278,8 +278,7 @@ void Chess_Rework::MoveGenerator::AddCastlingMoves(std::vector<Move>& moves) con
 		KingPath |= shift(KingPath, Dir_East);
 
 		Bitboard RookPath = KingPath;
-
-		if (!(KingPath & AttackedSquares) && !(RookPath && AllPieces))
+		if (!(KingPath & AttackedSquares) && !(RookPath & AllPieces))
 		{
 			Bitboards::LegalTargets[KingSquare] |= KingPath;
 			moves.emplace_back(make_move(
@@ -297,7 +296,7 @@ void Chess_Rework::MoveGenerator::AddCastlingMoves(std::vector<Move>& moves) con
 
 		Bitboard RookPath = KingPath | shift(KingPath, Dir_West);
 
-		if (!(KingPath & AttackedSquares) && !(RookPath && AllPieces))
+		if (!(KingPath & AttackedSquares) && !(RookPath & AllPieces))
 		{
 			Bitboards::LegalTargets[KingSquare] |= KingPath;
 			moves.emplace_back(make_move(
