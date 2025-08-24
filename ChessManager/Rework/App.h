@@ -60,7 +60,7 @@ private:
 				return ref;
 			};
 
-		if constexpr (CtorMatches<_Window, Args...>)
+		if constexpr (CtorMatches<_Window, std::string, Args...>)
 		{
 			return emplace(std::forward<Args>(args)...);
 		}
@@ -77,8 +77,7 @@ private:
 		}
 		else
 		{
-			static_assert([] { return false; }(),
-				"AddWindow: constructor not matched (even with DI of ImageManager/App).");
+			static_assert(false, "AddWindow: constructor not matched (even with DI of ImageManager/App).");
 		}
 	}
 };

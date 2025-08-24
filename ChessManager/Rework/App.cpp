@@ -1,10 +1,12 @@
 #include "App.h"
 #include "asset_manager.hpp"
 #include "Windows/ChessWindow.h"
+#include "Windows/PerftWindow.h"
 #include "../Assets/Fonts/Icons/IconsFontAwesome5Pro.h"
 //#include "../Assets/Fonts/Icons/IconsForkAwesome.h"
 
 #include "Chess/Bitboards.h"
+#include <iostream>
 
 App::App() :
     m_Logger("AppRework.log")
@@ -59,6 +61,7 @@ App::App() :
 
     m_Board = std::make_unique<Chess_Rework::Chessboard_New>();
     m_Board->ResetBoard();
+    std::cout << m_Board->ExportFEN() << "\n";
 
     LoadWindows();
 }
@@ -122,6 +125,11 @@ void App::LoadWindows()
         *m_Board,
         MakeMove,
         UnMakeMove
+    );
+
+    (void)AddWindow<PerftWindow>(
+        "Perft Tests",
+        *m_Board
     );
 }
 
