@@ -53,6 +53,21 @@ static Chess_Rework::Square square_from_string(const std::string& sq_as_str)
     return Chess_Rework::Square((rank - '1') * 8 + (file - 'a'));
 }
 
+/* Takes in a square and returns its string representation. Invalid squares return '-'.*/
+static std::string string_from_square(Chess_Rework::Square sq)
+{
+    if (!Chess_Rework::is_ok(sq))
+        return "-";
+
+    const char* files = "abcdefgh";
+    const char* ranks = "12345678";
+    
+    auto rank = Chess_Rework::rank_of(sq);
+    auto file = Chess_Rework::file_of(sq);
+    
+    return { files[file], ranks[rank] };
+}
+
 void Chess_Rework::Chessboard_New::MakeMove(Move move)
 {    
     // TODO: Implement null move logic
@@ -371,6 +386,25 @@ Chess_Rework::Move Chess_Rework::Chessboard_New::CreateMove(Square From, Square 
     return make_move(From, To, flag);
 }
 
+std::string Chess_Rework::Chessboard_New::ExportFEN() const
+{
+    std::string result = Stringify_Board(m_BoardArray);
+
+    auto Side_String     = std::string(m_WhiteToMove ? "w" : "b");
+    auto Castle_String   = Stringify_CastleRights(m_CastlingRights);
+    auto EP_String       = string_from_square(m_EP_Square);
+    auto Halfmove_String = std::to_string(m_HalfMoveClock);
+    auto Fullmove_String = std::to_string(m_FullMoveClock);
+
+    result += " " + Side_String;
+    result += " " + Castle_String;
+    result += " " + EP_String;
+    result += " " + Halfmove_String;
+    result += " " + Fullmove_String;
+
+    return result;
+}
+
 void Chess_Rework::Chessboard_New::GenerateMoves()
 {
     MoveGenerator gen(*this);
@@ -392,4 +426,69 @@ Chess_Rework::PieceType Chess_Rework::Chessboard_New::GetPromotionPiece(MoveFlag
         return Queen;
 
     return NoPieceType;
+}
+
+std::string Chess_Rework::Chessboard_New::Stringify_CastleRights(CastlingRights Rights)
+{
+    std::string result;
+
+    if (Rights & CastlingRights::White_OO)
+        result += 'K';
+    if (Rights & CastlingRights::White_OOO)
+        result += 'Q';
+    if (Rights & CastlingRights::Black_OO)
+        result += 'k';
+    if (Rights & CastlingRights::Black_OOO)
+        result += 'q';
+
+    return result;
+}
+
+std::string Chess_Rework::Chessboard_New::Stringify_Board(const std::array<Piece, 64>& Board)
+{
+    std::string result;
+
+    auto PieceString = [](Piece piece) -> char
+        {
+            switch (piece)
+            {
+            case Chess_Rework::W_King:   return 'K';
+            case Chess_Rework::W_Pawn:   return 'P';
+            case Chess_Rework::W_Knight: return 'N';
+            case Chess_Rework::W_Bishop: return 'B';
+            case Chess_Rework::W_Rook:   return 'R';
+            case Chess_Rework::W_Queen:  return 'Q';
+            case Chess_Rework::B_King:   return 'k';
+            case Chess_Rework::B_Pawn:   return 'p';
+            case Chess_Rework::B_Knight: return 'n';
+            case Chess_Rework::B_Bishop: return 'b';
+            case Chess_Rework::B_Rook:   return 'r';
+            case Chess_Rework::B_Queen:  return 'q';
+            default:                     return ' ';
+            }
+        };
+
+    for (int rank = 7; rank > -1; rank--)
+    {
+        int empty_count = 0;
+        for (int file = 0; file < 8; file++)
+        {
+            int sq = rank * 8 + file;
+            Piece piece = Board[sq];
+            if (piece == Piece::NoPiece)
+                empty_count++;
+            else
+            {
+                if (empty_count)
+                    result += std::to_string(empty_count);
+                result += PieceString(piece);
+                empty_count = 0;
+            }
+        }
+        if (empty_count)
+            result += std::to_string(empty_count);
+        result += '/';
+    }
+
+    return result;
 }
