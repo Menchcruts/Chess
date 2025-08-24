@@ -7,6 +7,7 @@
 #include <cassert>
 #include <algorithm>
 #include <unordered_map>
+#include <vector>
 
 namespace Chess_Rework::Bitboards
 {
@@ -22,9 +23,12 @@ namespace Chess_Rework::Bitboards
 	extern Bitboard BishopAttacks[64];
 	extern Bitboard RookAttacks[64];
 	extern Bitboard QueenAttacks[64];
-	
+
 	extern Bitboard RookBlockers[64];
 	extern Bitboard BishopBlockers[64];
+
+	extern Bitboard LegalTargets[64];
+	extern Bitboard PromoMask[64];
 
 	struct Magic
 	{
@@ -282,5 +286,18 @@ namespace Chess_Rework::Bitboards
 	inline Bitboard attacks(Square sq, PieceType pt, Bitboard blockers, Color c) 
 	{
 		return pt == Pawn ? attacks(sq, c) : attacks(sq, pt, blockers);
+	}
+
+	inline bool is_legal(Square from, Square to)
+	{
+		if (!(is_ok(from) && is_ok(to)))
+			return false;
+		return is_occupied(LegalTargets[from], to);
+	}
+	inline bool is_promotion_move(Square from, Square to)
+	{
+		if (!(is_ok(from) && is_ok(to)))
+			return false;
+		return is_occupied(PromoMask[from], to);
 	}
 }

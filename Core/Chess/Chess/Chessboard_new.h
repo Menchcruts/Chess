@@ -3,6 +3,7 @@
 #include "Bitboards.h"
 #include <array>
 #include <vector>
+#include <string>
 #include <string_view>
 
 namespace Chess_Rework
@@ -155,9 +156,10 @@ namespace Chess_Rework
 		{
 			return m_Moves;
 		}
+		Move CreateMove(Square From, Square To, PieceType PromotionType = PieceType::NoPieceType) const;
+		std::string ExportFEN() const;
 
 		friend class MoveGenerator;
-		friend class MoveGeneratorNonStatic;
 
 	private:
 		// Piece placements
@@ -179,5 +181,9 @@ namespace Chess_Rework
 
 	private:
 		void GenerateMoves();
+		PieceType GetPromotionPiece(MoveFlag flag) const;
+
+		static std::string Stringify_CastleRights(CastlingRights Rights);
+		static std::string Stringify_Board(const std::array<Piece, 64>& Board);
 	};
 }

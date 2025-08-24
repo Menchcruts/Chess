@@ -53,6 +53,21 @@ static Chess_Rework::Square square_from_string(const std::string& sq_as_str)
     return Chess_Rework::Square((rank - '1') * 8 + (file - 'a'));
 }
 
+/* Takes in a square and returns its string representation. Invalid squares return '-'.*/
+static std::string string_from_square(Chess_Rework::Square sq)
+{
+    if (!Chess_Rework::is_ok(sq))
+        return "-";
+
+    const char* files = "abcdefgh";
+    const char* ranks = "12345678";
+    
+    auto rank = Chess_Rework::rank_of(sq);
+    auto file = Chess_Rework::file_of(sq);
+    
+    return { files[file], ranks[rank] };
+}
+
 void Chess_Rework::Chessboard_New::MakeMove(Move move)
 {    
     // TODO: Implement null move logic
@@ -78,6 +93,13 @@ void Chess_Rework::Chessboard_New::MakeMove(Move move)
     Piece captured_piece = GetPiece(capture_sq);
 	PieceType captured_piece_type = type_of(captured_piece);
 
+    Piece PromotionPiece = NoPiece;
+
+    if (flag & MoveFlag::PromoteKnight)
+    {
+        PromotionPiece = make_piece(m_WhiteToMove ? White : Black, GetPromotionPiece(flag));
+    }
+
     m_PrevStates.emplace_back(PrevState{
         .HalfMoveClock = m_HalfMoveClock,
         .EP_Square = m_EP_Square,
@@ -93,7 +115,11 @@ void Chess_Rework::Chessboard_New::MakeMove(Move move)
 	RemovePiece(from_sq);
     if (is_capture)
         RemovePiece(capture_sq);
-	PlacePiece(to_sq, moving_piece);
+
+    if (PromotionPiece != NoPiece)
+        PlacePiece(to_sq, PromotionPiece);
+    else
+	    PlacePiece(to_sq, moving_piece);
 
     // Update castling rights
 	CastlingRights color_mask   = m_WhiteToMove ? CastlingRights::White_Castling : CastlingRights::Black_Castling;
@@ -170,6 +196,8 @@ void Chess_Rework::Chessboard_New::UnMakeMove(Move move)
 	Piece captured_piece = prev_state.CapturedPiece;
 	PieceType captured_piece_type = type_of(captured_piece);
 
+    bool WasPromotion = bool(flag & PromoteKnight);
+
 	m_CastlingRights = prev_state.CastlingRights;
 	m_EP_Square = prev_state.EP_Square;
 	m_HalfMoveClock = prev_state.HalfMoveClock;
@@ -188,7 +216,10 @@ void Chess_Rework::Chessboard_New::UnMakeMove(Move move)
 	RemovePiece(to_sq);
     if (is_capture)
 		PlacePiece(capture_sq, captured_piece);
-    PlacePiece(from_sq, moving_piece);
+    if (WasPromotion)
+        PlacePiece(from_sq, make_piece(m_WhiteToMove ? White : Black, Pawn));
+    else
+        PlacePiece(from_sq, moving_piece);
 
     if (flag == MoveFlag::CastleKing)
     {
@@ -314,7 +345,150 @@ void Chess_Rework::Chessboard_New::LoadFEN(const std::string_view& FEN_String)
     GenerateMoves();
 }
 
+/* This method creates a move with necessary flags for the user. */
+Chess_Rework::Move Chess_Rework::Chessboard_New::CreateMove(Square From, Square To, PieceType PromotionType) const
+{
+    PieceType PieceType = type_of(GetPiece(From));
+    MoveFlag flag = MoveFlag::None;
+
+    if (GetPiece(To) != Piece::NoPiece)
+        flag |= Capture;
+    else if (To == m_EP_Square)
+        flag |= EnPassant;
+
+    if (PieceType == Pawn)
+    {
+        switch (PromotionType)
+        {
+        case Queen:
+            flag |= PromoteQueen; break;
+        case Rook:
+            flag |= PromoteRook; break;
+        case Bishop:
+            flag |= PromoteBishop; break;
+        case Knight:
+            flag |= PromoteKnight; break;
+        default: break;
+        }
+        if (Bitboards::distance(From, To) == 2)
+            flag |= DoublePawnMove;
+    }
+    else if (PieceType == King && Bitboards::distance(From, To) == 2)
+    {
+        Square KingSide     = m_WhiteToMove ? SQ_G1 : SQ_G8;
+        Square QueenSide    = m_WhiteToMove ? SQ_C1 : SQ_C8;
+        if (To == KingSide)
+            flag |= CastleKing;
+        else if (To == QueenSide)
+            flag |= CastleQueen;
+    }
+
+    return make_move(From, To, flag);
+}
+
+std::string Chess_Rework::Chessboard_New::ExportFEN() const
+{
+    std::string result = Stringify_Board(m_BoardArray);
+
+    auto Side_String     = std::string(m_WhiteToMove ? "w" : "b");
+    auto Castle_String   = Stringify_CastleRights(m_CastlingRights);
+    auto EP_String       = string_from_square(m_EP_Square);
+    auto Halfmove_String = std::to_string(m_HalfMoveClock);
+    auto Fullmove_String = std::to_string(m_FullMoveClock);
+
+    result += " " + Side_String;
+    result += " " + Castle_String;
+    result += " " + EP_String;
+    result += " " + Halfmove_String;
+    result += " " + Fullmove_String;
+
+    return result;
+}
+
 void Chess_Rework::Chessboard_New::GenerateMoves()
 {
-    MoveGenerator::GenerateMoves(*this, m_Moves);
+    MoveGenerator gen(*this);
+    gen.GenMoves(m_Moves);
+    //MoveGenerator::GenerateMoves(*this, m_Moves);
+}
+
+Chess_Rework::PieceType Chess_Rework::Chessboard_New::GetPromotionPiece(MoveFlag flag) const
+{
+    flag = MoveFlag(flag & 0b1011); // Filter out the capture flag if its there
+    
+    if ((flag & PromoteKnight) == flag)
+        return Knight;
+    else if ((flag & PromoteBishop) == flag)
+        return Bishop;
+    else if ((flag & PromoteRook) == flag)
+        return Rook;
+    else if ((flag & PromoteQueen) == flag)
+        return Queen;
+
+    return NoPieceType;
+}
+
+std::string Chess_Rework::Chessboard_New::Stringify_CastleRights(CastlingRights Rights)
+{
+    std::string result;
+
+    if (Rights & CastlingRights::White_OO)
+        result += 'K';
+    if (Rights & CastlingRights::White_OOO)
+        result += 'Q';
+    if (Rights & CastlingRights::Black_OO)
+        result += 'k';
+    if (Rights & CastlingRights::Black_OOO)
+        result += 'q';
+
+    return result;
+}
+
+std::string Chess_Rework::Chessboard_New::Stringify_Board(const std::array<Piece, 64>& Board)
+{
+    std::string result;
+
+    auto PieceString = [](Piece piece) -> char
+        {
+            switch (piece)
+            {
+            case Chess_Rework::W_King:   return 'K';
+            case Chess_Rework::W_Pawn:   return 'P';
+            case Chess_Rework::W_Knight: return 'N';
+            case Chess_Rework::W_Bishop: return 'B';
+            case Chess_Rework::W_Rook:   return 'R';
+            case Chess_Rework::W_Queen:  return 'Q';
+            case Chess_Rework::B_King:   return 'k';
+            case Chess_Rework::B_Pawn:   return 'p';
+            case Chess_Rework::B_Knight: return 'n';
+            case Chess_Rework::B_Bishop: return 'b';
+            case Chess_Rework::B_Rook:   return 'r';
+            case Chess_Rework::B_Queen:  return 'q';
+            default:                     return ' ';
+            }
+        };
+
+    for (int rank = 7; rank > -1; rank--)
+    {
+        int empty_count = 0;
+        for (int file = 0; file < 8; file++)
+        {
+            int sq = rank * 8 + file;
+            Piece piece = Board[sq];
+            if (piece == Piece::NoPiece)
+                empty_count++;
+            else
+            {
+                if (empty_count)
+                    result += std::to_string(empty_count);
+                result += PieceString(piece);
+                empty_count = 0;
+            }
+        }
+        if (empty_count)
+            result += std::to_string(empty_count);
+        result += '/';
+    }
+
+    return result;
 }

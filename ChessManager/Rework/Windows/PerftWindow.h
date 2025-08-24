@@ -1,0 +1,44 @@
+#pragma once
+#include "Window.h"
+#include <vector>
+#include <thread>
+#include <memory>
+#include <atomic>
+//#include "Chess/types.h"
+#include "Chess/Chessboard_new.h"
+
+
+class PerftWindow : public Window
+{
+public:
+	struct PerftResult
+	{
+		Chess_Rework::Chessboard_New Board;
+		std::string FEN;
+
+		std::atomic<std::uint64_t>  Nodes{ 0 };
+		std::atomic<bool>			Running{ true };
+	};
+
+	struct Job
+	{
+		std::shared_ptr<PerftResult> result;
+		std::jthread				 thread;
+	};
+
+public:
+	PerftWindow(std::string name, const Chess_Rework::Chessboard_New& board) noexcept;
+	~PerftWindow() noexcept;
+	void Draw() noexcept;
+
+private:
+	void StartTest(int Depth);
+	void DrawResults();
+	void DrawResult(PerftResult& Result, int idx);
+
+	static std::uint64_t perft(Chess_Rework::Chessboard_New& Board, int Depth, std::stop_token st);
+
+private:
+	std::vector<Job> Jobs;
+	const Chess_Rework::Chessboard_New& Board;
+};

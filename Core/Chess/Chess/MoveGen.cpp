@@ -2,6 +2,7 @@
 #include "Chessboard_new.h"
 #include "Bitboards.h"
 #include <iostream>
+#include <algorithm>
 
 namespace Chess_Rework
 {
@@ -40,16 +41,18 @@ Chess_Rework::MoveGenerator::MoveGenerator(const Chessboard_New& board) :
 	Board(board),
 	
 	WhiteToMove(board.m_WhiteToMove),
-	FriendlyColor(WhiteToMove ? White : Black),
+	FriendlyColor((board.m_WhiteToMove ? White : Black)),
 	EnemyColor(~FriendlyColor),
 	
-	AllPieces(board.m_Bitboards.GetAllPieces()),
-	FriendlyPieces(board.m_Bitboards.GetPieces(FriendlyColor)),
-	EnemyPieces(board.m_Bitboards.GetPieces(EnemyColor)),
-
-	CastleRights(board.m_CastlingRights & (WhiteToMove ? White_Castling : Black_Castling)),
-	KingSquare(Bitboards::bitscan_forward(WhiteToMove ? board.m_Bitboards.WKings : board.m_Bitboards.BKings))
+	CastleRights(board.m_CastlingRights & (board.m_WhiteToMove ? White_Castling : Black_Castling)),
+	KingSquare(Bitboards::bitscan_forward(
+		board.m_WhiteToMove ? board.m_Bitboards.WKings : board.m_Bitboards.BKings)
+	)
 {
+	AllPieces = board.m_Bitboards.GetAllPieces();
+	FriendlyPieces = board.m_Bitboards.GetPieces(FriendlyColor);
+	EnemyPieces = board.m_Bitboards.GetPieces(EnemyColor);
+
 	CreateAttackedBitboard();
 	CreatePinnedBitboard();
 }
@@ -61,6 +64,9 @@ void Chess_Rework::MoveGenerator::GenMoves(std::vector<Move>& moves) const
 		moves.reserve(218); // Reserve space for at least 218 moves (theoretical maximum in a position)
 
 	moves.clear();
+
+	memset(Bitboards::LegalTargets, 0, sizeof(Bitboards::LegalTargets));
+	memset(Bitboards::PromoMask, 0, sizeof(Bitboards::PromoMask));
 
 	Rank PromotionRank		= WhiteToMove ? Rank_8 : Rank_1;
 	Direction ForwardDir	= WhiteToMove ? Dir_North : Dir_South;
@@ -101,6 +107,8 @@ void Chess_Rework::MoveGenerator::GenMoves(std::vector<Move>& moves) const
 			break;
 		}
 
+		Bitboards::LegalTargets[sq] |= Attacks;
+
 		while (Attacks)
 		{
 			Square to_sq = bitscan_forward_auto(Attacks);
@@ -115,6 +123,7 @@ void Chess_Rework::MoveGenerator::GenMoves(std::vector<Move>& moves) const
 
 			if (rank_of(to_sq) == PromotionRank && type == Pawn)
 			{
+				Bitboards::PromoMask[sq] |= from_sq(to_sq);
 				for (auto promotion_flag : { PromoteQueen, PromoteRook, PromoteBishop, PromoteKnight })
 					moves.emplace_back(make_move(
 						sq,
@@ -219,27 +228,37 @@ void Chess_Rework::MoveGenerator::AddPawnPushes(Square sq, std::vector<Move>& mo
 
 	if (!(Single & AllPieces))	// Single push
 	{
-		std::vector<MoveFlag> flags;
-		if (promoting)
-			flags = std::vector<MoveFlag>({ PromoteQueen, PromoteRook, PromoteBishop, PromoteKnight });
-		else
-			flags = std::vector<MoveFlag>({ MoveFlag::None });
+		Square to_sq = bitscan_forward(Single);
+		Bitboards::LegalTargets[sq] |= from_sq(to_sq);
 
-		for (auto flag : flags)
+		if (promoting)
+		{
+			Bitboards::PromoMask[sq] |= Single;
+			for (auto promotion_flag : { PromoteQueen, PromoteRook, PromoteBishop, PromoteKnight })
+				moves.emplace_back(make_move(
+					sq,
+					to_sq,
+					promotion_flag
+				));
+		}
+		else
 		{
 			moves.emplace_back(make_move(
 				sq,
-				bitscan_forward(Single),
-				flag
+				to_sq,
+				MoveFlag::None
 			));
 		}
 	}
 
 	if (can_double_push && Double && !(Combined & AllPieces))
 	{
+		Square to_sq = bitscan_forward(Double);
+		Bitboards::LegalTargets[sq] |= Double;
+
 		moves.emplace_back(make_move(
 			sq,
-			bitscan_forward(Double),
+			to_sq,
 			DoublePawnMove
 		));
 	}
@@ -259,13 +278,15 @@ void Chess_Rework::MoveGenerator::AddCastlingMoves(std::vector<Move>& moves) con
 		KingPath |= shift(KingPath, Dir_East);
 
 		Bitboard RookPath = KingPath;
-
-		if (!(KingPath & AttackedSquares) && !(RookPath && AllPieces))
+		if (!(KingPath & AttackedSquares) && !(RookPath & AllPieces))
+		{
+			Bitboards::LegalTargets[KingSquare] |= KingPath;
 			moves.emplace_back(make_move(
 				KingSquare,
 				KingTo,
 				CastleKing
 			));
+		}
 	}
 	if (CastleRights & Queen_Side)
 	{
@@ -275,12 +296,15 @@ void Chess_Rework::MoveGenerator::AddCastlingMoves(std::vector<Move>& moves) con
 
 		Bitboard RookPath = KingPath | shift(KingPath, Dir_West);
 
-		if (!(KingPath & AttackedSquares) && !(RookPath && AllPieces))
+		if (!(KingPath & AttackedSquares) && !(RookPath & AllPieces))
+		{
+			Bitboards::LegalTargets[KingSquare] |= KingPath;
 			moves.emplace_back(make_move(
 				KingSquare,
 				KingTo,
 				CastleQueen
 			));
+		}
 	}
 }
 
