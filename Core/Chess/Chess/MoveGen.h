@@ -40,20 +40,24 @@ namespace Chess_Rework
 		MoveGenerator(const Chessboard_New& board);
 		void GenMoves(std::vector<Move>& moves) const;
 		
-		static void GenerateMoves(const Chessboard_New& board, std::vector<Move>& moves);
-		static int RunPerft(const std::string& FEN, int depth);
+		[[deprecated("RunPerft deprecated. Users should implement their own Perft function.")]]
+		static int RunPerft(...) { return 0; }
+		
 	private:
+		void PerPiece(Square sq, Piece piece, std::vector<Move>& moves) const;
+		void AddAttacks(Square sq, PieceType type, Bitboard Attacks, std::vector<Move>& moves) const;
+		void AddMove(Square sq, Square to_sq, std::vector<MoveFlag> flags, std::vector<Move>& moves) const;
+		void AddMove(Square sq, Square to_sq, MoveFlag flag, std::vector<Move>& moves) const;
+
 		void CreateAttackedBitboard();
 		void CreatePinnedBitboard();
+
 		void AddPawnPushes(Square sq, std::vector<Move>& moves) const;
 		void AddCastlingMoves(std::vector<Move>& moves) const;
+		
 		bool CanEPCapture() const;
 
-		static Bitboard GetAttackedSquares(const Chessboard_New& board, Color enemy_color, Square king_sq, CheckStatus& check_status, Bitboard& check_rays);
-		static Bitboard GetPinnedPieces(const Chessboard_New& board, Color friendly_color, Square king_sq);
 		static Bitboard RookXRay(Square sq, Bitboard occupied, Bitboard blockers);
 		static Bitboard BishopXRay(Square sq, Bitboard occupied, Bitboard blockers);
-
-		static int Perft(Chessboard_New& board, int depth);
 	};
 }
