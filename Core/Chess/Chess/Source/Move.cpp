@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string>
 
-namespace Chess
+namespace Chess_Old
 {
     int Move::Start() const
     {
@@ -44,46 +44,46 @@ namespace Chess
         std::string flag_string;
         switch ( Flag() )
         {
-        case Chess::MoveFlag::DoublePawnMove:
+        case Chess_Old::MoveFlag::DoublePawnMove:
             flag_string = "DoublePawnMove";
             break;
-        case Chess::MoveFlag::CastleKing:
+        case Chess_Old::MoveFlag::CastleKing:
             flag_string = "CastleKing";
             break;
-        case Chess::MoveFlag::CastleQueen:
+        case Chess_Old::MoveFlag::CastleQueen:
             flag_string = "CastleQueen";
             break;
-        case Chess::MoveFlag::Capture:
+        case Chess_Old::MoveFlag::Capture:
             flag_string = "Capture";
             break;
-        case Chess::MoveFlag::EnPassant:
+        case Chess_Old::MoveFlag::EnPassant:
             flag_string = "EnPassant";
             break;
-        case Chess::MoveFlag::PromoteKnight:
+        case Chess_Old::MoveFlag::PromoteKnight:
             flag_string = "PromoteKnight";
             break;
-        case Chess::MoveFlag::PromoteBishop:
+        case Chess_Old::MoveFlag::PromoteBishop:
             flag_string = "PromoteBishop";
             break;
-        case Chess::MoveFlag::PromoteRook:
+        case Chess_Old::MoveFlag::PromoteRook:
             flag_string = "PromoteRook";
             break;
-        case Chess::MoveFlag::PromoteQueen:
+        case Chess_Old::MoveFlag::PromoteQueen:
             flag_string = "PromoteQueen";
             break;
-        case Chess::MoveFlag::PromoteKnightCapture:
+        case Chess_Old::MoveFlag::PromoteKnightCapture:
             flag_string = "PromoteKnightCapture";
             break;
-        case Chess::MoveFlag::PromoteBishopCapture:
+        case Chess_Old::MoveFlag::PromoteBishopCapture:
             flag_string = "PromoteBishopCapture";
             break;
-        case Chess::MoveFlag::PromoteRookCapture:
+        case Chess_Old::MoveFlag::PromoteRookCapture:
             flag_string = "PromoteRookCapture";
             break;
-        case Chess::MoveFlag::PromoteQueenCapture:
+        case Chess_Old::MoveFlag::PromoteQueenCapture:
             flag_string = "PromoteQueenCapture";
             break;
-        case Chess::MoveFlag::None:
+        case Chess_Old::MoveFlag::None:
         default:
             flag_string = "None";
             break;

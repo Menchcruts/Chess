@@ -2,7 +2,7 @@
 #include <array>
 #include <string_view>
 
-namespace Chess
+namespace Chess_Old
 {
     enum class Color : char { None = -1, White = 0, Black = 1 };
     enum class PieceType : unsigned char { None = 0, King, Pawn, Knight, Bishop, Rook, Queen };

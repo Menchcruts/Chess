@@ -21,24 +21,24 @@ static const std::filesystem::path AssetsDir( "Assets" );
 static const std::filesystem::path PiecesDir = AssetsDir / "Pieces";
 static const std::filesystem::path SoundsDir = AssetsDir / "Sounds";
 
-static std::string GetPieceFileName( Chess::PieceType Piece, Chess::Color Color )
+static std::string GetPieceFileName( Chess_Old::PieceType Piece, Chess_Old::Color Color )
 {
-	bool IsWhite = Color == Chess::Color::White;
+	bool IsWhite = Color == Chess_Old::Color::White;
 	switch ( Piece )
 	{
-	case Chess::PieceType::King:
+	case Chess_Old::PieceType::King:
 		return IsWhite ? "wk.png" : "bk.png";
-	case Chess::PieceType::Pawn:
+	case Chess_Old::PieceType::Pawn:
 		return IsWhite ? "wp.png" : "bp.png";
-	case Chess::PieceType::Knight:
+	case Chess_Old::PieceType::Knight:
 		return IsWhite ? "wn.png" : "bn.png";
-	case Chess::PieceType::Bishop:
+	case Chess_Old::PieceType::Bishop:
 		return IsWhite ? "wb.png" : "bb.png";
-	case Chess::PieceType::Rook:
+	case Chess_Old::PieceType::Rook:
 		return IsWhite ? "wr.png" : "br.png";
-	case Chess::PieceType::Queen:
+	case Chess_Old::PieceType::Queen:
 		return IsWhite ? "wq.png" : "bq.png";
-	case Chess::PieceType::None:
+	case Chess_Old::PieceType::None:
 	default:
 		return "";
 	}
@@ -58,17 +58,17 @@ static std::string GetSquareName( int Square )
 	return { files[file], ranks[rank] };
 }
 
-static std::string GetCastlingString( Chess::CastlingRights Rights )
+static std::string GetCastlingString( Chess_Old::CastlingRights Rights )
 {
 	switch ( Rights )
 	{
-	case Chess::CastlingRights::Kingside:
+	case Chess_Old::CastlingRights::Kingside:
 		return "King side";
-	case Chess::CastlingRights::QueenSide:
+	case Chess_Old::CastlingRights::QueenSide:
 		return "Queen side";
-	case Chess::CastlingRights::Both:
+	case Chess_Old::CastlingRights::Both:
 		return "Both";
-	case Chess::CastlingRights::None:
+	case Chess_Old::CastlingRights::None:
 	default:
 		return "None";
 	}
@@ -134,9 +134,9 @@ void ChessApp::DrawChessBoard()
 	bool PieceOnSquare;
 
 	const LegalMovesInfo& info = DrawMoveCircles ? m_LegalMovesDict[m_MoveHandling.SelectedSquare] : LegalMovesInfo();
-	const Chess::Move& LastMove = m_BoardVisuals.LastMove;
+	const Chess_Old::Move& LastMove = m_BoardVisuals.LastMove;
 
-	const Chess::Bitboards& bitboards = m_Chessboard.m_Bitboards;
+	const Chess_Old::Bitboards& bitboards = m_Chessboard.m_Bitboards;
 	
 	ImGui::PushStyleVar( ImGuiStyleVar_CellPadding, ImVec2( 0, 0 ) );
 	ImGui::BeginTable( "PieceGrid", 8 );
@@ -165,7 +165,7 @@ void ChessApp::DrawChessBoard()
 			}
 
 			int CurrSq = r * 8 + c;
-			Chess::ChessPiece Piece = bitboards.GetPieceAtSquare(CurrSq);
+			Chess_Old::ChessPiece Piece = bitboards.GetPieceAtSquare(CurrSq);
 
 			ImColor CellColor;
 			if ( m_BoardVisuals.HighlightedSquares.IsOccupied( CurrSq ) || (m_BitboardSettings.ShowScreen && m_BitboardSettings.Result.IsOccupied( CurrSq )) )
@@ -183,7 +183,7 @@ void ChessApp::DrawChessBoard()
 
 			if (
 				(Piece.IsNullPiece()) ||
-				(CurrSq == m_MoveHandling.SelectedSquare && m_MoveHandling.PieceHeld.type != Chess::PieceType::None)
+				(CurrSq == m_MoveHandling.SelectedSquare && m_MoveHandling.PieceHeld.type != Chess_Old::PieceType::None)
 				)   // Þetta er hræðilegt if statement
 			{
 				ImGui::Dummy( ImageSize ); // Dummy widget fyrir mouse clicks
@@ -235,9 +235,9 @@ void ChessApp::DrawChessBoard()
 	ImGui::PopStyleVar();
 }
 
-Chess::Move ChessApp::IsValidMove( int Start, int Target ) const
+Chess_Old::Move ChessApp::IsValidMove( int Start, int Target ) const
 {
-	Chess::Move NewMove;
+	Chess_Old::Move NewMove;
 	for ( const auto& move : m_LegalMovesDict.at(Start).Moves )
 	{
 		if ( move.Target() == Target )
@@ -251,7 +251,7 @@ Chess::Move ChessApp::IsValidMove( int Start, int Target ) const
 
 void ChessApp::PromoteScreen()
 {        
-	Chess::MoveFlag PromotionType = Chess::MoveFlag::None;
+	Chess_Old::MoveFlag PromotionType = Chess_Old::MoveFlag::None;
 	
 	const float& CellSize = m_BoardVisuals.CellSize;
 	ImVec2 Cell = ImVec2( CellSize, CellSize );
@@ -283,24 +283,24 @@ void ChessApp::PromoteScreen()
 
 	if ( m_Chessboard.m_WhiteToPlay )
 	{
-		if ( ImGui::ImageButton( "w_queen", m_PieceImages[0].at( Chess::PieceType::Queen ).Texture, Cell ) )
+		if ( ImGui::ImageButton( "w_queen", m_PieceImages[0].at( Chess_Old::PieceType::Queen ).Texture, Cell ) )
 		{
-			PromotionType = Chess::MoveFlag::PromoteQueen;
+			PromotionType = Chess_Old::MoveFlag::PromoteQueen;
 			ClickedPiece = true;
 		}
-		if ( ImGui::ImageButton( "w_rook", m_PieceImages[0].at( Chess::PieceType::Rook ).Texture, Cell ) )
+		if ( ImGui::ImageButton( "w_rook", m_PieceImages[0].at( Chess_Old::PieceType::Rook ).Texture, Cell ) )
 		{
-			PromotionType = Chess::MoveFlag::PromoteRook;
+			PromotionType = Chess_Old::MoveFlag::PromoteRook;
 			ClickedPiece = true;
 		}
-		if ( ImGui::ImageButton( "w_bishop", m_PieceImages[0].at( Chess::PieceType::Bishop ).Texture, Cell ) )
+		if ( ImGui::ImageButton( "w_bishop", m_PieceImages[0].at( Chess_Old::PieceType::Bishop ).Texture, Cell ) )
 		{
-			PromotionType = Chess::MoveFlag::PromoteBishop;
+			PromotionType = Chess_Old::MoveFlag::PromoteBishop;
 			ClickedPiece = true;
 		}
-		if ( ImGui::ImageButton( "w_knight", m_PieceImages[0].at( Chess::PieceType::Knight ).Texture, Cell ) )
+		if ( ImGui::ImageButton( "w_knight", m_PieceImages[0].at( Chess_Old::PieceType::Knight ).Texture, Cell ) )
 		{
-			PromotionType = Chess::MoveFlag::PromoteKnight;
+			PromotionType = Chess_Old::MoveFlag::PromoteKnight;
 			ClickedPiece = true;
 		}
 		if ( ImGui::Button( "Cancel", ImVec2( CellSize, 0 ) ) )
@@ -311,7 +311,7 @@ void ChessApp::PromoteScreen()
 			m_MoveHandling.SelectedPressed = false;
 
 			m_PromotionHandling.Promoting = false;
-			m_BoardVariables->NextMove = Chess::Move();
+			m_BoardVariables->NextMove = Chess_Old::Move();
 		}
 	}
 	else
@@ -324,26 +324,26 @@ void ChessApp::PromoteScreen()
 			m_MoveHandling.SelectedPressed = false;
 
 			m_PromotionHandling.Promoting = false;
-			m_BoardVariables->NextMove = Chess::Move();
+			m_BoardVariables->NextMove = Chess_Old::Move();
 		}
-		if ( ImGui::ImageButton( "b_knight", m_PieceImages[1].at( Chess::PieceType::Knight ).Texture, Cell ) )
+		if ( ImGui::ImageButton( "b_knight", m_PieceImages[1].at( Chess_Old::PieceType::Knight ).Texture, Cell ) )
 		{
-			PromotionType = Chess::MoveFlag::PromoteKnight;
+			PromotionType = Chess_Old::MoveFlag::PromoteKnight;
 			ClickedPiece = true;
 		}
-		if ( ImGui::ImageButton( "b_bishop", m_PieceImages[1].at( Chess::PieceType::Bishop ).Texture, Cell ) )
+		if ( ImGui::ImageButton( "b_bishop", m_PieceImages[1].at( Chess_Old::PieceType::Bishop ).Texture, Cell ) )
 		{
-			PromotionType = Chess::MoveFlag::PromoteBishop;
+			PromotionType = Chess_Old::MoveFlag::PromoteBishop;
 			ClickedPiece = true;
 		}
-		if ( ImGui::ImageButton( "b_rook", m_PieceImages[1].at( Chess::PieceType::Rook ).Texture, Cell ) )
+		if ( ImGui::ImageButton( "b_rook", m_PieceImages[1].at( Chess_Old::PieceType::Rook ).Texture, Cell ) )
 		{
-			PromotionType = Chess::MoveFlag::PromoteRook;
+			PromotionType = Chess_Old::MoveFlag::PromoteRook;
 			ClickedPiece = true;
 		}
-		if ( ImGui::ImageButton( "b_queen", m_PieceImages[1].at( Chess::PieceType::Queen ).Texture, Cell ) )
+		if ( ImGui::ImageButton( "b_queen", m_PieceImages[1].at( Chess_Old::PieceType::Queen ).Texture, Cell ) )
 		{
-			PromotionType = Chess::MoveFlag::PromoteQueen;
+			PromotionType = Chess_Old::MoveFlag::PromoteQueen;
 			ClickedPiece = true;
 		}
 	}
@@ -362,24 +362,24 @@ void ChessApp::PromoteScreen()
 		m_MoveHandling.SelectedPressed = false;
 
 		m_PromotionHandling.Promoting = false;
-		m_BoardVariables.NextMove = Chess::Move();
+		m_BoardVariables.NextMove = Chess_Old::Move();
 	}*/
 
-	if ( PromotionType != Chess::MoveFlag::None )
+	if ( PromotionType != Chess_Old::MoveFlag::None )
 	{
-		Chess::Move NextMove = m_BoardVariables->NextMove;
-		Chess::MoveFlag WasCapture = NextMove.Flag() & Chess::MoveFlag::Capture;
+		Chess_Old::Move NextMove = m_BoardVariables->NextMove;
+		Chess_Old::MoveFlag WasCapture = NextMove.Flag() & Chess_Old::MoveFlag::Capture;
 		PromotionType |= WasCapture;
 		short Start = NextMove.Start();
 		short Target = NextMove.Target();
 
-		m_BoardVariables->NextMove = Chess::Move( Start, Target, PromotionType );
+		m_BoardVariables->NextMove = Chess_Old::Move( Start, Target, PromotionType );
 		m_PromotionHandling.Promoting = false;
 		return;
 	}
 }
 
-void ChessApp::HandleBoardClicks( Chess::ChessPiece Piece, int CurrentSq )
+void ChessApp::HandleBoardClicks( Chess_Old::ChessPiece Piece, int CurrentSq )
 {
 	if ( ImGui::IsMouseClicked( 0 ) && !m_PromotionHandling.Promoting )
 	{
@@ -389,11 +389,11 @@ void ChessApp::HandleBoardClicks( Chess::ChessPiece Piece, int CurrentSq )
 		{
 			if ( m_LegalMovesDict.contains( m_MoveHandling.SelectedSquare ) )
 			{
-				Chess::Move NewMove = IsValidMove( m_MoveHandling.SelectedSquare, CurrentSq );
+				Chess_Old::Move NewMove = IsValidMove( m_MoveHandling.SelectedSquare, CurrentSq );
 				if ( !NewMove.IsNullMove() ) // Future check for valid move
 				{
 					m_BoardVariables->NextMove = NewMove;
-					if ( (NewMove.Flag() & Chess::MoveFlag::PromoteKnight) != Chess::MoveFlag::None )   // Promoting
+					if ( (NewMove.Flag() & Chess_Old::MoveFlag::PromoteKnight) != Chess_Old::MoveFlag::None )   // Promoting
 					{
 						m_PromotionHandling.Promoting = true;
 						m_PromotionHandling.PromotionScreenPos = ImGui::GetCursorScreenPos();
@@ -429,11 +429,11 @@ void ChessApp::HandleBoardClicks( Chess::ChessPiece Piece, int CurrentSq )
 		{
 			if ( m_LegalMovesDict.contains( m_MoveHandling.SelectedSquare ) )
 			{
-				Chess::Move NewMove = IsValidMove( m_MoveHandling.SelectedSquare, CurrentSq );
+				Chess_Old::Move NewMove = IsValidMove( m_MoveHandling.SelectedSquare, CurrentSq );
 				if ( !NewMove.IsNullMove() ) // Future check for valid move
 				{
 					m_BoardVariables->NextMove = NewMove;
-					if ( (NewMove.Flag() & Chess::MoveFlag::PromoteKnight) != Chess::MoveFlag::None )   // Promoting
+					if ( (NewMove.Flag() & Chess_Old::MoveFlag::PromoteKnight) != Chess_Old::MoveFlag::None )   // Promoting
 					{
 						m_PromotionHandling.Promoting = true;
 						m_PromotionHandling.PromotionScreenPos = ImGui::GetCursorScreenPos();
@@ -452,7 +452,7 @@ void ChessApp::HandleBoardClicks( Chess::ChessPiece Piece, int CurrentSq )
 			m_MoveHandling.SelectedSquare = -1;
 			m_MoveHandling.SelectedPressed = false;
 		}
-		m_MoveHandling.PieceHeld = Chess::ChessPiece();
+		m_MoveHandling.PieceHeld = Chess_Old::ChessPiece();
 	}
 	else if ( ImGui::IsMouseClicked( 1 ) && !m_PromotionHandling.Promoting )  // Highlight logic
 	{
@@ -495,7 +495,7 @@ void ChessApp::DrawLegalTargets( ImDrawList* DrawList ) const
 
 void ChessApp::MakeMove()
 {
-	const Chess::Move& move = m_BoardVariables->NextMove;
+	const Chess_Old::Move& move = m_BoardVariables->NextMove;
 	m_logger.info( "Move({0}, {1})", move.Start(), move.Target() );
 	m_Chessboard.MakeMove( move );
 	m_BoardVisuals.LastMove = move;
@@ -507,18 +507,18 @@ void ChessApp::MakeMove()
 		m_WhiteClock.UpdateLastPoll();
 
 	UpdateBoardInfo();
-	Chess::MoveFlag flag = move.Flag();
+	Chess_Old::MoveFlag flag = move.Flag();
 
 	std::filesystem::path AudioDir = SoundsDir;
-	if ( (flag & Chess::MoveFlag::Capture) != Chess::MoveFlag::None )
+	if ( (flag & Chess_Old::MoveFlag::Capture) != Chess_Old::MoveFlag::None )
 	{
 		AudioDir /= "capture.mp3";
 	}
-	else if ( (flag & Chess::MoveFlag::PromoteKnight) != Chess::MoveFlag::None )
+	else if ( (flag & Chess_Old::MoveFlag::PromoteKnight) != Chess_Old::MoveFlag::None )
 	{
 		AudioDir /= "promote.mp3";
 	}
-	else if ( (flag & Chess::MoveFlag::CastleKing) != Chess::MoveFlag::None )
+	else if ( (flag & Chess_Old::MoveFlag::CastleKing) != Chess_Old::MoveFlag::None )
 	{
 		AudioDir /= "castle.mp3";
 	}
@@ -533,7 +533,7 @@ void ChessApp::MakeMove()
 
 	m_MoveHandling = MoveHandling();
 
-	m_BoardVariables->NextMove = Chess::Move();
+	m_BoardVariables->NextMove = Chess_Old::Move();
 
 	if ( m_BoardVisuals.AutoFlip )
 		m_BoardVisuals.FlipBoard = !m_BoardVisuals.FlipBoard;
@@ -544,7 +544,7 @@ void ChessApp::UnMakeMove()
 	if ( m_BoardVariables->MoveHistory.size() <= 0 )
 		return;
 
-	Chess::Move move = m_BoardVariables->MoveHistory.back();
+	Chess_Old::Move move = m_BoardVariables->MoveHistory.back();
 	m_BoardVariables->MoveHistory.pop_back();
 
 	m_Chessboard.UnMakeMove( move );
@@ -552,7 +552,7 @@ void ChessApp::UnMakeMove()
 	if ( m_BoardVariables->MoveHistory.size() > 0 )
 		m_BoardVisuals.LastMove = m_BoardVariables->MoveHistory.back();
 	else
-		m_BoardVisuals.LastMove = Chess::Move();
+		m_BoardVisuals.LastMove = Chess_Old::Move();
 
 	m_MoveHandling = MoveHandling();
 
@@ -606,7 +606,7 @@ void ChessApp::DrawDebugScreen()
 	ImGui::NewLine();
 
 	ImGui::Text( "%s to play", m_Chessboard.m_WhiteToPlay ? "White" : "Black" );
-	ImGui::Text( "En Passant square: %s | %d", m_Chessboard.m_EnPassantSquare == -1 ? "None" : Chess::GetSquareRepr( m_Chessboard.m_EnPassantSquare ), m_Chessboard.m_EnPassantSquare );
+	ImGui::Text( "En Passant square: %s | %d", m_Chessboard.m_EnPassantSquare == -1 ? "None" : Chess_Old::GetSquareRepr( m_Chessboard.m_EnPassantSquare ), m_Chessboard.m_EnPassantSquare );
 	ImGui::Text( "Fullmove clock: %d", m_Chessboard.m_FullmoveClock );
 	ImGui::Text( "Halfmove clock: %d", m_Chessboard.m_HalfmoveClock );
 	ImGui::Text( "White castling rights: %s", GetCastlingString( m_Chessboard.m_WhiteCastling ).c_str() );
@@ -691,12 +691,12 @@ void ChessApp::ResetBoard()
 	UpdateBoardInfo();
 
 	m_BoardVisuals.HighlightedSquares = 0;
-	m_BoardVisuals.LastMove = Chess::Move();
+	m_BoardVisuals.LastMove = Chess_Old::Move();
 
 	m_MoveHandling = MoveHandling();
 	m_PromotionHandling = PromotionHandling();
 
-	m_BoardVariables->NextMove = Chess::Move();
+	m_BoardVariables->NextMove = Chess_Old::Move();
 	m_BoardVariables->MoveHistory.clear();
 	m_BoardVariables->GameStarted = false;
 }
@@ -879,7 +879,7 @@ void ChessApp::StartPerftTest()
 	m_PerftSettings.PerftThread = std::thread(
 		[this]()
 		{
-			Chess::Chessboard TestBoard = Chess::Chessboard( this->m_Chessboard );
+			Chess_Old::Chessboard TestBoard = Chess_Old::Chessboard( this->m_Chessboard );
 			this->m_PerftSettings.Result.Nodes = PerftTest( TestBoard, this->m_PerftSettings.InitalDepth, &this->m_PerftSettings.CancelSearch, this->m_PerftSettings.Verbose, &this->m_PerftSettings.Result );
 			this->m_PerftSettings.Running = false;
 			this->m_PerftSettings.Finished = true;
@@ -902,7 +902,7 @@ void ChessApp::StartPerftTest()
 	);
 }
 
-int ChessApp::PerftTest( Chess::Chessboard& Board, int Depth, bool* Cancel, bool Verbose, PerftResult* Result )
+int ChessApp::PerftTest( Chess_Old::Chessboard& Board, int Depth, bool* Cancel, bool Verbose, PerftResult* Result )
 {
 	if ( Depth < 0 )
 		throw std::exception( "wtf bro | Depth parameter for method Chessboard::Perft cannot be negative." );
@@ -912,7 +912,7 @@ int ChessApp::PerftTest( Chess::Chessboard& Board, int Depth, bool* Cancel, bool
 
 	int n_nodes = 0;
 	int move_nodes = 0;
-	std::array<Chess::Move, 218> Moves = Board.GetMoveList();
+	std::array<Chess_Old::Move, 218> Moves = Board.GetMoveList();
 	for ( const auto& Move : Moves )
 	{
 		if ( Move.IsNullMove() )
@@ -1022,10 +1022,10 @@ void ChessApp::LoadPieceImages()
 	namespace fs = std::filesystem;
 	for ( int c = 0; c < 2; ++c )
 	{
-		Chess::Color color = (Chess::Color)c;
+		Chess_Old::Color color = (Chess_Old::Color)c;
 		for ( int p = 1; p < 7; ++p )
 		{
-			Chess::PieceType piece = (Chess::PieceType)p;
+			Chess_Old::PieceType piece = (Chess_Old::PieceType)p;
 			fs::path ImagePath = PiecesDir / GetPieceFileName( piece, color );
 
 			m_PieceImages[c][piece] = Image( ImagePath );
@@ -1125,7 +1125,7 @@ void ChessApp::Draw()
 
 void ChessApp::DrawMinimal()
 {
-	using Chess_Rework::Bitboard, Chess_Rework::Square;
+	using Chess::Bitboard, Chess::Square;
 
 	static int sq1 = 0;
 	static int sq2 = 0;
@@ -1138,8 +1138,8 @@ void ChessApp::DrawMinimal()
 
 	static Bitboard current_bitboard = 0;
 
-	static const auto& LineBB = Chess_Rework::Bitboards::LineBB;
-	static const auto& BetweenBB = Chess_Rework::Bitboards::BetweenBB;
+	static const auto& LineBB = Chess::Bitboards::LineBB;
+	static const auto& BetweenBB = Chess::Bitboards::BetweenBB;
 
 	static bool show_picked = true;
 
@@ -1170,7 +1170,7 @@ void ChessApp::DrawMinimal()
 				bool isDark = ((rank + file) % 2) == 1;
 				ImU32 cellColor = isDark ? darkColor : lightColor;
 
-				if (Chess_Rework::Bitboards::is_occupied(current_bitboard, Square(sq)))
+				if (Chess::Bitboards::is_occupied(current_bitboard, Square(sq)))
 				{
 					cellColor = isDark ? darkRedColor : lightRedColor;
 				}
@@ -1222,7 +1222,7 @@ void ChessApp::DrawMinimal()
 
 void ChessApp::LookupTableTests()
 {
-	using Chess_Rework::Bitboard, Chess_Rework::Square;
+	using Chess::Bitboard, Chess::Square;
 
 	static int sq1 = 0;
 	static int sq2 = 0;
@@ -1235,8 +1235,8 @@ void ChessApp::LookupTableTests()
 	 
 	static Bitboard current_bitboard = 0;
 
-	static const auto& LineBB = Chess_Rework::Bitboards::LineBB;
-	static const auto& BetweenBB = Chess_Rework::Bitboards::BetweenBB;
+	static const auto& LineBB = Chess::Bitboards::LineBB;
+	static const auto& BetweenBB = Chess::Bitboards::BetweenBB;
 
 	static bool show_picked = true;
 
@@ -1268,7 +1268,7 @@ void ChessApp::LookupTableTests()
 				bool isDark = ((rank + file) % 2) == 1;
 				ImU32 cellColor = isDark ? darkColor : lightColor;
 
-				if (Chess_Rework::Bitboards::is_occupied(current_bitboard, Square(sq)))
+				if (Chess::Bitboards::is_occupied(current_bitboard, Square(sq)))
 				{
 					cellColor = isDark ? darkRedColor : lightRedColor;
 				}
@@ -1310,7 +1310,7 @@ void ChessApp::LookupTableTests()
 
 void ChessApp::MoveTableTests()
 {
-	using Chess_Rework::Bitboard, Chess_Rework::Square, Chess_Rework::PieceType, Chess_Rework::Color;
+	using Chess::Bitboard, Chess::Square, Chess::PieceType, Chess::Color;
 
 	ImGui::Begin("Move table tests");
 
@@ -1323,9 +1323,9 @@ void ChessApp::MoveTableTests()
 	PieceType type = PieceType(idx + 1); // 0 is null piece, so we start from 1
 	Bitboard current_bitboard;
 	if ( type == PieceType::Pawn)
-		current_bitboard = Chess_Rework::Bitboards::attacks(Square(selected_square), is_white ? Color::White : Color::Black);
+		current_bitboard = Chess::Bitboards::attacks(Square(selected_square), is_white ? Color::White : Color::Black);
 	else
-		current_bitboard = Chess_Rework::Bitboards::attacks(Square(selected_square), type, occupied);
+		current_bitboard = Chess::Bitboards::attacks(Square(selected_square), type, occupied);
 
 	ImU32 lightColor = IM_COL32(235, 236, 208, 255);
 	ImU32 lightRedColor = IM_COL32(235, 125, 106, 255);
@@ -1353,9 +1353,9 @@ void ChessApp::MoveTableTests()
 				if (sq == selected_square)
 					cellColor = Green;
 
-				if (Chess_Rework::Bitboards::is_occupied(current_bitboard, Square(sq)))
+				if (Chess::Bitboards::is_occupied(current_bitboard, Square(sq)))
 					cellColor = isDark ? darkRedColor : lightRedColor;
-				if (Chess_Rework::Bitboards::is_occupied(occupied, Square(sq)))
+				if (Chess::Bitboards::is_occupied(occupied, Square(sq)))
 					cellColor = Blue;
 
 				ImGui::TableNextColumn();
@@ -1364,7 +1364,7 @@ void ChessApp::MoveTableTests()
 				if (ImGui::IsItemClicked(0))
 					selected_square = sq;
 				else if (ImGui::IsItemClicked(1))
-					occupied ^= Chess_Rework::Bitboards::from_sq(Square(sq));
+					occupied ^= Chess::Bitboards::from_sq(Square(sq));
 			}
 		}
 		ImGui::EndTable();
@@ -1385,9 +1385,9 @@ void ChessApp::MoveTableTests()
 
 void ChessApp::ChessboardTests()
 {
-	using Chess_Rework::Piece, Chess_Rework::Square, Chess_Rework::Color, Chess_Rework::CastlingRights;
+	using Chess::Piece, Chess::Square, Chess::Color, Chess::CastlingRights;
 	
-	static Chess_Rework::Chessboard_New board;
+	static Chess::Chessboard_New board;
 	ImU32 lightColor = IM_COL32(235, 236, 208, 255);
 	ImU32 lightRedColor = IM_COL32(235, 125, 106, 255);
 
@@ -1402,7 +1402,7 @@ void ChessApp::ChessboardTests()
 	static int from_square = 0;
 	static int to_square = 0;
 	
-	static Chess_Rework::Move last_move = Chess_Rework::NullMove;
+	static Chess::Move last_move = Chess::NullMove;
 
 	auto AllPieces = board.GetBitboards().GetAllPieces();
 	static bool highlight_bitboard_squares = false;
@@ -1421,7 +1421,7 @@ void ChessApp::ChessboardTests()
 				bool isDark = ((rank + file) % 2) == 1;
 				ImU32 cellColor = isDark ? darkColor : lightColor;
 
-				if (highlight_bitboard_squares && Chess_Rework::Bitboards::is_occupied(AllPieces, Square(sq)))
+				if (highlight_bitboard_squares && Chess::Bitboards::is_occupied(AllPieces, Square(sq)))
 					cellColor = isDark ? darkRedColor : lightRedColor;
 
 				if (sq == from_square)
@@ -1435,8 +1435,8 @@ void ChessApp::ChessboardTests()
 				Piece piece = board.GetPiece(Square(sq));
 				if (piece != Piece::NoPiece)
 				{
-					Chess::PieceType piece_type = Chess::PieceType((Chess_Rework::type_of(piece)));
-					Chess_Rework::Color piece_color = Chess_Rework::color_of(piece);
+					Chess_Old::PieceType piece_type = Chess_Old::PieceType((Chess::type_of(piece)));
+					Chess::Color piece_color = Chess::color_of(piece);
 					ImGui::Image(
 						m_PieceImages[piece_color][piece_type].Texture,
 						cellSize
@@ -1491,7 +1491,7 @@ void ChessApp::ChessboardTests()
 	{
 		if (from_square != to_square)
 		{
-			Chess_Rework::Move move = Chess_Rework::make_move(Square(from_square), Square(to_square));
+			Chess::Move move = Chess::make_move(Square(from_square), Square(to_square));
 			board.MakeMove(move);
 			last_move = move;
 		}
@@ -1500,7 +1500,7 @@ void ChessApp::ChessboardTests()
 	ImGui::SameLine();
 	if (ImGui::Button("Unmake last move"))
 	{
-		if (last_move != Chess_Rework::NullMove)
+		if (last_move != Chess::NullMove)
 		{
 			board.UnMakeMove(last_move);
 			last_move = board.GetLastMove();
@@ -1509,14 +1509,14 @@ void ChessApp::ChessboardTests()
 	ImGui::SameLine();
 	if (ImGui::Button("Make white CastleOO"))
 	{
-		Chess_Rework::Move move = Chess_Rework::make_move(Square::SQ_E1, Square::SQ_G1, Chess_Rework::MoveFlag::CastleKing);
+		Chess::Move move = Chess::make_move(Square::SQ_E1, Square::SQ_G1, Chess::MoveFlag::CastleKing);
 		board.MakeMove(move);
 		last_move = move;
 	}
 	ImGui::SameLine();
 	if (ImGui::Button("Make black CastleOO"))
 	{
-		Chess_Rework::Move move = Chess_Rework::make_move(Square::SQ_E8, Square::SQ_G8, Chess_Rework::MoveFlag::CastleKing);
+		Chess::Move move = Chess::make_move(Square::SQ_E8, Square::SQ_G8, Chess::MoveFlag::CastleKing);
 		board.MakeMove(move);
 		last_move = move;
 	}
@@ -1546,11 +1546,11 @@ void ChessApp::ChessboardTests()
 
 void ChessApp::MoveGenTests()
 {
-	using Chess_Rework::Square, Chess_Rework::MoveFlag, Chess_Rework::Piece, Chess_Rework::Move, Chess_Rework::CastlingRights;
+	using Chess::Square, Chess::MoveFlag, Chess::Piece, Chess::Move, Chess::CastlingRights;
 	
 	ImGui::Begin("Move generation");
 
-	static Chess_Rework::Chessboard_New board;
+	static Chess::Chessboard_New board;
 	static std::vector<Move> move_history;
 
 	ImU32 lightColor = IM_COL32(235, 236, 208, 255);
@@ -1631,8 +1631,8 @@ void ChessApp::MoveGenTests()
 				Piece piece = board.GetPiece(Square(sq));
 				if (piece != Piece::NoPiece)
 				{
-					Chess::PieceType piece_type = Chess::PieceType((Chess_Rework::type_of(piece)));
-					Chess_Rework::Color piece_color = Chess_Rework::color_of(piece);
+					Chess_Old::PieceType piece_type = Chess_Old::PieceType((Chess::type_of(piece)));
+					Chess::Color piece_color = Chess::color_of(piece);
 					ImGui::Image(
 						m_PieceImages[piece_color][piece_type].Texture,
 						cellSize
@@ -1664,7 +1664,7 @@ void ChessApp::MoveGenTests()
 							{
 								to_square = sq;
 								auto flag = flags[idx];
-								Move move = Chess_Rework::make_move(Square(from_square), Square(to_square), flag);
+								Move move = Chess::make_move(Square(from_square), Square(to_square), flag);
 								if (moves_set.contains(move))
 								{
 									board.MakeMove(move);
@@ -1713,7 +1713,7 @@ void ChessApp::MoveGenTests()
 	if (ImGui::Button("Make move"))
 	{
 		auto flag = flags[idx];
-		Move move = Chess_Rework::make_move(Square(from_square), Square(to_square), flag);
+		Move move = Chess::make_move(Square(from_square), Square(to_square), flag);
 		if (moves_set.contains(move))
 		{
 			board.MakeMove(move);
@@ -1752,7 +1752,7 @@ void ChessApp::MoveGenTests()
 		running_perft = true;
 		m_PerftSettings.PerftThread = std::thread([]()
 			{
-				int result = Chess_Rework::MoveGenerator::RunPerft(fen_copy, depth);
+				int result = Chess::MoveGenerator::RunPerft(fen_copy, depth);
 				std::cout << "Perft result: " << result << std::endl;
 				running_perft = false;
 			});
@@ -1765,9 +1765,9 @@ void ChessApp::MoveGenTests()
 	{
 		for (auto& move : moves)
 		{
-			Square from = Chess_Rework::from_square(move);
-			Square to = Chess_Rework::to_square(move);
-			MoveFlag flag = Chess_Rework::move_flag(move);
+			Square from = Chess::from_square(move);
+			Square to = Chess::to_square(move);
+			MoveFlag flag = Chess::move_flag(move);
 
 			std::cout << from << " - " << to << " | " << std::bitset<4>(flag) << "\n";
 		}
@@ -1845,7 +1845,7 @@ ChessApp::ChessApp()
 
 	m_BoardVariables->MoveHistory.reserve( 128 );
 
-	Chess_Rework::Bitboards::init();
+	Chess::Bitboards::init();
 
 	UpdateBoardInfo();
 }

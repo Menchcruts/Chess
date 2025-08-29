@@ -10,7 +10,7 @@ namespace ChessTester
     {
         namespace fs = std::filesystem;
 
-        Chess::Chessboard board;
+        Chess_Old::Chessboard board;
 
         const auto moves = board.GetMoveList();
         const int expected[20] = {

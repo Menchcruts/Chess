@@ -1,6 +1,6 @@
 #include "Bitboard.h"
 
-namespace Chess
+namespace Chess_Old
 {
     void Bitboards::Reset()
     {

@@ -2,7 +2,7 @@
 #include <cstdint>
 #include "Pieces.h"
 
-namespace Chess
+namespace Chess_Old
 {
 	struct Bitboard
 	{

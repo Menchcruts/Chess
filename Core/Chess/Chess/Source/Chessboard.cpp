@@ -1,35 +1,35 @@
 #include "Chessboard.h"
 #include <iostream>
 
-static const Chess::PieceType GetPieceFromRepr( char Piece )
+static const Chess_Old::PieceType GetPieceFromRepr( char Piece )
 {
     switch ( Piece )
     {
     case 'K':
     case 'k':
-        return Chess::PieceType::King;
+        return Chess_Old::PieceType::King;
     case 'P':
     case 'p':
-        return Chess::PieceType::Pawn;
+        return Chess_Old::PieceType::Pawn;
     case 'N':
     case 'n':
-        return Chess::PieceType::Knight;
+        return Chess_Old::PieceType::Knight;
     case 'B':
     case 'b':
-        return Chess::PieceType::Bishop;
+        return Chess_Old::PieceType::Bishop;
     case 'R':
     case 'r':
-        return Chess::PieceType::Rook;
+        return Chess_Old::PieceType::Rook;
     case 'Q':
     case 'q':
-        return Chess::PieceType::Queen;
+        return Chess_Old::PieceType::Queen;
     default:
-        return Chess::PieceType::None;
+        return Chess_Old::PieceType::None;
     }
 }
 
 
-namespace Chess
+namespace Chess_Old
 {
     Chessboard::Chessboard()
     {        
@@ -83,7 +83,7 @@ namespace Chess
         return m_MoveGenerator->GetMoveList();
     }
  
-    int Chess::Chessboard::Perft( int Depth )
+    int Chess_Old::Chessboard::Perft( int Depth )
     {
         if ( Depth < 0 )
             return 0;
@@ -366,20 +366,20 @@ namespace Chess
         {
             switch ( Flag )
             {
-            case Chess::MoveFlag::PromoteKnight:
-            case Chess::MoveFlag::PromoteKnightCapture:
+            case Chess_Old::MoveFlag::PromoteKnight:
+            case Chess_Old::MoveFlag::PromoteKnightCapture:
                 PromotePiece( Target, PieceType::Knight );
                 break;
-            case Chess::MoveFlag::PromoteBishop:
-            case Chess::MoveFlag::PromoteBishopCapture:
+            case Chess_Old::MoveFlag::PromoteBishop:
+            case Chess_Old::MoveFlag::PromoteBishopCapture:
                 PromotePiece( Target, PieceType::Bishop );
                 break;
-            case Chess::MoveFlag::PromoteRook:
-            case Chess::MoveFlag::PromoteRookCapture:
+            case Chess_Old::MoveFlag::PromoteRook:
+            case Chess_Old::MoveFlag::PromoteRookCapture:
                 PromotePiece( Target, PieceType::Rook );
                 break;
-            case Chess::MoveFlag::PromoteQueen:
-            case Chess::MoveFlag::PromoteQueenCapture:
+            case Chess_Old::MoveFlag::PromoteQueen:
+            case Chess_Old::MoveFlag::PromoteQueenCapture:
                 PromotePiece( Target, PieceType::Queen );
                 break;
             default:

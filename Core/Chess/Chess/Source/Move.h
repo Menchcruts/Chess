@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Chess
+namespace Chess_Old
 {
 	enum class MoveFlag : unsigned char
 	{
@@ -76,9 +76,9 @@ namespace Chess
 }
 
 template<>
-struct std::hash<Chess::Move>
+struct std::hash<Chess_Old::Move>
 {
-	std::size_t operator()( const Chess::Move& move ) const noexcept
+	std::size_t operator()( const Chess_Old::Move& move ) const noexcept
 	{
 		return std::hash<uint16_t>()(move.MoveInfo);
 	}

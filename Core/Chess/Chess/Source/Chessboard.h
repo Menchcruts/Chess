@@ -12,7 +12,7 @@
 #include "Utils/Logger.h"
 
 
-namespace Chess
+namespace Chess_Old
 {
 	class Chessboard
 	{

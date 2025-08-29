@@ -2,7 +2,7 @@
 #include "ChessCore.h"
 #include <string>
 
-namespace Chess
+namespace Chess_Old
 {
 	struct ChessPiece
 	{
@@ -10,7 +10,7 @@ namespace Chess
 		PieceType type = PieceType::None;
 
 		ChessPiece() = default;
-		ChessPiece( Chess::Color color, Chess::PieceType type );
+		ChessPiece( Chess_Old::Color color, Chess_Old::PieceType type );
 
 		bool IsNullPiece() const;
 		bool IsSlidingPiece() const;

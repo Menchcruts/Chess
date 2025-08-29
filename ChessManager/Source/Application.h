@@ -53,26 +53,26 @@ class ChessApp
 	{
 		short SelectedSquare = -1;
 		bool SelectedPressed = false;
-		Chess::ChessPiece PieceHeld = Chess::ChessPiece();
+		Chess_Old::ChessPiece PieceHeld = Chess_Old::ChessPiece();
 	};
 
 	struct BoardVariables
 	{
 		char NewFen[128] = "";
-		std::array<Chess::Move, 218> LegalMoves;
-		std::vector<Chess::Move> MoveHistory;
+		std::array<Chess_Old::Move, 218> LegalMoves;
+		std::vector<Chess_Old::Move> MoveHistory;
 		int NewWhiteTime = 0;
 		int NewBlackTime = 0;
 		int NumberOfLegalMoves = 0;
-		Chess::Move NextMove;
+		Chess_Old::Move NextMove;
 		bool GameStarted = false;
 	};
 
 	struct BoardVisuals
 	{
-		Chess::Bitboard HighlightedSquares;
+		Chess_Old::Bitboard HighlightedSquares;
 		float CellSize = 100.0f;
-		Chess::Move LastMove;
+		Chess_Old::Move LastMove;
 		bool FlipBoard = false;
 		bool AutoFlip = false;
 	};
@@ -81,12 +81,12 @@ class ChessApp
 	{
 		bool Promoting = false;
 		ImVec2 PromotionScreenPos;
-		Chess::PieceType PromotionType = Chess::PieceType::None;
+		Chess_Old::PieceType PromotionType = Chess_Old::PieceType::None;
 	};
 
 	struct LegalMovesInfo
 	{
-		std::unordered_set<Chess::Move> Moves;
+		std::unordered_set<Chess_Old::Move> Moves;
 		std::unordered_set<int> Targets;
 	};
 
@@ -116,7 +116,7 @@ class ChessApp
 
 	struct BitboardSettings
 	{
-		Chess::Bitboard Result;
+		Chess_Old::Bitboard Result;
 		bool ShowScreen = false;
 
 		bool WhiteKing = false;
@@ -154,9 +154,9 @@ private:
 
 	std::unordered_map<int, LegalMovesInfo> m_LegalMovesDict;	// Moves are mapped with start -> set of moves
 
-	Chess::Chessboard m_Chessboard;
+	Chess_Old::Chessboard m_Chessboard;
 	
-	std::array<std::unordered_map<Chess::PieceType, Image>, 2> m_PieceImages;
+	std::array<std::unordered_map<Chess_Old::PieceType, Image>, 2> m_PieceImages;
 
 	std::unique_ptr<ma_engine> miniaudio_engine;
 
@@ -191,8 +191,8 @@ private:
 	void DrawPieceSelected(ImDrawList* DrawList) const;
 	void DrawLegalTargets( ImDrawList* DrawList ) const;
 
-	void HandleBoardClicks( Chess::ChessPiece Piece, int CurrentSq );
-	Chess::Move IsValidMove( int Start, int Target ) const;
+	void HandleBoardClicks( Chess_Old::ChessPiece Piece, int CurrentSq );
+	Chess_Old::Move IsValidMove( int Start, int Target ) const;
 	void PromoteScreen( );
 	void MakeMove( );
 	void UnMakeMove();
@@ -206,7 +206,7 @@ private:
 	void DrawBitboardScreen();
 
 	void StartPerftTest();
-	int PerftTest( Chess::Chessboard& Board, int Depth, bool* Cancel, bool Verbose, PerftResult* Result );
+	int PerftTest( Chess_Old::Chessboard& Board, int Depth, bool* Cancel, bool Verbose, PerftResult* Result );
 	void DrawPerftScreen();
 
 	template<typename T>

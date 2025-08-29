@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Chess
+namespace Chess_Old
 {
 	enum class CastlingRights : unsigned char
 	{

@@ -1,7 +1,7 @@
 #include "Generator.h"
 #include "../Chessboard.h"
 
-namespace Chess::MoveGen
+namespace Chess_Old::MoveGen
 {
 	MoveGenerator::MoveGenerator( ) : 
 		m_Moves( std::make_unique< std::array<Move, 218> >() ),
@@ -207,25 +207,25 @@ namespace Chess::MoveGen
 			ChessPiece piece = m_Board->m_Bitboards.GetPieceAtSquare( sq );
 			switch ( piece.type )
 			{
-			case Chess::PieceType::King:
+			case Chess_Old::PieceType::King:
 				pieceAttacks = KingMoves[sq];
 				break;
-			case Chess::PieceType::Pawn:
+			case Chess_Old::PieceType::Pawn:
 				pieceAttacks = WhiteToPlay ? BlackPawnAttacks[sq] : WhitePawnAttacks[sq];
 				break;
-			case Chess::PieceType::Knight:
+			case Chess_Old::PieceType::Knight:
 				pieceAttacks = KnightMoves[sq];
 				break;
-			case Chess::PieceType::Bishop:
+			case Chess_Old::PieceType::Bishop:
 				pieceAttacks = GetBishopMoveMask( sq, AllPieces );
 				break;
-			case Chess::PieceType::Rook:
+			case Chess_Old::PieceType::Rook:
 				pieceAttacks = GetRookMoveMask( sq, AllPieces );
 				break;
-			case Chess::PieceType::Queen:
+			case Chess_Old::PieceType::Queen:
 				pieceAttacks = GetRookMoveMask( sq, AllPieces ) | GetBishopMoveMask( sq, AllPieces );
 				break;
-			case Chess::PieceType::None:
+			case Chess_Old::PieceType::None:
 			default:
 				break;
 			}

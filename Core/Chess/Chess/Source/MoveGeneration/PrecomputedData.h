@@ -3,7 +3,7 @@
 #include <vector>
 #include "../Bitboard.h"
 
-namespace Chess::MoveGen
+namespace Chess_Old::MoveGen
 {
 	struct ChessCoord
 	{

@@ -1,6 +1,6 @@
 #include "ChessCore.h"
 
-namespace Chess
+namespace Chess_Old
 {
     const char* GetSquareRepr( int Square )
     {

@@ -2,7 +2,7 @@
 #include "Utils/Logger.h"
 #include <unordered_map>
 
-namespace Chess::MoveGen
+namespace Chess_Old::MoveGen
 {
     std::vector<Bitboard> CreateBlockerPerms( Bitboard BlockerMask )
 	{

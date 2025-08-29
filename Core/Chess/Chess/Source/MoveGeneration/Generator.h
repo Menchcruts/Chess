@@ -9,9 +9,9 @@
 #include "../Pieces.h"
 #include "Utils/Logger.h"
 
-namespace Chess { class Chessboard; }	// For some reason the compiler doesn't know what a Chessboard is unless we define it here as well
+namespace Chess_Old { class Chessboard; }	// For some reason the compiler doesn't know what a Chessboard is unless we define it here as well
 
-namespace Chess::MoveGen
+namespace Chess_Old::MoveGen
 {	
 	class MoveGenerator
 	{

@@ -1,8 +1,8 @@
 #include "Pieces.h"
 
-namespace Chess
+namespace Chess_Old
 {
-	ChessPiece::ChessPiece( Chess::Color color, Chess::PieceType type )
+	ChessPiece::ChessPiece( Chess_Old::Color color, Chess_Old::PieceType type )
 		: color( color ), type( type ) { }
 
 	bool ChessPiece::IsNullPiece() const
@@ -30,19 +30,19 @@ namespace Chess
 	{
         switch ( type )
         {
-        case Chess::PieceType::King:
+        case Chess_Old::PieceType::King:
             return "King";
-        case Chess::PieceType::Pawn:
+        case Chess_Old::PieceType::Pawn:
             return "Pawn";
-        case Chess::PieceType::Knight:
+        case Chess_Old::PieceType::Knight:
             return "Knight";
-        case Chess::PieceType::Bishop:
+        case Chess_Old::PieceType::Bishop:
             return "Bishop";
-        case Chess::PieceType::Rook:
+        case Chess_Old::PieceType::Rook:
             return "Rook";
-        case Chess::PieceType::Queen:
+        case Chess_Old::PieceType::Queen:
             return "Queen";
-        case Chess::PieceType::None:
+        case Chess_Old::PieceType::None:
         default:
             return "None";
         }
