@@ -4,7 +4,7 @@
 #include <format>
 #include "../../Assets/Fonts/Icons/IconsFontAwesome5Pro.h"
 
-PerftWindow::PerftWindow(std::string name, const Chess::Chessboard_New& board) noexcept :
+PerftWindow::PerftWindow(std::string name, const Chess::Chessboard& board) noexcept :
 	Window(name), Board(board)
 {
 
@@ -107,7 +107,7 @@ void PerftWindow::DrawResult(PerftResult& Result, int idx)
 	}
 }
 
-std::uint64_t PerftWindow::perft(Chess::Chessboard_New& Board, int Depth, std::stop_token st)
+std::uint64_t PerftWindow::perft(Chess::Chessboard& Board, int Depth, std::stop_token st)
 {
 	if (st.stop_requested())
 		return 0;

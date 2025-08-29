@@ -34,7 +34,7 @@ private:
 	Logger m_Logger;
 
 	std::unique_ptr<assets::ImageManager> m_Images;
-	std::unique_ptr<Chess::Chessboard_New> m_Board;
+	std::unique_ptr<Chess::Chessboard> m_Board;
 	GLFWwindow* m_Window;
 
 private:

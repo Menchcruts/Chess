@@ -1387,7 +1387,7 @@ void ChessApp::ChessboardTests()
 {
 	using Chess::Piece, Chess::Square, Chess::Color, Chess::CastlingRights;
 	
-	static Chess::Chessboard_New board;
+	static Chess::Chessboard board;
 	ImU32 lightColor = IM_COL32(235, 236, 208, 255);
 	ImU32 lightRedColor = IM_COL32(235, 125, 106, 255);
 
@@ -1550,7 +1550,7 @@ void ChessApp::MoveGenTests()
 	
 	ImGui::Begin("Move generation");
 
-	static Chess::Chessboard_New board;
+	static Chess::Chessboard board;
 	static std::vector<Move> move_history;
 
 	ImU32 lightColor = IM_COL32(235, 236, 208, 255);

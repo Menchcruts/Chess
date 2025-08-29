@@ -37,7 +37,7 @@ namespace Chess
 	}
 }
 
-Chess::MoveGenerator::MoveGenerator(const Chessboard_New& board) : 
+Chess::MoveGenerator::MoveGenerator(const Chessboard& board) : 
 	Board(board),
 	
 	WhiteToMove(board.m_WhiteToMove),

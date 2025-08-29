@@ -18,7 +18,7 @@ namespace Chess
 		friend inline constexpr CheckStatus& operator |=(CheckStatus& lhs, CheckStatus rhs) { return lhs = lhs | rhs; }
 
 	private:
-		const Chessboard_New& Board;
+		const Chessboard& Board;
 
 		Bitboard AttackedSquares;
 		Bitboard CheckRays;
@@ -37,7 +37,7 @@ namespace Chess
 		CheckStatus Check_Status;
 
 	public:
-		MoveGenerator(const Chessboard_New& board);
+		MoveGenerator(const Chessboard& board);
 		void GenMoves(std::vector<Move>& moves) const;
 		
 		[[deprecated("RunPerft deprecated. Users should implement their own Perft function.")]]

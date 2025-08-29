@@ -8,7 +8,7 @@
 
 namespace Chess
 {
-	class Chessboard_New
+	class Chessboard
 	{
 		struct PieceBitboards
 		{

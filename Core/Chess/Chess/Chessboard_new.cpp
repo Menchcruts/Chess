@@ -6,13 +6,13 @@
 #include <charconv>
 #include <iostream>
 
-void Chess::Chessboard_New::ResetBoard()
+void Chess::Chessboard::ResetBoard()
 {
     // Reset the board to the initial position
     LoadFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 }
 
-void Chess::Chessboard_New::PlacePiece(Square sq, Piece piece)
+void Chess::Chessboard::PlacePiece(Square sq, Piece piece)
 {
 	if (!is_ok(sq))
 		return;
@@ -23,7 +23,7 @@ void Chess::Chessboard_New::PlacePiece(Square sq, Piece piece)
 	m_Bitboards.SetBit(sq, piece);
 }
 
-Chess::Piece Chess::Chessboard_New::RemovePiece(Square sq)
+Chess::Piece Chess::Chessboard::RemovePiece(Square sq)
 {
 	if ( !is_ok(sq))
 		return Piece::NoPiece;
@@ -34,7 +34,7 @@ Chess::Piece Chess::Chessboard_New::RemovePiece(Square sq)
 	return piece;
 }
 
-Chess::Piece Chess::Chessboard_New::GetPiece(Square sq) const
+Chess::Piece Chess::Chessboard::GetPiece(Square sq) const
 {
     if (!is_ok(sq))
 		return NoPiece;
@@ -68,7 +68,7 @@ static std::string string_from_square(Chess::Square sq)
     return { files[file], ranks[rank] };
 }
 
-void Chess::Chessboard_New::MakeMove(Move move)
+void Chess::Chessboard::MakeMove(Move move)
 {    
     // TODO: Implement null move logic
     
@@ -176,7 +176,7 @@ void Chess::Chessboard_New::MakeMove(Move move)
     GenerateMoves();
 }
 
-void Chess::Chessboard_New::UnMakeMove(Move move)
+void Chess::Chessboard::UnMakeMove(Move move)
 {
     if (m_MoveHistory.empty() || move != m_MoveHistory.back())
         return; // Future logging
@@ -239,7 +239,7 @@ void Chess::Chessboard_New::UnMakeMove(Move move)
     GenerateMoves();
 }
 
-void Chess::Chessboard_New::LoadFEN(const std::string_view& FEN_String)
+void Chess::Chessboard::LoadFEN(const std::string_view& FEN_String)
 {
 	std::vector<std::string> FEN_Tokens;
     for (auto&& token : FEN_String | std::views::split(' ')) {
@@ -346,7 +346,7 @@ void Chess::Chessboard_New::LoadFEN(const std::string_view& FEN_String)
 }
 
 /* This method creates a move with necessary flags for the user. */
-Chess::Move Chess::Chessboard_New::CreateMove(Square From, Square To, PieceType PromotionType) const
+Chess::Move Chess::Chessboard::CreateMove(Square From, Square To, PieceType PromotionType) const
 {
     PieceType PieceType = type_of(GetPiece(From));
     MoveFlag flag = MoveFlag::None;
@@ -386,7 +386,7 @@ Chess::Move Chess::Chessboard_New::CreateMove(Square From, Square To, PieceType 
     return make_move(From, To, flag);
 }
 
-std::string Chess::Chessboard_New::ExportFEN() const
+std::string Chess::Chessboard::ExportFEN() const
 {
     std::string result = Stringify_Board(m_BoardArray);
 
@@ -405,14 +405,14 @@ std::string Chess::Chessboard_New::ExportFEN() const
     return result;
 }
 
-void Chess::Chessboard_New::GenerateMoves()
+void Chess::Chessboard::GenerateMoves()
 {
     MoveGenerator gen(*this);
     gen.GenMoves(m_Moves);
     //MoveGenerator::GenerateMoves(*this, m_Moves);
 }
 
-Chess::PieceType Chess::Chessboard_New::GetPromotionPiece(MoveFlag flag) const
+Chess::PieceType Chess::Chessboard::GetPromotionPiece(MoveFlag flag) const
 {
     flag = MoveFlag(flag & 0b1011); // Filter out the capture flag if its there
     
@@ -428,7 +428,7 @@ Chess::PieceType Chess::Chessboard_New::GetPromotionPiece(MoveFlag flag) const
     return NoPieceType;
 }
 
-std::string Chess::Chessboard_New::Stringify_CastleRights(CastlingRights Rights)
+std::string Chess::Chessboard::Stringify_CastleRights(CastlingRights Rights)
 {
     std::string result;
 
@@ -444,7 +444,7 @@ std::string Chess::Chessboard_New::Stringify_CastleRights(CastlingRights Rights)
     return result;
 }
 
-std::string Chess::Chessboard_New::Stringify_Board(const std::array<Piece, 64>& Board)
+std::string Chess::Chessboard::Stringify_Board(const std::array<Piece, 64>& Board)
 {
     std::string result;
 

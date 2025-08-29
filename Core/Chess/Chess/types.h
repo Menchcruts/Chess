@@ -3,7 +3,7 @@
 
 namespace Chess
 {
-	class Chessboard_New;
+	class Chessboard;
 
 	enum Square : std::uint16_t
 	{

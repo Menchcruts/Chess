@@ -59,7 +59,7 @@ App::App() :
     Chess::Bitboards::init();
     m_MoveHistory.reserve(128);
 
-    m_Board = std::make_unique<Chess::Chessboard_New>();
+    m_Board = std::make_unique<Chess::Chessboard>();
     m_Board->ResetBoard();
     std::cout << m_Board->ExportFEN() << "\n";
 

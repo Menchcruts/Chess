@@ -7,7 +7,7 @@
 
 ChessWindow::ChessWindow(
 	std::string Name, 
-	Chess::Chessboard_New& board, 
+	Chess::Chessboard& board, 
 	std::function<void(Chess::Move)> MakeMoveFunc,
 	std::function<void()> UnMakeMoveFunc,
 	assets::ImageManager& images

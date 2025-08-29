@@ -25,7 +25,7 @@ namespace Chess
 			bool passed = true;
 		};
 		
-		static int RunPerft(Chessboard_New& board, int depth)
+		static int RunPerft(Chessboard& board, int depth)
 		{
 			if (depth <= 0)
 				return 1;
@@ -49,7 +49,7 @@ namespace Chess
 		{
 			std::cout << "Running PerftStartpos...\n";
 
-			Chessboard_New board;
+			Chessboard board;
 			board.LoadFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 			MoveGenerator generator(board);
 
