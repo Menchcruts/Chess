@@ -160,6 +160,9 @@ namespace Chess
 		Move CreateMove(Square From, Square To, PieceType PromotionType = PieceType::NoPieceType) const;
 		std::string ExportFEN() const;
 
+		bool IsLegalMove(Square from, Square to) const { return m_Generator.IsLegalMove(from, to); }
+		bool IsPromotionMove(Square from, Square to) const { return m_Generator.IsPromotionMove(from, to); }
+
 		friend class MoveGenerator;
 
 	private:

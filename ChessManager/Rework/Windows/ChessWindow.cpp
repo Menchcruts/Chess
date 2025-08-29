@@ -84,7 +84,7 @@ std::string ChessWindow::GetPieceImageName(Chess::Piece piece) const
 
 void ChessWindow::DrawBoard()
 {
-	using Chess::Piece, Chess::Square, Chess::Bitboards::is_legal;
+	using Chess::Piece, Chess::Square;
 
 	static bool SelectedAgain = false;
 
@@ -121,7 +121,7 @@ void ChessWindow::DrawBoard()
 					MouseOverBoard = true;
 				}
 
-				if (is_legal(Square(SelectedSquare), Square(sq)))
+				if (Board.IsLegalMove(Square(SelectedSquare), Square(sq)))
 					DrawTargetCircle(HoveredSquare == sq, piece != Piece::NoPiece, CellSide);
 
 				if (State == InputState::Promoting && sq == TargetSquare)
@@ -319,18 +319,17 @@ void ChessWindow::HandleMoving_Idle()
 void ChessWindow::HandleMoving_Dragging()
 {
 	using Chess::Square, Chess::Piece, Chess::Move;
-	using Chess::Bitboards::is_legal, Chess::Bitboards::is_promotion_move;
 
 	DrawSelectedPiece();
 
 	if (MouseReleased)
 	{
 		PieceHeld = Piece::NoPiece;
-		if (is_legal(Square(SelectedSquare), Square(HoveredSquare)))
+		if (Board.IsLegalMove(Square(SelectedSquare), Square(HoveredSquare)))
 		{
 			TargetSquare = HoveredSquare;
 			SelectedAgain = false;
-			if (is_promotion_move(Square(SelectedSquare), Square(TargetSquare)))
+			if (Board.IsPromotionMove(Square(SelectedSquare), Square(TargetSquare)))
 			{
 				State = InputState::Promoting;
 				return;
@@ -359,7 +358,6 @@ void ChessWindow::HandleMoving_Dragging()
 void ChessWindow::HandleMoving_Selected()
 {
 	using Chess::Square, Chess::Piece, Chess::Move;
-	using Chess::Bitboards::is_legal, Chess::Bitboards::is_promotion_move;
 
 	if (MouseClicked)
 	{
@@ -371,11 +369,11 @@ void ChessWindow::HandleMoving_Selected()
 			State = InputState::Dragging;
 			return;
 		}
-		if (is_legal(Square(SelectedSquare), Square(HoveredSquare)))
+		if (Board.IsLegalMove(Square(SelectedSquare), Square(HoveredSquare)))
 		{
 			TargetSquare = HoveredSquare;
 			SelectedAgain = false;
-			if (is_promotion_move(Square(SelectedSquare), Square(TargetSquare)))
+			if (Board.IsPromotionMove(Square(SelectedSquare), Square(TargetSquare)))
 			{
 				State = InputState::Promoting;
 				return;

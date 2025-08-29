@@ -27,9 +27,6 @@ namespace Chess::Bitboards
 	extern Bitboard RookBlockers[64];
 	extern Bitboard BishopBlockers[64];
 
-	extern Bitboard LegalTargets[64];
-	extern Bitboard PromoMask[64];
-
 	struct Magic
 	{
 		std::unordered_map<int, Bitboard> attacks;
@@ -286,18 +283,5 @@ namespace Chess::Bitboards
 	inline Bitboard attacks(Square sq, PieceType pt, Bitboard blockers, Color c) 
 	{
 		return pt == Pawn ? attacks(sq, c) : attacks(sq, pt, blockers);
-	}
-
-	inline bool is_legal(Square from, Square to)
-	{
-		if (!(is_ok(from) && is_ok(to)))
-			return false;
-		return is_occupied(LegalTargets[from], to);
-	}
-	inline bool is_promotion_move(Square from, Square to)
-	{
-		if (!(is_ok(from) && is_ok(to)))
-			return false;
-		return is_occupied(PromoMask[from], to);
 	}
 }

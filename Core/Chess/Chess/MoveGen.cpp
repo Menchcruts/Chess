@@ -37,25 +37,21 @@ namespace Chess
 	}
 }
 
-//Chess::MoveGenerator::MoveGenerator(const Chessboard* board) : 
-//	Board(board),
-//	
-//	WhiteToMove(board->m_WhiteToMove),
-//	FriendlyColor((board->m_WhiteToMove ? White : Black)),
-//	EnemyColor(~FriendlyColor),
-//	
-//	CastleRights(board->m_CastlingRights & (board->m_WhiteToMove ? White_Castling : Black_Castling)),
-//	KingSquare(Bitboards::bitscan_forward(
-//		board->m_WhiteToMove ? board->m_Bitboards.WKings : board->m_Bitboards.BKings)
-//	)
-//{
-//	AllPieces = board->m_Bitboards.GetAllPieces();
-//	FriendlyPieces = board->m_Bitboards.GetPieces(FriendlyColor);
-//	EnemyPieces = board->m_Bitboards.GetPieces(EnemyColor);
-//
-//	CreateAttackedBitboard();
-//	CreatePinnedBitboard();
-//}
+bool Chess::MoveGenerator::IsLegalMove(Square from, Square to) const
+{
+	if (!is_ok(from) || !is_ok(to))
+		return false;
+
+	return Bitboards::is_occupied(LegalTargets[from], to);
+}
+
+bool Chess::MoveGenerator::IsPromotionMove(Square from, Square to) const
+{
+	if (!is_ok(from) || !is_ok(to))
+		return false;
+
+	return Bitboards::is_occupied(PromoMask[from], to);
+}
 
 void Chess::MoveGenerator::Load(const Chessboard* board)
 {
@@ -87,8 +83,8 @@ std::vector<Chess::Move> Chess::MoveGenerator::GenerateMoves(const Chessboard* b
 	std::vector<Move> moves; 
 	moves.reserve(218); // Reserve space for at least 218 moves (theoretical maximum in a position)
 
-	memset(Bitboards::LegalTargets, 0, sizeof(Bitboards::LegalTargets));
-	memset(Bitboards::PromoMask, 0, sizeof(Bitboards::PromoMask));
+	memset(LegalTargets.data(), 0, sizeof(LegalTargets));
+	memset(PromoMask.data(), 0, sizeof(PromoMask));
 
 	Bitboard Pieces = FriendlyPieces;
 	while (Pieces)
@@ -101,7 +97,7 @@ std::vector<Chess::Move> Chess::MoveGenerator::GenerateMoves(const Chessboard* b
 	return moves;
 }
 
-void Chess::MoveGenerator::PerPiece(Square sq, Piece piece, std::vector<Move>& moves) const
+void Chess::MoveGenerator::PerPiece(Square sq, Piece piece, std::vector<Move>& moves)
 {
 	namespace BB = Bitboards;
 
@@ -136,13 +132,13 @@ void Chess::MoveGenerator::PerPiece(Square sq, Piece piece, std::vector<Move>& m
 	AddAttacks(sq, type, Attacks, moves);
 }
 
-void Chess::MoveGenerator::AddAttacks(Square sq, PieceType type, Bitboard Attacks, std::vector<Move>& moves) const
+void Chess::MoveGenerator::AddAttacks(Square sq, PieceType type, Bitboard Attacks, std::vector<Move>& moves)
 {
 	namespace BB = Bitboards;
 	
 	Rank PromotionRank = WhiteToMove ? Rank_8 : Rank_1;
 
-	BB::LegalTargets[sq] |= Attacks;
+	LegalTargets[sq] |= Attacks;
 
 	while (Attacks)
 	{
@@ -158,7 +154,7 @@ void Chess::MoveGenerator::AddAttacks(Square sq, PieceType type, Bitboard Attack
 
 		if (rank_of(to_sq) == PromotionRank && type == Pawn)
 		{
-			BB::PromoMask[sq] |= BB::from_sq(to_sq);
+			PromoMask[sq] |= BB::from_sq(to_sq);
 			AddMove(sq, to_sq, { flag | PromoteQueen, flag | PromoteRook, flag | PromoteBishop, flag | PromoteKnight }, moves);
 		}
 		else
@@ -242,7 +238,7 @@ void Chess::MoveGenerator::CreatePinnedBitboard()
 	}
 }
 
-void Chess::MoveGenerator::AddPawnPushes(Square sq, std::vector<Move>& moves) const
+void Chess::MoveGenerator::AddPawnPushes(Square sq, std::vector<Move>& moves)
 {
 	using Bitboards::from_sq, Bitboards::bitscan_forward;
 
@@ -273,11 +269,11 @@ void Chess::MoveGenerator::AddPawnPushes(Square sq, std::vector<Move>& moves) co
 	if (!(Single & AllPieces))	// Single push
 	{
 		Square to_sq = bitscan_forward(Single);
-		Bitboards::LegalTargets[sq] |= Single;
+		LegalTargets[sq] |= Single;
 
 		if (promoting)
 		{
-			Bitboards::PromoMask[sq] |= Single;
+			PromoMask[sq] |= Single;
 			AddMove(sq, to_sq, { PromoteQueen, PromoteRook, PromoteBishop, PromoteKnight }, moves);
 		}
 		else
@@ -289,13 +285,13 @@ void Chess::MoveGenerator::AddPawnPushes(Square sq, std::vector<Move>& moves) co
 	if (can_double_push && Double && !(Combined & AllPieces))
 	{
 		Square to_sq = bitscan_forward(Double);
-		Bitboards::LegalTargets[sq] |= Double;
+		LegalTargets[sq] |= Double;
 
 		AddMove(sq, to_sq, DoublePawnMove, moves);
 	}
 }
 
-void Chess::MoveGenerator::AddCastlingMoves(std::vector<Move>& moves) const
+void Chess::MoveGenerator::AddCastlingMoves(std::vector<Move>& moves)
 {
 	using Bitboards::from_sq, Bitboards::shift;
 
@@ -311,7 +307,7 @@ void Chess::MoveGenerator::AddCastlingMoves(std::vector<Move>& moves) const
 		Bitboard RookPath = KingPath;
 		if (!(KingPath & AttackedSquares) && !(RookPath & AllPieces))
 		{
-			Bitboards::LegalTargets[KingSquare] |= KingPath;
+			LegalTargets[KingSquare] |= KingPath;
 			AddMove(KingSquare, KingTo, CastleKing, moves);
 		}
 	}
@@ -325,7 +321,7 @@ void Chess::MoveGenerator::AddCastlingMoves(std::vector<Move>& moves) const
 
 		if (!(KingPath & AttackedSquares) && !(RookPath & AllPieces))
 		{
-			Bitboards::LegalTargets[KingSquare] |= KingPath;
+			LegalTargets[KingSquare] |= KingPath;
 			AddMove(KingSquare, KingTo, CastleQueen, moves);
 		}
 	}
