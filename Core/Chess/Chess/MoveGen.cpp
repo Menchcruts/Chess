@@ -37,21 +37,21 @@ namespace Chess
 	}
 }
 
-Chess::MoveGenerator::MoveGenerator(const Chessboard& board) : 
+Chess::MoveGenerator::MoveGenerator(const Chessboard* board) : 
 	Board(board),
 	
-	WhiteToMove(board.m_WhiteToMove),
-	FriendlyColor((board.m_WhiteToMove ? White : Black)),
+	WhiteToMove(board->m_WhiteToMove),
+	FriendlyColor((board->m_WhiteToMove ? White : Black)),
 	EnemyColor(~FriendlyColor),
 	
-	CastleRights(board.m_CastlingRights & (board.m_WhiteToMove ? White_Castling : Black_Castling)),
+	CastleRights(board->m_CastlingRights & (board->m_WhiteToMove ? White_Castling : Black_Castling)),
 	KingSquare(Bitboards::bitscan_forward(
-		board.m_WhiteToMove ? board.m_Bitboards.WKings : board.m_Bitboards.BKings)
+		board->m_WhiteToMove ? board->m_Bitboards.WKings : board->m_Bitboards.BKings)
 	)
 {
-	AllPieces = board.m_Bitboards.GetAllPieces();
-	FriendlyPieces = board.m_Bitboards.GetPieces(FriendlyColor);
-	EnemyPieces = board.m_Bitboards.GetPieces(EnemyColor);
+	AllPieces = board->m_Bitboards.GetAllPieces();
+	FriendlyPieces = board->m_Bitboards.GetPieces(FriendlyColor);
+	EnemyPieces = board->m_Bitboards.GetPieces(EnemyColor);
 
 	CreateAttackedBitboard();
 	CreatePinnedBitboard();
@@ -72,7 +72,7 @@ void Chess::MoveGenerator::GenMoves(std::vector<Move>& moves) const
 	while (Pieces)
 	{
 		Square sq = bitscan_forward_auto(Pieces);
-		Piece piece = Board.GetPiece(sq);
+		Piece piece = Board->GetPiece(sq);
 
 		PerPiece(sq, piece, moves);
 	}
@@ -97,7 +97,7 @@ void Chess::MoveGenerator::PerPiece(Square sq, Piece piece, std::vector<Move>& m
 		break;
 	case Pawn:
 		if (CanEPCapture())
-			Attacks &= EnemyPieces | BB::from_sq(Board.m_EP_Square);
+			Attacks &= EnemyPieces | BB::from_sq(Board->m_EP_Square);
 		else
 			Attacks &= EnemyPieces;
 		AddPawnPushes(sq, moves);
@@ -130,7 +130,7 @@ void Chess::MoveGenerator::AddAttacks(Square sq, PieceType type, Bitboard Attack
 		if (IsCapture)
 			flag |= MoveFlag::Capture;
 
-		if (to_sq == Board.m_EP_Square && type == Pawn)
+		if (to_sq == Board->m_EP_Square && type == Pawn)
 			flag |= MoveFlag::EnPassant;
 
 		if (rank_of(to_sq) == PromotionRank && type == Pawn)
@@ -178,7 +178,7 @@ void Chess::MoveGenerator::CreateAttackedBitboard()
 	while (Enemies)
 	{
 		Square sq = bitscan_forward_auto(Enemies);
-		Piece piece = Board.GetPiece(sq);
+		Piece piece = Board->GetPiece(sq);
 		PieceType type = type_of(piece);
 
 		Bitboard piece_attacks = 0;
@@ -205,10 +205,10 @@ void Chess::MoveGenerator::CreatePinnedBitboard()
 	using Bitboards::bitscan_forward_auto, Bitboards::get_between_bb;
 	PinnedPieces = 0;
 
-	Bitboard opRQ = WhiteToMove ? Board.m_Bitboards.BRooks   | Board.m_Bitboards.BQueens :
-								  Board.m_Bitboards.WRooks   | Board.m_Bitboards.WQueens ;
-	Bitboard opBQ = WhiteToMove ? Board.m_Bitboards.BBishops | Board.m_Bitboards.BQueens :
-								  Board.m_Bitboards.WBishops | Board.m_Bitboards.WQueens ;
+	Bitboard opRQ = WhiteToMove ? Board->m_Bitboards.BRooks   | Board->m_Bitboards.BQueens :
+								  Board->m_Bitboards.WRooks   | Board->m_Bitboards.WQueens ;
+	Bitboard opBQ = WhiteToMove ? Board->m_Bitboards.BBishops | Board->m_Bitboards.BQueens :
+								  Board->m_Bitboards.WBishops | Board->m_Bitboards.WQueens ;
 	
 	Bitboard Pinners = RookXRay(KingSquare, AllPieces, FriendlyPieces) & opRQ;
 	Pinners |= BishopXRay(KingSquare, AllPieces, FriendlyPieces) & opBQ;
@@ -312,17 +312,17 @@ bool Chess::MoveGenerator::CanEPCapture() const
 {
 	using Bitboards::from_sq;
 	
-	if (!is_ok(Board.m_EP_Square))
+	if (!is_ok(Board->m_EP_Square))
 		return false;
 	
-	Bitboard opRQ = WhiteToMove ? Board.m_Bitboards.BRooks | Board.m_Bitboards.BQueens :
-								  Board.m_Bitboards.WRooks | Board.m_Bitboards.WQueens ;
+	Bitboard opRQ = WhiteToMove ? Board->m_Bitboards.BRooks | Board->m_Bitboards.BQueens :
+								  Board->m_Bitboards.WRooks | Board->m_Bitboards.WQueens ;
 
-	Square EPCaptureSq = Board.m_EP_Square + (WhiteToMove ? Dir_South : Dir_North);
+	Square EPCaptureSq = Board->m_EP_Square + (WhiteToMove ? Dir_South : Dir_North);
 	
 	Bitboard LineThrough = Bitboards::attacks(
 		KingSquare, Rook, 
-		AllPieces ^ (from_sq(Board.m_EP_Square) | from_sq(EPCaptureSq))
+		AllPieces ^ (from_sq(Board->m_EP_Square) | from_sq(EPCaptureSq))
 	);
 	return !(LineThrough & opRQ);
 }
