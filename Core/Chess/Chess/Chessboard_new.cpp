@@ -407,8 +407,7 @@ std::string Chess::Chessboard::ExportFEN() const
 
 void Chess::Chessboard::GenerateMoves()
 {
-    MoveGenerator gen(this);
-    gen.GenerateMoves(m_Moves);
+    m_Moves = m_Generator.GenerateMoves(this);
 }
 
 Chess::PieceType Chess::Chessboard::GetPromotionPiece(MoveFlag flag) const

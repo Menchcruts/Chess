@@ -37,18 +37,39 @@ namespace Chess
 	}
 }
 
-Chess::MoveGenerator::MoveGenerator(const Chessboard* board) : 
-	Board(board),
-	
-	WhiteToMove(board->m_WhiteToMove),
-	FriendlyColor((board->m_WhiteToMove ? White : Black)),
-	EnemyColor(~FriendlyColor),
-	
-	CastleRights(board->m_CastlingRights & (board->m_WhiteToMove ? White_Castling : Black_Castling)),
-	KingSquare(Bitboards::bitscan_forward(
-		board->m_WhiteToMove ? board->m_Bitboards.WKings : board->m_Bitboards.BKings)
-	)
+//Chess::MoveGenerator::MoveGenerator(const Chessboard* board) : 
+//	Board(board),
+//	
+//	WhiteToMove(board->m_WhiteToMove),
+//	FriendlyColor((board->m_WhiteToMove ? White : Black)),
+//	EnemyColor(~FriendlyColor),
+//	
+//	CastleRights(board->m_CastlingRights & (board->m_WhiteToMove ? White_Castling : Black_Castling)),
+//	KingSquare(Bitboards::bitscan_forward(
+//		board->m_WhiteToMove ? board->m_Bitboards.WKings : board->m_Bitboards.BKings)
+//	)
+//{
+//	AllPieces = board->m_Bitboards.GetAllPieces();
+//	FriendlyPieces = board->m_Bitboards.GetPieces(FriendlyColor);
+//	EnemyPieces = board->m_Bitboards.GetPieces(EnemyColor);
+//
+//	CreateAttackedBitboard();
+//	CreatePinnedBitboard();
+//}
+
+void Chess::MoveGenerator::Load(const Chessboard* board)
 {
+	Board = board;
+
+	WhiteToMove = board->m_WhiteToMove;
+	FriendlyColor = WhiteToMove ? White : Black;
+	EnemyColor = ~FriendlyColor;
+
+	CastleRights = board->m_CastlingRights & (WhiteToMove ? White_Castling : Black_Castling);
+	KingSquare = Bitboards::bitscan_forward(
+		WhiteToMove ? board->m_Bitboards.WKings : board->m_Bitboards.BKings
+	);
+
 	AllPieces = board->m_Bitboards.GetAllPieces();
 	FriendlyPieces = board->m_Bitboards.GetPieces(FriendlyColor);
 	EnemyPieces = board->m_Bitboards.GetPieces(EnemyColor);
@@ -57,13 +78,14 @@ Chess::MoveGenerator::MoveGenerator(const Chessboard* board) :
 	CreatePinnedBitboard();
 }
 
-void Chess::MoveGenerator::GenerateMoves(std::vector<Move>& moves) const
+std::vector<Chess::Move> Chess::MoveGenerator::GenerateMoves(const Chessboard* board)
 {
 	using Bitboards::from_sq, Bitboards::bitscan_forward_auto;
-	if (moves.capacity() < 218)
-		moves.reserve(218); // Reserve space for at least 218 moves (theoretical maximum in a position)
+	
+	Load(board);
 
-	moves.clear();
+	std::vector<Move> moves; 
+	moves.reserve(218); // Reserve space for at least 218 moves (theoretical maximum in a position)
 
 	memset(Bitboards::LegalTargets, 0, sizeof(Bitboards::LegalTargets));
 	memset(Bitboards::PromoMask, 0, sizeof(Bitboards::PromoMask));
@@ -76,6 +98,7 @@ void Chess::MoveGenerator::GenerateMoves(std::vector<Move>& moves) const
 
 		PerPiece(sq, piece, moves);
 	}
+	return moves;
 }
 
 void Chess::MoveGenerator::PerPiece(Square sq, Piece piece, std::vector<Move>& moves) const

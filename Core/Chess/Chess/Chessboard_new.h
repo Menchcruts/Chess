@@ -1,6 +1,7 @@
 #pragma once
 #include "types.h"
 #include "Bitboards.h"
+#include "MoveGen.h"
 #include <array>
 #include <vector>
 #include <string>
@@ -162,6 +163,8 @@ namespace Chess
 		friend class MoveGenerator;
 
 	private:
+		MoveGenerator m_Generator;
+		
 		// Piece placements
 		std::vector<Move> m_Moves = make_reserved_vector<Move>(218);
 		PieceBitboards m_Bitboards;
