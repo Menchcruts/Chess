@@ -11,8 +11,8 @@ class ChessWindow : public Window
 public:
 	ChessWindow(
 		std::string Name,
-		Chess_Rework::Chessboard_New& board,
-		std::function<void(Chess_Rework::Move)> MakeMoveFunc,
+		Chess::Chessboard_New& board,
+		std::function<void(Chess::Move)> MakeMoveFunc,
 		std::function<void()> UnMakeMoveFunc,
 		assets::ImageManager& images
 	);
@@ -34,10 +34,10 @@ private:
 	};
 
 private:
-	std::string GetPieceImageName(Chess_Rework::Piece piece) const;
+	std::string GetPieceImageName(Chess::Piece piece) const;
 	
 	void DrawBoard();
-	void PopulateCell(int sq, ImVec2 Cellsize, Chess_Rework::Piece piece) const;
+	void PopulateCell(int sq, ImVec2 Cellsize, Chess::Piece piece) const;
 	void DrawSelectedPiece() const;
 	void DrawTargetCircle(bool IsHovered, bool PieceOnSquare, float CellSize) const;
 	void DrawPromotionWindow(ImVec2 CellSize);
@@ -51,13 +51,13 @@ private:
 	const char* GetStateName(InputState state) const;
 
 private:
-	std::function<void(Chess_Rework::Move)> MakeMove;
+	std::function<void(Chess::Move)> MakeMove;
 	std::function<void()> UnMakeMove;
-	std::vector<Chess_Rework::Move> MoveHistory;
+	std::vector<Chess::Move> MoveHistory;
 
 	WindowColors Colors;
 
-	Chess_Rework::Chessboard_New& Board;
+	Chess::Chessboard_New& Board;
 	assets::ImageManager& Images;
 
 	InputState State = InputState::Idle;
@@ -65,8 +65,8 @@ private:
 	int SelectedSquare = -1;
 	int HoveredSquare = -1;
 	int TargetSquare = -1;
-	Chess_Rework::Piece PieceHeld = Chess_Rework::Piece::NoPiece;
-	Chess_Rework::PieceType PromotionType = Chess_Rework::PieceType::NoPieceType;
+	Chess::Piece PieceHeld = Chess::Piece::NoPiece;
+	Chess::PieceType PromotionType = Chess::PieceType::NoPieceType;
 	bool SelectedAgain	= false;
 	bool MouseClicked	= false;
 	bool MouseReleased	= false;

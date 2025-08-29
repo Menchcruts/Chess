@@ -13,7 +13,7 @@ class PerftWindow : public Window
 public:
 	struct PerftResult
 	{
-		Chess_Rework::Chessboard_New Board;
+		Chess::Chessboard_New Board;
 		std::string FEN;
 
 		std::atomic<std::uint64_t>  Nodes{ 0 };
@@ -27,7 +27,7 @@ public:
 	};
 
 public:
-	PerftWindow(std::string name, const Chess_Rework::Chessboard_New& board) noexcept;
+	PerftWindow(std::string name, const Chess::Chessboard_New& board) noexcept;
 	~PerftWindow() noexcept;
 	void Draw() noexcept;
 
@@ -36,9 +36,9 @@ private:
 	void DrawResults();
 	void DrawResult(PerftResult& Result, int idx);
 
-	static std::uint64_t perft(Chess_Rework::Chessboard_New& Board, int Depth, std::stop_token st);
+	static std::uint64_t perft(Chess::Chessboard_New& Board, int Depth, std::stop_token st);
 
 private:
 	std::vector<Job> Jobs;
-	const Chess_Rework::Chessboard_New& Board;
+	const Chess::Chessboard_New& Board;
 };

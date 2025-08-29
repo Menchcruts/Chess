@@ -7,7 +7,7 @@
 #include <iostream>
 
 
-namespace Chess_Rework
+namespace Chess
 {
 	class Perft
 	{

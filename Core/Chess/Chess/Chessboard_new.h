@@ -6,7 +6,7 @@
 #include <string>
 #include <string_view>
 
-namespace Chess_Rework
+namespace Chess
 {
 	class Chessboard_New
 	{

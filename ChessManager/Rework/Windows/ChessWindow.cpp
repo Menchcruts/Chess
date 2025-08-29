@@ -7,8 +7,8 @@
 
 ChessWindow::ChessWindow(
 	std::string Name, 
-	Chess_Rework::Chessboard_New& board, 
-	std::function<void(Chess_Rework::Move)> MakeMoveFunc,
+	Chess::Chessboard_New& board, 
+	std::function<void(Chess::Move)> MakeMoveFunc,
 	std::function<void()> UnMakeMoveFunc,
 	assets::ImageManager& images
 ) :
@@ -18,10 +18,7 @@ ChessWindow::ChessWindow(
 }
 
 void ChessWindow::Draw()
-{
-	namespace Chess = Chess_Rework;
-	using Chess::Piece, Chess::Move;
-	
+{	
 	MouseClicked	= ImGui::IsMouseClicked(ImGuiMouseButton_Left);
 	MouseReleased	= ImGui::IsMouseReleased(ImGuiMouseButton_Left);
 	LeftMouseDown	= ImGui::IsMouseDown(ImGuiMouseButton_Left);
@@ -48,9 +45,9 @@ void ChessWindow::Draw()
 	ImGui::End();
 }
 
-std::string ChessWindow::GetPieceImageName(Chess_Rework::Piece piece) const
+std::string ChessWindow::GetPieceImageName(Chess::Piece piece) const
 {
-	using namespace Chess_Rework;
+	using namespace Chess;
 
 	PieceType type = type_of(piece);
 	Color color = color_of(piece);
@@ -59,22 +56,22 @@ std::string ChessWindow::GetPieceImageName(Chess_Rework::Piece piece) const
 
 	switch (type)
 	{
-	case Chess_Rework::King:
+	case King:
 		file_name += "k";
 		break;
-	case Chess_Rework::Pawn:
+	case Pawn:
 		file_name += "p";
 		break;
-	case Chess_Rework::Knight:
+	case Knight:
 		file_name += "n";
 		break;
-	case Chess_Rework::Bishop:
+	case Bishop:
 		file_name += "b";
 		break;
-	case Chess_Rework::Rook:
+	case Rook:
 		file_name += "r";
 		break;
-	case Chess_Rework::Queen:
+	case Queen:
 		file_name += "q";
 		break;
 	default:
@@ -87,7 +84,6 @@ std::string ChessWindow::GetPieceImageName(Chess_Rework::Piece piece) const
 
 void ChessWindow::DrawBoard()
 {
-	namespace Chess = Chess_Rework;
 	using Chess::Piece, Chess::Square, Chess::Bitboards::is_legal;
 
 	static bool SelectedAgain = false;
@@ -142,7 +138,6 @@ void ChessWindow::DrawBoard()
 
 void ChessWindow::DrawPromotionWindow(ImVec2 CellSize)
 {
-	namespace Chess = Chess_Rework;
 	using Chess::Piece, Chess::PieceType;
 	
 	bool WhiteToPlay = Board.IsWhiteToMove();
@@ -219,9 +214,9 @@ void ChessWindow::DrawPromotionWindow(ImVec2 CellSize)
 	ImGui::PopStyleVar(5);
 }
 
-void ChessWindow::PopulateCell(int sq, ImVec2 Cellsize, Chess_Rework::Piece piece) const
+void ChessWindow::PopulateCell(int sq, ImVec2 Cellsize, Chess::Piece piece) const
 {
-	using Chess_Rework::Piece;
+	using Chess::Piece;
 
 	bool SkipSquare = sq == SelectedSquare && (State == InputState::Dragging || State == InputState::Promoting);
 
@@ -308,7 +303,6 @@ void ChessWindow::HandleMoving()
 
 void ChessWindow::HandleMoving_Idle()
 {
-	namespace Chess = Chess_Rework;
 	using Chess::Square, Chess::Piece;
 
 	if (MouseClicked)
@@ -324,7 +318,6 @@ void ChessWindow::HandleMoving_Idle()
 
 void ChessWindow::HandleMoving_Dragging()
 {
-	namespace Chess = Chess_Rework;
 	using Chess::Square, Chess::Piece, Chess::Move;
 	using Chess::Bitboards::is_legal, Chess::Bitboards::is_promotion_move;
 
@@ -365,7 +358,6 @@ void ChessWindow::HandleMoving_Dragging()
 
 void ChessWindow::HandleMoving_Selected()
 {
-	namespace Chess = Chess_Rework;
 	using Chess::Square, Chess::Piece, Chess::Move;
 	using Chess::Bitboards::is_legal, Chess::Bitboards::is_promotion_move;
 
@@ -413,7 +405,6 @@ void ChessWindow::HandleMoving_Selected()
 
 void ChessWindow::HandleMoving_Promotion()
 {
-	namespace Chess = Chess_Rework;
 	using Chess::Square, Chess::PieceType, Chess::Move;
 
 	if (PromotionType != PieceType::NoPieceType)
@@ -429,7 +420,7 @@ void ChessWindow::HandleMoving_Promotion()
 
 void ChessWindow::HandleMoving_PromotionCancel()
 {
-	PromotionType = Chess_Rework::PieceType::NoPieceType;
+	PromotionType = Chess::PieceType::NoPieceType;
 	SelectedSquare = TargetSquare = -1;
 	State = InputState::Idle;
 }

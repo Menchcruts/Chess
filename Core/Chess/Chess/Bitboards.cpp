@@ -3,7 +3,7 @@
 #include <vector>
 #include <iostream>
 
-namespace Chess_Rework::Bitboards
+namespace Chess::Bitboards
 {
 	static bool initialized = false;
 

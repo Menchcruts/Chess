@@ -3,7 +3,7 @@
 #include <vector>
 #include <string>
 
-namespace Chess_Rework
+namespace Chess
 {
 	class MoveGenerator
 	{

@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace Chess_Rework::Bitboards
+namespace Chess::Bitboards
 {
 	void init();
 	
@@ -182,28 +182,28 @@ namespace Chess_Rework::Bitboards
 
 		switch ( dir )
 		{
-		case Chess_Rework::Dir_North:
+		case Chess::Dir_North:
 			return 7 - Current_Rank;
 
-		case Chess_Rework::Dir_East:
+		case Chess::Dir_East:
 			return 7 - Current_File;
 
-		case Chess_Rework::Dir_South:
+		case Chess::Dir_South:
 			return Current_Rank;
 
-		case Chess_Rework::Dir_West:
+		case Chess::Dir_West:
 			return Current_File;
 
-		case Chess_Rework::Dir_NorthEast:
+		case Chess::Dir_NorthEast:
 			return std::min( Squares_to_Edge( sq, Dir_North ), Squares_to_Edge( sq, Dir_East ) );
 
-		case Chess_Rework::Dir_NorthWest:
+		case Chess::Dir_NorthWest:
 			return std::min( Squares_to_Edge( sq, Dir_North ), Squares_to_Edge( sq, Dir_West ) );
 
-		case Chess_Rework::Dir_SouthEast:
+		case Chess::Dir_SouthEast:
 			return std::min( Squares_to_Edge( sq, Dir_South ), Squares_to_Edge( sq, Dir_East ) );
 
-		case Chess_Rework::Dir_SouthWest:
+		case Chess::Dir_SouthWest:
 			return std::min( Squares_to_Edge( sq, Dir_South ), Squares_to_Edge( sq, Dir_West ) );
 
 		default:
@@ -274,10 +274,10 @@ namespace Chess_Rework::Bitboards
 
 		switch ( pt )
 		{
-		case Chess_Rework::Bishop:
-		case Chess_Rework::Rook:
+		case Chess::Bishop:
+		case Chess::Rook:
 			return Magics[sq][pt - Bishop].get_attacks( sq, blockers);
-		case Chess_Rework::Queen:
+		case Chess::Queen:
 			return attacks( sq, Rook, blockers ) | attacks( sq, Bishop, blockers );
 		default:
 			return 0;

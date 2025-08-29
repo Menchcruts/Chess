@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-namespace Chess_Rework
+namespace Chess
 {
 	class Chessboard_New;
 

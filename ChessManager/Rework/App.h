@@ -30,11 +30,11 @@ public:
 
 private:
 	std::vector<std::unique_ptr<Window>> m_Windows;
-	std::vector<Chess_Rework::Move> m_MoveHistory;
+	std::vector<Chess::Move> m_MoveHistory;
 	Logger m_Logger;
 
 	std::unique_ptr<assets::ImageManager> m_Images;
-	std::unique_ptr<Chess_Rework::Chessboard_New> m_Board;
+	std::unique_ptr<Chess::Chessboard_New> m_Board;
 	GLFWwindow* m_Window;
 
 private:

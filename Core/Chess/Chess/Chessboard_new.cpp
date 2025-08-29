@@ -6,13 +6,13 @@
 #include <charconv>
 #include <iostream>
 
-void Chess_Rework::Chessboard_New::ResetBoard()
+void Chess::Chessboard_New::ResetBoard()
 {
     // Reset the board to the initial position
     LoadFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 }
 
-void Chess_Rework::Chessboard_New::PlacePiece(Square sq, Piece piece)
+void Chess::Chessboard_New::PlacePiece(Square sq, Piece piece)
 {
 	if (!is_ok(sq))
 		return;
@@ -23,7 +23,7 @@ void Chess_Rework::Chessboard_New::PlacePiece(Square sq, Piece piece)
 	m_Bitboards.SetBit(sq, piece);
 }
 
-Chess_Rework::Piece Chess_Rework::Chessboard_New::RemovePiece(Square sq)
+Chess::Piece Chess::Chessboard_New::RemovePiece(Square sq)
 {
 	if ( !is_ok(sq))
 		return Piece::NoPiece;
@@ -34,7 +34,7 @@ Chess_Rework::Piece Chess_Rework::Chessboard_New::RemovePiece(Square sq)
 	return piece;
 }
 
-Chess_Rework::Piece Chess_Rework::Chessboard_New::GetPiece(Square sq) const
+Chess::Piece Chess::Chessboard_New::GetPiece(Square sq) const
 {
     if (!is_ok(sq))
 		return NoPiece;
@@ -42,33 +42,33 @@ Chess_Rework::Piece Chess_Rework::Chessboard_New::GetPiece(Square sq) const
 }
 
 /* Takes a string representing a square in normal chess notation, i.e. a5, b7 and so on, and converts it into a Square enum. */
-static Chess_Rework::Square square_from_string(const std::string& sq_as_str)
+static Chess::Square square_from_string(const std::string& sq_as_str)
 {
     if (sq_as_str.size() != 2)
-        return Chess_Rework::NoSquare;
+        return Chess::NoSquare;
     char file = sq_as_str[0];
     char rank = sq_as_str[1];
     if (file < 'a' || file > 'h' || rank < '1' || rank > '8')
-        return Chess_Rework::NoSquare;
-    return Chess_Rework::Square((rank - '1') * 8 + (file - 'a'));
+        return Chess::NoSquare;
+    return Chess::Square((rank - '1') * 8 + (file - 'a'));
 }
 
 /* Takes in a square and returns its string representation. Invalid squares return '-'.*/
-static std::string string_from_square(Chess_Rework::Square sq)
+static std::string string_from_square(Chess::Square sq)
 {
-    if (!Chess_Rework::is_ok(sq))
+    if (!Chess::is_ok(sq))
         return "-";
 
     const char* files = "abcdefgh";
     const char* ranks = "12345678";
     
-    auto rank = Chess_Rework::rank_of(sq);
-    auto file = Chess_Rework::file_of(sq);
+    auto rank = Chess::rank_of(sq);
+    auto file = Chess::file_of(sq);
     
     return { files[file], ranks[rank] };
 }
 
-void Chess_Rework::Chessboard_New::MakeMove(Move move)
+void Chess::Chessboard_New::MakeMove(Move move)
 {    
     // TODO: Implement null move logic
     
@@ -176,7 +176,7 @@ void Chess_Rework::Chessboard_New::MakeMove(Move move)
     GenerateMoves();
 }
 
-void Chess_Rework::Chessboard_New::UnMakeMove(Move move)
+void Chess::Chessboard_New::UnMakeMove(Move move)
 {
     if (m_MoveHistory.empty() || move != m_MoveHistory.back())
         return; // Future logging
@@ -239,7 +239,7 @@ void Chess_Rework::Chessboard_New::UnMakeMove(Move move)
     GenerateMoves();
 }
 
-void Chess_Rework::Chessboard_New::LoadFEN(const std::string_view& FEN_String)
+void Chess::Chessboard_New::LoadFEN(const std::string_view& FEN_String)
 {
 	std::vector<std::string> FEN_Tokens;
     for (auto&& token : FEN_String | std::views::split(' ')) {
@@ -346,7 +346,7 @@ void Chess_Rework::Chessboard_New::LoadFEN(const std::string_view& FEN_String)
 }
 
 /* This method creates a move with necessary flags for the user. */
-Chess_Rework::Move Chess_Rework::Chessboard_New::CreateMove(Square From, Square To, PieceType PromotionType) const
+Chess::Move Chess::Chessboard_New::CreateMove(Square From, Square To, PieceType PromotionType) const
 {
     PieceType PieceType = type_of(GetPiece(From));
     MoveFlag flag = MoveFlag::None;
@@ -386,7 +386,7 @@ Chess_Rework::Move Chess_Rework::Chessboard_New::CreateMove(Square From, Square 
     return make_move(From, To, flag);
 }
 
-std::string Chess_Rework::Chessboard_New::ExportFEN() const
+std::string Chess::Chessboard_New::ExportFEN() const
 {
     std::string result = Stringify_Board(m_BoardArray);
 
@@ -405,14 +405,14 @@ std::string Chess_Rework::Chessboard_New::ExportFEN() const
     return result;
 }
 
-void Chess_Rework::Chessboard_New::GenerateMoves()
+void Chess::Chessboard_New::GenerateMoves()
 {
     MoveGenerator gen(*this);
     gen.GenMoves(m_Moves);
     //MoveGenerator::GenerateMoves(*this, m_Moves);
 }
 
-Chess_Rework::PieceType Chess_Rework::Chessboard_New::GetPromotionPiece(MoveFlag flag) const
+Chess::PieceType Chess::Chessboard_New::GetPromotionPiece(MoveFlag flag) const
 {
     flag = MoveFlag(flag & 0b1011); // Filter out the capture flag if its there
     
@@ -428,7 +428,7 @@ Chess_Rework::PieceType Chess_Rework::Chessboard_New::GetPromotionPiece(MoveFlag
     return NoPieceType;
 }
 
-std::string Chess_Rework::Chessboard_New::Stringify_CastleRights(CastlingRights Rights)
+std::string Chess::Chessboard_New::Stringify_CastleRights(CastlingRights Rights)
 {
     std::string result;
 
@@ -444,7 +444,7 @@ std::string Chess_Rework::Chessboard_New::Stringify_CastleRights(CastlingRights 
     return result;
 }
 
-std::string Chess_Rework::Chessboard_New::Stringify_Board(const std::array<Piece, 64>& Board)
+std::string Chess::Chessboard_New::Stringify_Board(const std::array<Piece, 64>& Board)
 {
     std::string result;
 
@@ -452,18 +452,18 @@ std::string Chess_Rework::Chessboard_New::Stringify_Board(const std::array<Piece
         {
             switch (piece)
             {
-            case Chess_Rework::W_King:   return 'K';
-            case Chess_Rework::W_Pawn:   return 'P';
-            case Chess_Rework::W_Knight: return 'N';
-            case Chess_Rework::W_Bishop: return 'B';
-            case Chess_Rework::W_Rook:   return 'R';
-            case Chess_Rework::W_Queen:  return 'Q';
-            case Chess_Rework::B_King:   return 'k';
-            case Chess_Rework::B_Pawn:   return 'p';
-            case Chess_Rework::B_Knight: return 'n';
-            case Chess_Rework::B_Bishop: return 'b';
-            case Chess_Rework::B_Rook:   return 'r';
-            case Chess_Rework::B_Queen:  return 'q';
+            case Chess::W_King:   return 'K';
+            case Chess::W_Pawn:   return 'P';
+            case Chess::W_Knight: return 'N';
+            case Chess::W_Bishop: return 'B';
+            case Chess::W_Rook:   return 'R';
+            case Chess::W_Queen:  return 'Q';
+            case Chess::B_King:   return 'k';
+            case Chess::B_Pawn:   return 'p';
+            case Chess::B_Knight: return 'n';
+            case Chess::B_Bishop: return 'b';
+            case Chess::B_Rook:   return 'r';
+            case Chess::B_Queen:  return 'q';
             default:                     return ' ';
             }
         };

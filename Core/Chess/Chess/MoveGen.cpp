@@ -4,7 +4,7 @@
 #include <iostream>
 #include <algorithm>
 
-namespace Chess_Rework
+namespace Chess
 {
 	static std::string GetMoveRepr(Move move)
 	{
@@ -37,7 +37,7 @@ namespace Chess_Rework
 	}
 }
 
-Chess_Rework::MoveGenerator::MoveGenerator(const Chessboard_New& board) : 
+Chess::MoveGenerator::MoveGenerator(const Chessboard_New& board) : 
 	Board(board),
 	
 	WhiteToMove(board.m_WhiteToMove),
@@ -57,7 +57,7 @@ Chess_Rework::MoveGenerator::MoveGenerator(const Chessboard_New& board) :
 	CreatePinnedBitboard();
 }
 
-void Chess_Rework::MoveGenerator::GenMoves(std::vector<Move>& moves) const
+void Chess::MoveGenerator::GenMoves(std::vector<Move>& moves) const
 {
 	using Bitboards::from_sq, Bitboards::bitscan_forward_auto;
 	if (moves.capacity() < 218)
@@ -78,7 +78,7 @@ void Chess_Rework::MoveGenerator::GenMoves(std::vector<Move>& moves) const
 	}
 }
 
-void Chess_Rework::MoveGenerator::PerPiece(Square sq, Piece piece, std::vector<Move>& moves) const
+void Chess::MoveGenerator::PerPiece(Square sq, Piece piece, std::vector<Move>& moves) const
 {
 	namespace BB = Bitboards;
 
@@ -113,7 +113,7 @@ void Chess_Rework::MoveGenerator::PerPiece(Square sq, Piece piece, std::vector<M
 	AddAttacks(sq, type, Attacks, moves);
 }
 
-void Chess_Rework::MoveGenerator::AddAttacks(Square sq, PieceType type, Bitboard Attacks, std::vector<Move>& moves) const
+void Chess::MoveGenerator::AddAttacks(Square sq, PieceType type, Bitboard Attacks, std::vector<Move>& moves) const
 {
 	namespace BB = Bitboards;
 	
@@ -145,7 +145,7 @@ void Chess_Rework::MoveGenerator::AddAttacks(Square sq, PieceType type, Bitboard
 	}
 }
 
-void Chess_Rework::MoveGenerator::AddMove(Square sq, Square to_sq, std::vector<MoveFlag> flags, std::vector<Move>& moves) const
+void Chess::MoveGenerator::AddMove(Square sq, Square to_sq, std::vector<MoveFlag> flags, std::vector<Move>& moves) const
 {
 	for (auto& flag : flags)
 		moves.emplace_back(make_move(
@@ -155,7 +155,7 @@ void Chess_Rework::MoveGenerator::AddMove(Square sq, Square to_sq, std::vector<M
 		));
 }
 
-void Chess_Rework::MoveGenerator::AddMove(Square sq, Square to_sq, MoveFlag flag, std::vector<Move>& moves) const
+void Chess::MoveGenerator::AddMove(Square sq, Square to_sq, MoveFlag flag, std::vector<Move>& moves) const
 {
 	moves.emplace_back(make_move(
 		sq,
@@ -164,7 +164,7 @@ void Chess_Rework::MoveGenerator::AddMove(Square sq, Square to_sq, MoveFlag flag
 	));
 }
 
-void Chess_Rework::MoveGenerator::CreateAttackedBitboard()
+void Chess::MoveGenerator::CreateAttackedBitboard()
 {
 	using Bitboards::from_sq, Bitboards::bitscan_forward_auto, Bitboards::get_between_bb;
 
@@ -200,7 +200,7 @@ void Chess_Rework::MoveGenerator::CreateAttackedBitboard()
 	}
 }
 
-void Chess_Rework::MoveGenerator::CreatePinnedBitboard()
+void Chess::MoveGenerator::CreatePinnedBitboard()
 {
 	using Bitboards::bitscan_forward_auto, Bitboards::get_between_bb;
 	PinnedPieces = 0;
@@ -219,7 +219,7 @@ void Chess_Rework::MoveGenerator::CreatePinnedBitboard()
 	}
 }
 
-void Chess_Rework::MoveGenerator::AddPawnPushes(Square sq, std::vector<Move>& moves) const
+void Chess::MoveGenerator::AddPawnPushes(Square sq, std::vector<Move>& moves) const
 {
 	using Bitboards::from_sq, Bitboards::bitscan_forward;
 
@@ -272,7 +272,7 @@ void Chess_Rework::MoveGenerator::AddPawnPushes(Square sq, std::vector<Move>& mo
 	}
 }
 
-void Chess_Rework::MoveGenerator::AddCastlingMoves(std::vector<Move>& moves) const
+void Chess::MoveGenerator::AddCastlingMoves(std::vector<Move>& moves) const
 {
 	using Bitboards::from_sq, Bitboards::shift;
 
@@ -308,7 +308,7 @@ void Chess_Rework::MoveGenerator::AddCastlingMoves(std::vector<Move>& moves) con
 	}
 }
 
-bool Chess_Rework::MoveGenerator::CanEPCapture() const
+bool Chess::MoveGenerator::CanEPCapture() const
 {
 	using Bitboards::from_sq;
 	
@@ -327,14 +327,14 @@ bool Chess_Rework::MoveGenerator::CanEPCapture() const
 	return !(LineThrough & opRQ);
 }
 
-Chess_Rework::Bitboard Chess_Rework::MoveGenerator::RookXRay(Square sq, Bitboard occupied, Bitboard blockers)
+Chess::Bitboard Chess::MoveGenerator::RookXRay(Square sq, Bitboard occupied, Bitboard blockers)
 {
 	Bitboard attacks = Bitboards::attacks(sq, PieceType::Rook, occupied);
 	blockers &= attacks;
 	return attacks ^ Bitboards::attacks(sq, PieceType::Rook, occupied ^ blockers);
 }
 
-Chess_Rework::Bitboard Chess_Rework::MoveGenerator::BishopXRay(Square sq, Bitboard occupied, Bitboard blockers)
+Chess::Bitboard Chess::MoveGenerator::BishopXRay(Square sq, Bitboard occupied, Bitboard blockers)
 {
 	Bitboard attacks = Bitboards::attacks(sq, PieceType::Bishop, occupied);
 	blockers &= attacks;
