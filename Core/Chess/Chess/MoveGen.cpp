@@ -57,7 +57,7 @@ Chess::MoveGenerator::MoveGenerator(const Chessboard* board) :
 	CreatePinnedBitboard();
 }
 
-void Chess::MoveGenerator::GenMoves(std::vector<Move>& moves) const
+void Chess::MoveGenerator::GenerateMoves(std::vector<Move>& moves) const
 {
 	using Bitboards::from_sq, Bitboards::bitscan_forward_auto;
 	if (moves.capacity() < 218)

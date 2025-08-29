@@ -38,7 +38,7 @@ namespace Chess
 
 	public:
 		MoveGenerator(const Chessboard* board);
-		void GenMoves(std::vector<Move>& moves) const;
+		void GenerateMoves(std::vector<Move>& moves) const;
 		
 		[[deprecated("RunPerft deprecated. Users should implement their own Perft function.")]]
 		static int RunPerft(...) { return 0; }
