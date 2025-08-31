@@ -2,6 +2,7 @@
 #include <imgui.h>
 #include <iostream>
 #include <format>
+#include <bitset>
 #include "../../Assets/Fonts/Icons/IconsFontAwesome5Pro.h"
 
 PerftWindow::PerftWindow(std::string name, const Chess::Chessboard& board) noexcept :
@@ -55,13 +56,35 @@ void PerftWindow::StartTest(int Depth)
 {
 	auto result = std::make_shared<PerftResult>(Board, Board.ExportFEN());
 
+	auto func = [result, Depth](std::stop_token st)
+		{
+			if (Depth <= 0)
+			{
+				result->Nodes = 1;
+				result->Running = false;
+				return;
+			}
+
+			auto moves = result->Board.GetMoves();
+			for (auto& move : moves)
+			{
+				std::uint64_t nodes = 0;
+
+				if (st.stop_requested()) break;
+
+				result->Board.MakeMove(move);
+				nodes = perft(result->Board, Depth - 1, st);
+				result->Nodes += nodes;
+				result->Board.UnMakeMove(move);
+
+				result->Breakdown.emplace(move, nodes);
+			}
+			result->Running = false;
+		};
+
 	Jobs.emplace_back(
 		result,
-		std::jthread([result, Depth](std::stop_token st)
-			{
-				result->Nodes = perft(result->Board, Depth, st);
-				result->Running = false;
-			})
+		std::jthread(func)
 	);
 }
 
@@ -84,15 +107,15 @@ void PerftWindow::DrawResult(PerftResult& Result, int idx)
 	float font_size = ImGui::GetFontSize();
 
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.f);
-	
-	ImGui::PushFont(nullptr, font_size*1.1f);
+
+	ImGui::PushFont(nullptr, font_size * 1.1f);
 	if (ImGui::SmallButton(std::format("Copy {}##Copy{}", ICON_FA_COPY, idx).c_str()))
 		ImGui::SetClipboardText(Result.FEN.c_str());
 	ImGui::PopFont();
-	
+
 	ImGui::PopStyleVar(1);
 
-	if (Result.Running.load())
+	if (Result.Running.load())	// Perft still running
 	{
 		if (ImGui::Button(std::format("Cancel##{}", idx).c_str()))
 		{
@@ -101,9 +124,57 @@ void PerftWindow::DrawResult(PerftResult& Result, int idx)
 		ImGui::SameLine();
 		ImGui::TextUnformatted("Perft test running...");
 	}
-	else
+	else // Draw results
 	{
 		ImGui::Text("Nodes: %I64u", Result.Nodes.load());
+		std::string header_label = std::format("Per move breakdown##breakdown{}", idx);
+		if (ImGui::CollapsingHeader(header_label.c_str()))
+		{
+			std::string table_label = std::format("BreakdownTable##BreakdownTable{}", idx);
+			std::string copy_label = std::format("Copy breakdown##CopyBreakdownTable{}", idx);
+			if (ImGui::SmallButton(copy_label.c_str()))
+			{
+				std::string result = "";
+				for (auto& [move, nodes] : Result.Breakdown)
+				{
+					result += std::format("{}: {}\n", Chess::GetMoveRepr(move), nodes);
+				}
+				ImGui::SetClipboardText(result.c_str());
+			}
+
+			if (ImGui::BeginTable(table_label.c_str(), 5))
+			{
+				ImGui::TableSetupColumn("Move");
+				ImGui::TableSetupColumn("Nodes");
+				ImGui::TableSetupColumn("From");
+				ImGui::TableSetupColumn("To");
+				ImGui::TableSetupColumn("Flag");
+
+				ImGui::TableHeadersRow();
+				
+				ImGui::TableNextRow();
+				for (auto& [move, nodes] : Result.Breakdown)
+				{
+					ImGui::TableNextColumn();
+					ImGui::Text("%s", Chess::GetMoveRepr(move).c_str());
+
+					ImGui::TableNextColumn();
+					ImGui::Text("%I64u", nodes);
+
+					ImGui::TableNextColumn();
+					ImGui::Text("%d", Chess::from_square(move));
+
+					ImGui::TableNextColumn();
+					ImGui::Text("%d", Chess::to_square(move));
+
+					ImGui::TableNextColumn();
+					ImGui::Text("%s", std::bitset<4>(Chess::move_flag(move)).to_string().c_str());
+				}
+
+				ImGui::EndTable();
+			}
+
+		}
 	}
 }
 

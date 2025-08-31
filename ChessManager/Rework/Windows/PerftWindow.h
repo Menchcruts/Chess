@@ -1,10 +1,11 @@
 #pragma once
 #include "Window.h"
 #include <vector>
+#include <unordered_map>
 #include <thread>
 #include <memory>
 #include <atomic>
-//#include "Chess/types.h"
+#include "Chess/types.h"
 #include "Chess/Chessboard_new.h"
 
 
@@ -14,7 +15,10 @@ public:
 	struct PerftResult
 	{
 		Chess::Chessboard Board;
+
 		std::string FEN;
+
+		std::unordered_map<Chess::Move, std::uint64_t> Breakdown{};
 
 		std::atomic<std::uint64_t>  Nodes{ 0 };
 		std::atomic<bool>			Running{ true };
