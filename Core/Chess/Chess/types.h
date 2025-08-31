@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <string>
 
 namespace Chess
 {
@@ -207,5 +208,37 @@ namespace Chess
 	}
 	inline constexpr void set_flag(Move& m, MoveFlag flag) { 
 		m = Move((int(m) & 0xFFF) | (int(flag) << 12));
+	}
+
+	static std::string GetMoveRepr(Move move)
+	{
+		const char* files = "abcdefgh";
+		const char* ranks = "12345678";
+
+		Square from = from_square(move);
+		Rank from_rank = rank_of(from);
+		File from_file = file_of(from);
+
+		Square to = to_square(move);
+		Rank to_rank = rank_of(to);
+		File to_file = file_of(to);
+
+		std::string result = { files[from_file], ranks[from_rank], files[to_file], ranks[to_rank] };
+
+		MoveFlag flag = move_flag(move);
+		if (flag & MoveFlag::PromoteKnight)
+		{
+			flag = MoveFlag(flag & 0b1011);
+			if (flag == MoveFlag::PromoteKnight)
+				result.push_back('n');
+			else if (flag == MoveFlag::PromoteBishop)
+				result.push_back('b');
+			else if (flag == MoveFlag::PromoteRook)
+				result.push_back('r');
+			else if (flag == MoveFlag::PromoteQueen)
+				result.push_back('q');
+		}
+
+		return result;
 	}
 }
