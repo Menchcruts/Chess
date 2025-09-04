@@ -5,6 +5,7 @@
 #include <thread>
 #include <memory>
 #include <atomic>
+#include <chrono>
 #include "Chess/types.h"
 #include "Chess/Chessboard_new.h"
 
@@ -14,11 +15,15 @@ class PerftWindow : public Window
 public:
 	struct PerftResult
 	{
-		Chess::Chessboard Board;
-
-		std::string FEN;
+		using Clock = std::chrono::system_clock;
 
 		std::unordered_map<Chess::Move, std::uint64_t> Breakdown{};
+		std::string FEN;
+
+		Clock::time_point StartTime{};
+		Clock::time_point EndTime{};
+
+		int Depth = 0;
 
 		std::atomic<std::uint64_t>  Nodes{ 0 };
 		std::atomic<bool>			Running{ true };

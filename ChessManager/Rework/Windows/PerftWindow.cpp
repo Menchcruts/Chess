@@ -61,32 +61,39 @@ void PerftWindow::Draw() noexcept
 
 void PerftWindow::StartTest(int Depth)
 {
-	auto result = std::make_shared<PerftResult>(Board, Board.ExportFEN());
+	auto result = std::make_shared<PerftResult>(/*Board, Board.ExportFEN()*/);
+	result->Depth = Depth;
+	result->FEN = Board.ExportFEN();
 
-	auto func = [result, Depth](std::stop_token st)
+	auto func = [=](std::stop_token st)
 		{
+			Chess::Chessboard Board = this->Board;
+			result->StartTime = PerftResult::Clock::now();
+			
 			if (Depth <= 0)
 			{
 				result->Nodes = 1;
 				result->Running = false;
+				result->EndTime = PerftResult::Clock::now();
 				return;
 			}
 
-			auto moves = result->Board.GetMoves();
+			auto moves = Board.GetMoves();
 			for (auto& move : moves)
 			{
 				std::uint64_t nodes = 0;
 
 				if (st.stop_requested()) break;
 
-				result->Board.MakeMove(move);
-				nodes = perft(result->Board, Depth - 1, st);
+				Board.MakeMove(move);
+				nodes = perft(Board, Depth - 1, st);
 				result->Nodes += nodes;
-				result->Board.UnMakeMove(move);
+				Board.UnMakeMove(move);
 
 				result->Breakdown.emplace(move, nodes);
 			}
 			result->Running = false;
+			result->EndTime = PerftResult::Clock::now();
 		};
 
 	Jobs.emplace_back(
@@ -105,6 +112,7 @@ void PerftWindow::DrawResults()
 
 void PerftWindow::DrawResult(PerftResult& Result, int idx)
 {
+	using namespace std::chrono;
 	std::string label = std::format("Result #{}", idx + 1);
 	ImGui::SeparatorText(label.c_str());
 
@@ -122,18 +130,30 @@ void PerftWindow::DrawResult(PerftResult& Result, int idx)
 
 	ImGui::PopStyleVar(1);
 
+	ImGui::Text("Depth: %d", Result.Depth);
+	
 	if (Result.Running.load())	// Perft still running
 	{
+		auto time_elapsed = floor<seconds>(PerftResult::Clock::now() - Result.StartTime);
 		if (ImGui::Button(std::format("Cancel##{}", idx).c_str()))
 		{
 			Jobs[idx].thread.request_stop();
 		}
 		ImGui::SameLine();
 		ImGui::TextUnformatted("Perft test running...");
+		ImGui::TextUnformatted(
+			std::format("Time elapsed: {:%T}", time_elapsed).c_str()
+		);
 	}
 	else // Draw results
 	{
+		auto time_taken = floor<milliseconds>(Result.EndTime - Result.StartTime);
+		
 		ImGui::Text("Total nodes: %I64u", Result.Nodes.load());
+		ImGui::TextUnformatted(
+			std::format("Time taken: {:%T}", time_taken).c_str()
+		);
+
 		std::string header_label = std::format("Per move breakdown##breakdown{}", idx);
 		if (ImGui::CollapsingHeader(header_label.c_str()))
 		{
