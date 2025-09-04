@@ -10,9 +10,10 @@ ChessWindow::ChessWindow(
 	Chess::Chessboard& board, 
 	std::function<void(Chess::Move)> MakeMoveFunc,
 	std::function<void()> UnMakeMoveFunc,
+	std::function<void(std::string_view)> LoadFENFunc,
 	assets::ImageManager& images
 ) :
-	Window(std::move(Name)), Board(board), MakeMove(MakeMoveFunc), UnMakeMove(UnMakeMoveFunc), Images(images)
+	Window(std::move(Name)), Board(board), MakeMove(MakeMoveFunc), UnMakeMove(UnMakeMoveFunc), LoadFEN(LoadFENFunc), Images(images)
 {
 	MoveHistory.reserve(8);
 }
@@ -40,6 +41,13 @@ void ChessWindow::Draw()
 	if (ImGui::Button("Unmake last move"))
 	{
 		UnMakeMove();
+	}
+
+	static char fen_buffer[128];
+	if (ImGui::InputText("##LoadFEN", fen_buffer, IM_ARRAYSIZE(fen_buffer), ImGuiInputTextFlags_EnterReturnsTrue))
+	{
+		LoadFEN(fen_buffer);
+		memset(fen_buffer, 0, sizeof(fen_buffer));
 	}
 
 	ImGui::End();

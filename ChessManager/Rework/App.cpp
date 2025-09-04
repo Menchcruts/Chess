@@ -120,11 +120,17 @@ void App::LoadWindows()
             this->m_Board->UnMakeMove(last_move);
         };
     
+    auto LoadFEN = [this](std::string_view FEN)
+        {
+            this->m_Board->LoadFEN(FEN);
+        };
+
     (void)AddWindow<ChessWindow>(
         "Chessboard", 
         *m_Board,
         MakeMove,
-        UnMakeMove
+        UnMakeMove,
+        LoadFEN
     );
 
     (void)AddWindow<PerftWindow>(

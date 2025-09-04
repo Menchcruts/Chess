@@ -31,9 +31,16 @@ void PerftWindow::Draw() noexcept
 		ImGui::SameLine();
 
 		std::string button_label = std::format("Run at depth {}##RunPerft", depth);
+		std::string button2_label = std::format("Run perft 1-5##RunPerftMany", depth);
 		if (ImGui::Button(button_label.c_str()))
 		{
 			StartTest(depth);
+		}
+		
+		if (ImGui::Button(button2_label.c_str()))
+		{
+			for (int i = 1; i < 6; i++)
+				StartTest(i);
 		}
 
 		std::string sep_label = std::format("{} Results##Results", Jobs.size());
@@ -126,7 +133,7 @@ void PerftWindow::DrawResult(PerftResult& Result, int idx)
 	}
 	else // Draw results
 	{
-		ImGui::Text("Nodes: %I64u", Result.Nodes.load());
+		ImGui::Text("Total nodes: %I64u", Result.Nodes.load());
 		std::string header_label = std::format("Per move breakdown##breakdown{}", idx);
 		if (ImGui::CollapsingHeader(header_label.c_str()))
 		{

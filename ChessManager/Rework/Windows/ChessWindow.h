@@ -14,6 +14,7 @@ public:
 		Chess::Chessboard& board,
 		std::function<void(Chess::Move)> MakeMoveFunc,
 		std::function<void()> UnMakeMoveFunc,
+		std::function<void(std::string_view)> LoadFENFunc,
 		assets::ImageManager& images
 	);
 	void Draw();
@@ -53,6 +54,7 @@ private:
 private:
 	std::function<void(Chess::Move)> MakeMove;
 	std::function<void()> UnMakeMove;
+	std::function<void(std::string_view)> LoadFEN;
 	std::vector<Chess::Move> MoveHistory;
 
 	WindowColors Colors;
