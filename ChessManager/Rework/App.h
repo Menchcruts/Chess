@@ -8,6 +8,7 @@
 #include <vector>
 #include <memory>
 #include <concepts>
+#include <format>
 
 #include "Utils/Logger.h"
 #include "Windows/Window.h"
@@ -50,7 +51,8 @@ private:
 	template<class _Window, typename... Args> requires WindowType<_Window>
 	_Window& AddWindow(std::string name, Args&&... args)
 	{
-		std::string label = name + "##" + std::to_string(m_Windows.size());
+		std::string label = std::format("{}##{}", name, m_Windows.size());
+		//std::string label = name + "##" + std::to_string(m_Windows.size());
 		
 		auto emplace = [this, label = std::move(label)](auto&&... xs) mutable -> _Window&
 			{
