@@ -82,7 +82,7 @@ void Chess::MoveGenerator::PerPiece(Square sq, Piece piece, std::vector<Move>& m
 		AddCastlingMoves(moves);
 		break;
 	case Pawn:
-		if (CanEPCapture())
+		if (CanEPCapture(sq))
 			Attacks &= EnemyPieces | BB::from_sq(Board->m_EP_Square);
 		else
 			Attacks &= EnemyPieces;
@@ -216,6 +216,8 @@ void Chess::MoveGenerator::AddPawnPushes(Square sq, std::vector<Move>& moves)
 	Bitboard Single = from_sq(sq + ForwardDir);
 	Bitboard Double = Bitboards::shift(Single, ForwardDir);
 	
+	Bitboard Combined = Single | Double;
+
 	if (Bitboards::is_occupied(PinnedPieces, sq))
 	{
 		Bitboard PinLine = Bitboards::get_line_bb(KingSquare, sq);
@@ -228,12 +230,10 @@ void Chess::MoveGenerator::AddPawnPushes(Square sq, std::vector<Move>& moves)
 		Double &= CheckRays;
 	}
 
-	Bitboard Combined = Single | Double;
-
 	bool promoting = rank_of(sq + ForwardDir) == PromotionRank;
 	bool can_double_push = rank_of(sq) == StartRank;
 
-	if (!(Single & AllPieces))	// Single push
+	if (Single && !(Single & AllPieces))	// Single push
 	{
 		Square to_sq = bitscan_forward(Single);
 		LegalTargets[sq] |= Single;
@@ -294,7 +294,7 @@ void Chess::MoveGenerator::AddCastlingMoves(std::vector<Move>& moves)
 	}
 }
 
-bool Chess::MoveGenerator::CanEPCapture() const
+bool Chess::MoveGenerator::CanEPCapture(Square sq) const
 {
 	using Bitboards::from_sq;
 	
@@ -308,7 +308,7 @@ bool Chess::MoveGenerator::CanEPCapture() const
 	
 	Bitboard LineThrough = Bitboards::attacks(
 		KingSquare, Rook, 
-		AllPieces ^ (from_sq(Board->m_EP_Square) | from_sq(EPCaptureSq))
+		AllPieces ^ (from_sq(sq) | from_sq(Board->m_EP_Square) | from_sq(EPCaptureSq))
 	);
 	return !(LineThrough & opRQ);
 }

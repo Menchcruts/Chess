@@ -63,7 +63,7 @@ namespace Chess
 		void AddPawnPushes(Square sq, std::vector<Move>& moves);
 		void AddCastlingMoves(std::vector<Move>& moves);
 		
-		bool CanEPCapture() const;
+		bool CanEPCapture(Square sq) const;
 
 		static Bitboard RookXRay(Square sq, Bitboard occupied, Bitboard blockers);
 		static Bitboard BishopXRay(Square sq, Bitboard occupied, Bitboard blockers);

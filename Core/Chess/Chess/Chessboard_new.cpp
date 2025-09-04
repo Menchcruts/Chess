@@ -129,6 +129,21 @@ void Chess::Chessboard::MakeMove(Move move)
     if (moving_piece_type == King && has_castling_rights(m_CastlingRights, color_mask))
 		m_CastlingRights ^= color_mask; // Remove castling rights for the color
 
+    if (is_capture && captured_piece_type == Rook)
+    {
+        Square OO_rook_sq  = m_WhiteToMove ? Square::SQ_H8 : Square::SQ_H1;
+        Square OOO_rook_sq = m_WhiteToMove ? Square::SQ_A8 : Square::SQ_A1;
+
+        CastlingRights EnemyOO  = m_WhiteToMove ? CastlingRights::Black_OO : CastlingRights::White_OO;
+        CastlingRights EnemyOOO = m_WhiteToMove ? CastlingRights::Black_OOO : CastlingRights::White_OOO;
+
+        if (capture_sq == OO_rook_sq && has_castling_rights(m_CastlingRights, EnemyOO))
+            m_CastlingRights ^= EnemyOO; // Remove kingside castling rights
+
+        else if (capture_sq == OOO_rook_sq && has_castling_rights(m_CastlingRights, EnemyOOO))
+            m_CastlingRights ^= EnemyOOO; // Remove queenside castling rights
+    }
+
     if (moving_piece_type == PieceType::Rook)
     {
 		Square OO_rook_sq     = m_WhiteToMove ? Square::SQ_H1 : Square::SQ_H8;
