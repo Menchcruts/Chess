@@ -1,5 +1,5 @@
 #include "MoveGen.h"
-#include "Chessboard_new.h"
+#include "Chessboard.h"
 #include "Bitboards.h"
 #include <iostream>
 #include <algorithm>
