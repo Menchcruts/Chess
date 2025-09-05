@@ -12,7 +12,7 @@
 
 #include "Utils/Logger.h"
 #include "Windows/Window.h"
-#include "Chess/Chessboard_new.h"
+#include "Chess/Chessboard.h"
 
 template<typename _Window>
 concept WindowType = std::derived_from<_Window, Window>;

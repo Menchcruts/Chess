@@ -7,7 +7,7 @@
 #include <atomic>
 #include <chrono>
 #include "Chess/types.h"
-#include "Chess/Chessboard_new.h"
+#include "Chess/Chessboard.h"
 
 
 class PerftWindow : public Window

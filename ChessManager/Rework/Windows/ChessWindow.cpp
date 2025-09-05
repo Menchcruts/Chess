@@ -1,6 +1,6 @@
 #include "ChessWindow.h"
 #include "imgui.h"
-#include "Chess/Chessboard_new.h"
+#include "Chess/Chessboard.h"
 
 #include <iostream>
 #include <format>
