@@ -17,6 +17,10 @@ project "Chess"
         "../Utils/"
     }
 
+    links {
+        "Utils"
+    }
+
     filter "system:windows"
         systemversion "latest"
         defines { }
