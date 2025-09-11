@@ -153,8 +153,13 @@ namespace Chess
 			return m_MoveHistory.empty() ? NullMove : m_MoveHistory.back();
 		}
 
-		const std::vector<Move>& GetMoves() const
+		const std::vector<Move>& GetMoves()
 		{
+			if (!m_GeneratedMoves)
+			{
+				GenerateMoves();
+				m_GeneratedMoves = true;
+			}
 			return m_Moves;
 		}
 		Move CreateMove(Square From, Square To, PieceType PromotionType = PieceType::NoPieceType) const;
@@ -181,6 +186,7 @@ namespace Chess
 		int m_FullMoveClock = 1;
 
 		bool m_WhiteToMove = true;
+		bool m_GeneratedMoves = false;
 		Square m_EP_Square = NoSquare;
 		
 		CastlingRights m_CastlingRights = CastlingRights::No_Castling;

@@ -91,11 +91,12 @@ void Chess::MoveGenerator::PerPiece(Square sq, Piece piece, std::vector<Move>& m
 	default:
 		if (IsPinned)
 			Attacks &= BB::get_line_bb(KingSquare, sq);
-		if (Check_Status > NoCheck)
+		if (InCheck)
 			Attacks &= CheckRays;
 		break;
 	}
-
+	if (type != King && InDoubleCheck)
+		return;
 	AddAttacks(sq, type, Attacks, moves);
 }
 
@@ -156,7 +157,8 @@ void Chess::MoveGenerator::CreateAttackedBitboard()
 
 	AttackedSquares = 0;
 	CheckRays = 0;
-	Check_Status = NoCheck;
+	InCheck = false;
+	InDoubleCheck = false;
 
 	Bitboard KingSq_BB = from_sq(KingSquare);
 
@@ -177,9 +179,9 @@ void Chess::MoveGenerator::CreateAttackedBitboard()
 			if (type != Pawn && type != Knight)
 				CheckRays |= get_between_bb(KingSquare, sq);
 
-			if (Check_Status & Check)
-				Check_Status |= DoubleCheck;
-			Check_Status |= Check;
+			if (InCheck)
+				InDoubleCheck = true;
+			InCheck = true;
 		}
 
 		AttackedSquares |= piece_attacks;
@@ -224,7 +226,7 @@ void Chess::MoveGenerator::AddPawnPushes(Square sq, std::vector<Move>& moves)
 		Single &= PinLine;
 		Double &= PinLine;
 	}
-	if (Check_Status > NoCheck)
+	if (InCheck)
 	{
 		Single &= CheckRays;
 		Double &= CheckRays;
@@ -262,7 +264,7 @@ void Chess::MoveGenerator::AddCastlingMoves(std::vector<Move>& moves)
 {
 	using Bitboards::from_sq, Bitboards::shift;
 
-	if (Check_Status > NoCheck)
+	if (InCheck)
 		return;	// Can't castle if in check
 
 	if (CastleRights & King_Side)

@@ -188,7 +188,7 @@ void Chess::Chessboard::MakeMove(Move move)
         ++m_HalfMoveClock; // Increment half move clock otherwise
 
 	m_WhiteToMove = !m_WhiteToMove; // Switch turn
-    GenerateMoves();
+    m_GeneratedMoves = false;
 }
 
 void Chess::Chessboard::UnMakeMove(Move move)
@@ -251,7 +251,7 @@ void Chess::Chessboard::UnMakeMove(Move move)
 		RemovePiece(rook_from_sq);
     }
 
-    GenerateMoves();
+    m_GeneratedMoves = false;
 }
 
 void Chess::Chessboard::LoadFEN(const std::string_view& FEN_String)
@@ -357,7 +357,7 @@ void Chess::Chessboard::LoadFEN(const std::string_view& FEN_String)
         }
 	}
 
-    GenerateMoves();
+    m_GeneratedMoves = false;
 }
 
 /* This method creates a move with necessary flags for the user. */

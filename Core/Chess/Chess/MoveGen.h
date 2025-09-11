@@ -8,16 +8,6 @@ namespace Chess
 {
 	class MoveGenerator
 	{
-		enum CheckStatus : std::uint8_t
-		{
-			NoCheck,
-			Check,
-			DoubleCheck
-		};
-
-		friend inline constexpr CheckStatus operator |(CheckStatus lhs, CheckStatus rhs) { return CheckStatus(int(lhs) | int(rhs)); }
-		friend inline constexpr CheckStatus& operator |=(CheckStatus& lhs, CheckStatus rhs) { return lhs = lhs | rhs; }
-
 	private:
 		std::array<Bitboard, 64> LegalTargets{};
 		std::array<Bitboard, 64> PromoMask{};
@@ -38,7 +28,8 @@ namespace Chess
 		bool WhiteToMove			= true;
 		CastlingRights CastleRights = No_Castling;
 
-		CheckStatus Check_Status	= NoCheck;
+		bool InCheck				= false;
+		bool InDoubleCheck			= false;
 
 	public:
 		std::vector<Move> GenerateMoves(const Chessboard* board);
